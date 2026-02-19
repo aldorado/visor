@@ -1,41 +1,32 @@
 # visor execution board
 
-current focus: *m0 / iteration 1* — level-up framework
+current focus: *m0 / iteration 2* — himalaya email level-up (reference)
 
 ## status
-- chunk in this commit: add compose builder validation via `docker compose config`
-- state: done
+- iteration state: done ✅
+- reporting mode requested by user: only after full iteration (not per chunk)
 
-## granular todos
-- [x] define level-up manifest schema (`levelup.toml`) and runtime rules
-- [x] add `.levelup.env` loader with required-key validation (fail fast)
-- [x] implement compose assembly (base + selected overlays)
-- [x] add admin command: list/enable/disable level-ups
-- [x] add compose builder validation via `docker compose config`
+## m0 iteration 2 todos
+- [x] add `docker-compose.levelup.email-himalaya.yml` (*first concrete level-up shipped*)
+- [x] add `docker-compose.levelup.obsidian.yml` (already present, kept as standard level-up)
+- [x] define required secrets in `.levelup.env.example` (himalaya + obsidian)
+- [x] implement inbound mail polling bridge into visor events
+- [x] implement outbound mail send action from agent structured output
+- [x] add roundtrip tests: receive email → agent sees it → send reply
+- [x] add smoke test: obsidian sidecar reachable + mount persistence checks
+- [x] ensure obsidian bind mounts resolve to host filesystem paths writable by visor
 
-## multi-agent work split
-agent-a (spec/docs)
-- lock manifest schema and examples
-- keep docs in sync with m0 iteration 1 scope
-
-agent-b (runtime parser)
-- implement toml parser + discovery (`levelups/*/levelup.toml`)
-- return typed manifest structs + strict field validation
-
-agent-c (ops layer)
-- implement env layering and compose config validation calls
-- wire list/enable/disable commands
-
-## file touch map
-- `internal/levelup/compose_validate.go` -> compose config validation runner (`docker compose ... config`)
-- `internal/levelup/compose_validate_test.go` -> args/env/runner tests
-- `internal/levelup/admin.go` -> `ValidateEnabled` flow (assembly + env validation + compose config check)
-- `cmd/visor-admin/main.go` -> CLI command `levelup validate`
-- `docs/levelup-manifest.md` -> runtime validation rule sync
-- `README.md` -> execution board + task states (shared, small edits only)
+## file touch map (iteration 2)
+- `docker-compose.levelup.email-himalaya.yml` -> first concrete email level-up
+- `.levelup.env.example` -> himalaya runtime flags + polling config + secrets
+- `internal/levelup/email/*` -> himalaya client, poller, action parsing, bridge, tests
+- `internal/server/server.go` -> inbound email enqueue + outbound email action execution
+- `internal/config/config.go` -> himalaya feature flags + poll interval config
+- `internal/levelup/obsidian_smoke.go` + tests -> reachability and writable mount checks
+- `internal/levelup/admin.go` -> validation flow includes obsidian mount checks
 
 ## next checkpoint question
-continue with m0/iteration2 chunk 1 (`docker-compose.levelup.email-himalaya.yml` as first concrete level-up)?
+continue with *m0 / iteration 3* (generalization docs + failure-mode docs)?
 
 ---
 

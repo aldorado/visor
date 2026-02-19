@@ -12,6 +12,9 @@ type Config struct {
 	UserChatID            string
 	Port                  int
 	AgentBackend          string // "pi", "claude", "echo" (default: "echo")
+	HimalayaEnabled       bool
+	HimalayaAccount       string
+	HimalayaPollInterval  int // seconds
 }
 
 func Load() (*Config, error) {
@@ -39,11 +42,24 @@ func Load() (*Config, error) {
 		backend = "echo"
 	}
 
+	himalayaEnabled := os.Getenv("HIMALAYA_ENABLED") == "1" || os.Getenv("HIMALAYA_ENABLED") == "true"
+	himalayaPollInterval := 60
+	if s := os.Getenv("HIMALAYA_POLL_INTERVAL_SECONDS"); s != "" {
+		v, err := strconv.Atoi(s)
+		if err != nil {
+			return nil, fmt.Errorf("HIMALAYA_POLL_INTERVAL_SECONDS must be a number: %w", err)
+		}
+		himalayaPollInterval = v
+	}
+
 	return &Config{
 		TelegramBotToken:      token,
 		TelegramWebhookSecret: os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
 		UserChatID:            userChatID,
 		Port:                  port,
 		AgentBackend:          backend,
+		HimalayaEnabled:       himalayaEnabled,
+		HimalayaAccount:       os.Getenv("HIMALAYA_ACCOUNT"),
+		HimalayaPollInterval:  himalayaPollInterval,
 	}, nil
 }

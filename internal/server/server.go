@@ -9,19 +9,23 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"visor/internal/agent"
 	"visor/internal/config"
+	emaillevelup "visor/internal/levelup/email"
 	"visor/internal/platform/telegram"
 )
 
 type Server struct {
-	cfg   *config.Config
-	mux   *http.ServeMux
-	tg    *telegram.Client
-	dedup *telegram.Dedup
-	agent *agent.QueuedAgent
+	cfg         *config.Config
+	mux         *http.ServeMux
+	tg          *telegram.Client
+	dedup       *telegram.Dedup
+	agent       *agent.QueuedAgent
+	emailSender emaillevelup.Sender
+	emailPoller *emaillevelup.Poller
 }
 
 func New(cfg *config.Config, a agent.Agent) *Server {
@@ -34,10 +38,44 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		dedup: telegram.NewDedup(5 * time.Minute),
 	}
 
+	if cfg.HimalayaEnabled {
+		himalaya := emaillevelup.NewHimalayaClient(cfg.HimalayaAccount)
+		s.emailSender = himalaya
+		s.emailPoller = emaillevelup.NewPoller(himalaya, time.Duration(cfg.HimalayaPollInterval)*time.Second, func(msg emaillevelup.IncomingMessage) {
+			s.agent.Enqueue(context.Background(), agent.Message{
+				ChatID:  mustParseChatID(cfg.UserChatID),
+				Content: emaillevelup.FormatInboundForAgent(msg),
+				Type:    "email",
+			})
+		})
+	}
+
 	s.agent = agent.NewQueuedAgent(a, func(chatID int64, response string, err error) {
 		if err != nil {
 			log.Printf("agent: error: %v", err)
 			response = fmt.Sprintf("error: %v", err)
+		}
+
+		if s.emailSender != nil {
+			clean, actions, parseErr := emaillevelup.ExtractActions(response)
+			if parseErr != nil {
+				log.Printf("email action parse failed: %v", parseErr)
+				response = response + "\n\n(email action parse failed)"
+			} else {
+				response = clean
+				if len(actions) > 0 {
+					if sendErr := emaillevelup.ExecuteActions(context.Background(), s.emailSender, actions); sendErr != nil {
+						log.Printf("email send failed: %v", sendErr)
+						response = strings.TrimSpace(response + "\n\nemail send failed: " + sendErr.Error())
+					} else {
+						response = strings.TrimSpace(response + "\n\nemail action executed ✅")
+					}
+				}
+			}
+		}
+
+		if strings.TrimSpace(response) == "" {
+			response = "ok"
 		}
 		if sendErr := tg.SendMessage(chatID, response); sendErr != nil {
 			log.Printf("agent: send reply failed: %v", sendErr)
@@ -52,6 +90,12 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 func (s *Server) ListenAndServe() error {
 	addr := fmt.Sprintf(":%d", s.cfg.Port)
 	log.Printf("visor listening on %s", addr)
+
+	if s.emailPoller != nil {
+		go s.emailPoller.Start(context.Background())
+		log.Printf("email poller started")
+	}
+
 	return http.ListenAndServe(addr, s.mux)
 }
 
@@ -136,6 +180,14 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 func verifySignature(got, secret string) bool {
 	return hmac.Equal([]byte(got), []byte(secret))
+}
+
+func mustParseChatID(chatID string) int64 {
+	id, err := strconv.ParseInt(chatID, 10, 64)
+	if err != nil {
+		panic(fmt.Sprintf("invalid USER_PHONE_NUMBER/chat id: %s", chatID))
+	}
+	return id
 }
 
 func truncate(s string, n int) string {

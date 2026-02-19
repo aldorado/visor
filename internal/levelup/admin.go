@@ -145,7 +145,33 @@ func ValidateEnabled(ctx context.Context, projectRoot, baseComposeFile string) e
 		if err := ValidateRequiredEnv(env, manifest.RequiredEnv); err != nil {
 			return fmt.Errorf("level-up %s: %w", name, err)
 		}
+		if name == "obsidian" {
+			if err := ValidateObsidianMounts(env); err != nil {
+				return fmt.Errorf("level-up obsidian mounts: %w", err)
+			}
+		}
 	}
 
-	return ValidateComposeConfig(ctx, assembly, env)
+	if err := ValidateComposeConfig(ctx, assembly, env); err != nil {
+		return err
+	}
+
+	if isEnabled(state.Enabled, "obsidian") {
+		if smokeURL := env["OBSIDIAN_SMOKE_URL"]; smokeURL != "" {
+			if err := CheckObsidianReachable(ctx, smokeURL); err != nil {
+				return fmt.Errorf("obsidian smoke check failed: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func isEnabled(enabled []string, name string) bool {
+	for _, item := range enabled {
+		if item == name {
+			return true
+		}
+	}
+	return false
 }

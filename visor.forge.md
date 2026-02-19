@@ -212,14 +212,14 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
   - verify final model with `docker compose config` before apply
 
 #### Iteration 2: Himalaya email level-up (reference)
-- [ ] Add `docker-compose.levelup.email-himalaya.yml` (*first concrete level-up shipped*)
-- [ ] Add `docker-compose.levelup.obsidian.yml` (standard knowledge workspace level-up)
-- [ ] Define required secrets in `.levelup.env.example` (IMAP/SMTP host, user, app-password, tls flags + Obsidian auth/paths/ports)
-- [ ] Implement inbound mail polling/IDLE bridge into visor events
-- [ ] Implement outbound mail send action from agent structured output
-- [ ] Add roundtrip tests: receive email → agent sees it → send reply
-- [ ] Add smoke test: Obsidian sidecar is reachable and persists vault/config mounts
-- [ ] Ensure Obsidian bind mounts resolve to host filesystem paths accessible by visor runtime
+- [x] Add `docker-compose.levelup.email-himalaya.yml` (*first concrete level-up shipped*)
+- [x] Add `docker-compose.levelup.obsidian.yml` (standard knowledge workspace level-up)
+- [x] Define required secrets in `.levelup.env.example` (IMAP/SMTP host, user, app-password, tls flags + Obsidian auth/paths/ports)
+- [x] Implement inbound mail polling/IDLE bridge into visor events
+- [x] Implement outbound mail send action from agent structured output
+- [x] Add roundtrip tests: receive email → agent sees it → send reply
+- [x] Add smoke test: Obsidian sidecar is reachable and persists vault/config mounts
+- [x] Ensure Obsidian bind mounts resolve to host filesystem paths accessible by visor runtime
 
 #### Iteration 3: generalization docs
 - [ ] Write "how to build a level-up" guide using Himalaya as template
