@@ -201,7 +201,7 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 Lock the boundary first: visor is host-native, compose is sidecars-only. Then use Himalaya email as canonical first level-up.
 
 #### Iteration 1: level-up framework
-- [ ] Define level-up manifest format (`levelup.toml`) with name, compose overlay file, required env keys, healthcheck
+- [x] Define level-up manifest format (`levelup.toml`) with name, compose overlay file, required env keys, healthcheck
 - [ ] Add loader for `.levelup.env` with strict validation (fail fast if required vars missing)
 - [ ] Implement compose assembly strategy (base + selected overlays)
 - [ ] Add CLI/admin command to list/enable/disable level-ups

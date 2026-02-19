@@ -1,0 +1,18 @@
+name = "obsidian"
+display_name = "Obsidian Workspace"
+version = "0.1.0"
+description = "LinuxServer Obsidian sidecar with host bind mounts"
+kind = "infra"
+enabled_by_default = true
+compose_file = "docker-compose.levelup.obsidian.yml"
+healthcheck = "http://127.0.0.1:${OBSIDIAN_PORT:-3000}/"
+tags = ["obsidian", "knowledge", "standard"]
+required_env = [
+  "TZ",
+  "OBSIDIAN_PUID",
+  "OBSIDIAN_PGID",
+  "OBSIDIAN_CONFIG_PATH",
+  "OBSIDIAN_VAULT_PATH",
+  "OBSIDIAN_PORT",
+  "OBSIDIAN_HTTPS_PORT",
+]
