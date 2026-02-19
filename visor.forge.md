@@ -264,10 +264,10 @@ Guarantee full processing visibility for humans: readable request lifecycle logs
 - [x] Add level-up lifecycle logs: validate, enable/disable, compose config check, apply outcome
 
 #### Iteration 3: OTEL + SigNoz export
-- [ ] Initialize OTEL provider with env config (`OTEL_EXPORTER_OTLP_ENDPOINT`, service name, environment)
-- [ ] Add spans around webhook handling, agent processing, and level-up operations
-- [ ] Bridge slog -> OTEL events/attributes for key log lines
-- [ ] Add config toggle to disable OTEL cleanly without changing code paths
+- [x] Initialize OTEL provider with env config (`OTEL_EXPORTER_OTLP_ENDPOINT`, service name, environment)
+- [x] Add spans around webhook handling, agent processing, and level-up operations
+- [x] Bridge slog -> OTEL events/attributes for key log lines
+- [x] Add config toggle to disable OTEL cleanly without changing code paths
 
 #### Iteration 4: docs + operability
 - [ ] Add README section: where to read logs, verbose mode usage, sample output

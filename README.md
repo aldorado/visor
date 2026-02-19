@@ -1,30 +1,37 @@
 # visor execution board
 
-current focus: *m0b / iteration 2* — request lifecycle visibility
+current focus: *m0b / iteration 3* — otel + signoz export
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m0b iteration 2 todos
-- [x] add request-id middleware for all webhook paths
-- [x] log request lifecycle events (received, parsed, deduped, authorized, queued, processed, replied)
-- [x] add agent lifecycle logs (queueing, backend, duration, errors)
-- [x] add level-up lifecycle logs (list/enable/disable/validate + compose validation stage)
+## m0b iteration 3 todos
+- [x] initialize otel provider via env config (`OTEL_EXPORTER_OTLP_ENDPOINT`, service/env)
+- [x] add spans around webhook handling, agent processing, level-up operations
+- [x] bridge slog logs into otel events/attributes for key log lines
+- [x] add config toggle to disable otel cleanly (`OTEL_ENABLED=false`)
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
 - verbose mode: `LOG_LEVEL=debug`, `LOG_VERBOSE=true`
+- otel disabled: `OTEL_ENABLED=false`
+- otel enabled (signoz):
+  - `OTEL_ENABLED=true`
+  - `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`
+  - `OTEL_SERVICE_NAME=visor`
+  - `OTEL_ENVIRONMENT=dev`
 
-## file touch map (m0b it2)
-- `internal/observability/request.go` -> request-id middleware + request start/complete logs
-- `internal/server/server.go` -> webhook lifecycle stage logs + processed/replied logs
-- `internal/agent/queue.go` -> backend + duration + queue lifecycle logs
-- `internal/levelup/admin.go` -> level-up lifecycle logs around operations
-- `internal/agent/queue_test.go`, `internal/observability/request_test.go` -> signature + middleware tests
+## file touch map (m0b it3)
+- `internal/observability/otel.go` -> otel provider + tracer helpers
+- `internal/observability/logger.go` -> trace_id/span_id fields + span event bridge
+- `internal/server/server.go` -> webhook span instrumentation
+- `internal/agent/queue.go` -> agent processing spans
+- `internal/levelup/admin.go` -> level-up operation spans
+- `main.go`, `internal/config/config.go` -> otel config + init wiring
 
 ## next checkpoint question
-continue with *m0b / iteration 3* (otel + signoz export)?
+continue with *m0b / iteration 4* (docs + operability)?
 
 ---
 

@@ -7,6 +7,9 @@ import (
 	"os"
 	"runtime"
 	"strings"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type LogConfig struct {
@@ -51,14 +54,37 @@ func (l *Logger) Error(ctx context.Context, msg string, attrs ...any) {
 }
 
 func (l *Logger) log(ctx context.Context, level slog.Level, msg string, attrs ...any) {
-	args := make([]any, 0, len(attrs)+6)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	fn := caller(3)
+	args := make([]any, 0, len(attrs)+10)
 	args = append(args, "component", l.component)
-	args = append(args, "function", caller(3))
+	args = append(args, "function", fn)
+	otelAttrs := []attribute.KeyValue{
+		attribute.String("component", l.component),
+		attribute.String("function", fn),
+	}
 	if requestID := RequestIDFromContext(ctx); requestID != "" {
 		args = append(args, "request_id", requestID)
+		otelAttrs = append(otelAttrs, attribute.String("request_id", requestID))
 	}
+
+	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
+		args = append(args, "trace_id", sc.TraceID().String(), "span_id", sc.SpanID().String())
+		otelAttrs = append(otelAttrs,
+			attribute.String("trace_id", sc.TraceID().String()),
+			attribute.String("span_id", sc.SpanID().String()),
+		)
+	}
+
 	args = append(args, attrs...)
 	l.base.Log(ctx, level, msg, args...)
+
+	span := trace.SpanFromContext(ctx)
+	if span.IsRecording() {
+		span.AddEvent(msg, trace.WithAttributes(otelAttrs...))
+	}
 }
 
 func parseLevel(raw string) slog.Level {

@@ -21,6 +21,11 @@ type Config struct {
 	HimalayaPollInterval  int // seconds
 	LogLevel              string
 	LogVerbose            bool
+	OTELEnabled           bool
+	OTELEndpoint          string
+	OTELServiceName       string
+	OTELEnvironment       string
+	OTELInsecure          bool
 }
 
 func Load() (*Config, error) {
@@ -69,6 +74,17 @@ func Load() (*Config, error) {
 	}
 	logVerbose := os.Getenv("LOG_VERBOSE") == "1" || os.Getenv("LOG_VERBOSE") == "true"
 
+	otelEnabled := os.Getenv("OTEL_ENABLED") == "1" || os.Getenv("OTEL_ENABLED") == "true"
+	otelServiceName := os.Getenv("OTEL_SERVICE_NAME")
+	if otelServiceName == "" {
+		otelServiceName = "visor"
+	}
+	otelEnvironment := os.Getenv("OTEL_ENVIRONMENT")
+	if otelEnvironment == "" {
+		otelEnvironment = "dev"
+	}
+	otelInsecure := os.Getenv("OTEL_INSECURE") == "1" || os.Getenv("OTEL_INSECURE") == "true"
+
 	return &Config{
 		TelegramBotToken:      token,
 		TelegramWebhookSecret: os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
@@ -84,5 +100,10 @@ func Load() (*Config, error) {
 		HimalayaPollInterval:  himalayaPollInterval,
 		LogLevel:              logLevel,
 		LogVerbose:            logVerbose,
+		OTELEnabled:           otelEnabled,
+		OTELEndpoint:          os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		OTELServiceName:       otelServiceName,
+		OTELEnvironment:       otelEnvironment,
+		OTELInsecure:          otelInsecure,
 	}, nil
 }

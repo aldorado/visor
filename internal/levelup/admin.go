@@ -17,7 +17,8 @@ type Status struct {
 var adminLog = observability.Component("levelup.admin")
 
 func List(projectRoot string) ([]Status, error) {
-	ctx := context.Background()
+	ctx, span := observability.StartSpan(context.Background(), "levelup.list")
+	defer span.End()
 	adminLog.Debug(ctx, "list levelups start", "project_root", projectRoot)
 	manifests, err := DiscoverManifests(projectRoot)
 	if err != nil {
@@ -50,7 +51,8 @@ func List(projectRoot string) ([]Status, error) {
 }
 
 func Enable(projectRoot string, names []string) error {
-	ctx := context.Background()
+	ctx, span := observability.StartSpan(context.Background(), "levelup.enable")
+	defer span.End()
 	adminLog.Info(ctx, "enable levelups start", "project_root", projectRoot, "names", names)
 	if len(names) == 0 {
 		return fmt.Errorf("at least one level-up name is required")
@@ -91,7 +93,8 @@ func Enable(projectRoot string, names []string) error {
 }
 
 func Disable(projectRoot string, names []string) error {
-	ctx := context.Background()
+	ctx, span := observability.StartSpan(context.Background(), "levelup.disable")
+	defer span.End()
 	adminLog.Info(ctx, "disable levelups start", "project_root", projectRoot, "names", names)
 	if len(names) == 0 {
 		return fmt.Errorf("at least one level-up name is required")
@@ -132,6 +135,8 @@ func Disable(projectRoot string, names []string) error {
 }
 
 func ValidateEnabled(ctx context.Context, projectRoot, baseComposeFile string) error {
+	ctx, span := observability.StartSpan(ctx, "levelup.validate_enabled")
+	defer span.End()
 	adminLog.Info(ctx, "validate enabled levelups start", "project_root", projectRoot, "base_compose", baseComposeFile)
 	manifests, err := DiscoverManifests(projectRoot)
 	if err != nil {

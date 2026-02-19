@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"visor/internal/observability"
 )
 
@@ -67,6 +68,8 @@ func (qa *QueuedAgent) Enqueue(ctx context.Context, msg Message) {
 }
 
 func (qa *QueuedAgent) process(ctx context.Context, msg Message) {
+	ctx, span := observability.StartSpan(ctx, "agent.process", attribute.String("backend", qa.backend), attribute.String("message_type", msg.Type))
+	defer span.End()
 	qa.log.Debug(ctx, "agent prompt start", "chat_id", msg.ChatID, "message_type", msg.Type, "backend", qa.backend)
 	startedAt := nowMillis()
 	response, err := qa.agent.SendPrompt(ctx, msg.Content)
@@ -91,16 +94,18 @@ func (qa *QueuedAgent) process(ctx context.Context, msg Message) {
 		remaining := len(qa.queue)
 		qa.mu.Unlock()
 
-		qa.log.Debug(next.ctx, "agent processing queued message", "chat_id", next.msg.ChatID, "message_type", next.msg.Type, "backend", qa.backend, "remaining_queue", remaining)
+		nextCtx, nextSpan := observability.StartSpan(next.ctx, "agent.process", attribute.String("backend", qa.backend), attribute.String("message_type", next.msg.Type))
+		qa.log.Debug(nextCtx, "agent processing queued message", "chat_id", next.msg.ChatID, "message_type", next.msg.Type, "backend", qa.backend, "remaining_queue", remaining)
 		startedAt = nowMillis()
-		response, err := qa.agent.SendPrompt(next.ctx, next.msg.Content)
+		response, err := qa.agent.SendPrompt(nextCtx, next.msg.Content)
 		duration = nowMillis() - startedAt
+		nextSpan.End()
 		if err != nil {
-			qa.log.Error(next.ctx, "agent prompt error", "chat_id", next.msg.ChatID, "backend", qa.backend, "duration_ms", duration, "error", err.Error())
+			qa.log.Error(nextCtx, "agent prompt error", "chat_id", next.msg.ChatID, "backend", qa.backend, "duration_ms", duration, "error", err.Error())
 		} else {
-			qa.log.Info(next.ctx, "agent prompt processed", "chat_id", next.msg.ChatID, "backend", qa.backend, "duration_ms", duration)
+			qa.log.Info(nextCtx, "agent prompt processed", "chat_id", next.msg.ChatID, "backend", qa.backend, "duration_ms", duration)
 		}
-		qa.handler(next.ctx, next.msg.ChatID, response, err)
+		qa.handler(nextCtx, next.msg.ChatID, response, err)
 	}
 }
 

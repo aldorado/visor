@@ -137,6 +137,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
+	ctx, span := observability.StartSpan(r.Context(), "webhook.handle")
+	defer span.End()
+	r = r.WithContext(ctx)
+
 	s.log.Debug(r.Context(), "webhook lifecycle", "stage", "received", "method", r.Method, "path", r.URL.Path)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {

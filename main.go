@@ -22,6 +22,19 @@ func main() {
 	observability.Init(observability.LogConfig{Level: cfg.LogLevel, Verbose: cfg.LogVerbose})
 	log := observability.Component("main")
 
+	shutdownOTel, err := observability.InitOTel(context.Background(), observability.OTelConfig{
+		Enabled:     cfg.OTELEnabled,
+		Endpoint:    cfg.OTELEndpoint,
+		ServiceName: cfg.OTELServiceName,
+		Environment: cfg.OTELEnvironment,
+		Insecure:    cfg.OTELInsecure,
+	})
+	if err != nil {
+		log.Error(context.Background(), "otel init failed", "error", err.Error())
+		os.Exit(1)
+	}
+	defer shutdownOTel(context.Background())
+
 	a, err := createAgent(cfg)
 	if err != nil {
 		log.Error(context.Background(), "agent init failed", "error", err.Error())
