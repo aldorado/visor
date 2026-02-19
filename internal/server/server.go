@@ -427,10 +427,20 @@ func parseResponse(raw string) (text string, meta responseMeta) {
 
 func (s *Server) runSelfEvolution(chatID int64, commitMessage string) {
 	ctx := context.Background()
-	result, err := s.selfevolver.Apply(ctx, selfevolve.Request{CommitMessage: commitMessage, ChatID: chatID})
+	result, err := s.selfevolver.Apply(ctx, selfevolve.Request{
+		CommitMessage: commitMessage,
+		ChatID:        chatID,
+		Backend:       s.cfg.AgentBackend,
+	})
 	if err != nil {
 		s.log.Error(ctx, "self-evolution failed", "chat_id", chatID, "error", err.Error())
 		_ = s.tg.SendMessage(chatID, "self-evolution failed: "+truncate(err.Error(), 200))
+		return
+	}
+
+	if result.VetErr != "" {
+		s.log.Warn(ctx, "self-evolution vet failed, commit rolled back", "chat_id", chatID, "vet_error", result.VetErr)
+		_ = s.tg.SendMessage(chatID, "⚠️ go vet failed, rolled back:\n"+truncate(result.VetErr, 300))
 		return
 	}
 

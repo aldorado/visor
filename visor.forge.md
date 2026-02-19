@@ -419,11 +419,11 @@ Visor's agent can modify visor's own source code, commit, push, rebuild, and res
 - [x] Supervisor approach: visor spawns itself as a child, parent watches and restarts on exit. On self-update, child exits with special code, parent replaces binary and respawns.
 
 #### Iteration 3: safety rails
-- [ ] Pre-build validation: run `go vet` and basic checks before committing
-- [ ] Keep last N working binaries as rollback (e.g. `visor.bak.1`, `visor.bak.2`)
-- [ ] If new binary crashes within 30s of startup: auto-rollback to previous binary
-- [ ] Log all self-modifications to a dedicated changelog (who changed what, when, which agent backend)
-- [ ] User can disable self-evolution via config flag
+- [x] Pre-build validation: run `go vet` and basic checks before committing
+- [x] Keep last N working binaries as rollback (e.g. `visor.bak.1`, `visor.bak.2`)
+- [x] If new binary crashes within 30s of startup: auto-rollback to previous binary
+- [x] Log all self-modifications to a dedicated changelog (who changed what, when, which agent backend)
+- [x] User can disable self-evolution via config flag
 
 ### M9: multi-pi-subagent orchestration
 Visor can spawn multiple pi subagents in parallel, coordinate them, and return one merged final answer.

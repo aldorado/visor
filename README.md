@@ -1,18 +1,20 @@
 # visor execution board
 
-current focus: *m8 / iteration 2* — self-rebuild + restart
+current focus: *m8 / iteration 3* — safety rails
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m8 iteration 2 todos
-- [x] After commit: `go build -o visor-new .` compiles new binary in repo dir
-- [x] Build failure: notify user with error, `git reset HEAD~1` rollback, keep running old binary
-- [x] Build success: atomic binary replacement via rename (cross-device fallback)
-- [x] Graceful restart: exit with code 42 (ExitCodeRestart) for supervisor/systemd to respawn
-- [x] Server wiring: runSelfEvolution handles Result (build error → notify, built → restart)
-- [x] 8 new tests: disabled, no-changes, commit+build, build-failure-rollback, default-message, replace-binary, restart-exit-code, exit-code-value
+## m8 iteration 3 todos
+- [x] Pre-build validation: `go vet ./...` runs after commit, before build. Failure rolls back.
+- [x] Binary backup rotation: last 3 binaries kept as `.bak.1`/`.bak.2`/`.bak.3`, shifted on each build
+- [x] Crash detection: `ShouldAutoRollback()` checks if crashed within 30s of startup
+- [x] Auto-rollback: `AutoRollback()` restores latest backup + rolls back git commit
+- [x] Self-modification changelog: `data/selfevolve.log` with timestamp, backend, chat_id, commit message
+- [x] Disable via config: `SELF_EVOLUTION_ENABLED=false` (already wired from M8-I1)
+- [x] Server wiring: VetErr handling, backend passed to Request
+- [x] 13 tests total: +5 new (vet-failure-rollback, backup-rotation, latest-backup, crash-window, changelog)
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -36,14 +38,14 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m8 it2)
-- `internal/selfevolve/manager.go` -> Apply returns Result, go build pipeline, build-failure rollback, replaceBinary, Restart with ExitCodeRestart (42), exitFn for testing
-- `internal/selfevolve/manager_test.go` -> 8 tests: disabled, no-changes, commit+build, build-failure+rollback, default-message, replace-binary, restart-exit-code, exit-code-value
-- `internal/server/server.go` -> runSelfEvolution handles Result (build error → notify + rollback msg, built → restart)
-- `README.md`, `visor.forge.md` -> m8 iteration-2 progress tracking
+## file touch map (m8 it3)
+- `internal/selfevolve/manager.go` -> go vet step, backupBinary rotation, latestBackup, pruneBackups, ShouldAutoRollback (30s crash window), AutoRollback, writeChangelog, rollback helper, DataDir config
+- `internal/selfevolve/manager_test.go` -> 13 tests: +vet-failure-rollback, backup-rotation, latest-backup, crash-window, changelog, config-disabled
+- `internal/server/server.go` -> VetErr handling in runSelfEvolution, backend passed to Request
+- `README.md`, `visor.forge.md` -> m8 iteration-3 progress tracking
 
 ## next
-*M8-I2 complete* ✅ — continue with *M8-I3* (safety rails)
+*M8 complete* ✅ — continue with *M9* (multi-pi-subagent orchestration)?
 
 ---
 
