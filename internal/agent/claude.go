@@ -5,10 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os/exec"
 	"strings"
 	"time"
+
+	"visor/internal/observability"
 )
 
 // Claude Code stream-json event types
@@ -20,8 +21,8 @@ type claudeEvent struct {
 }
 
 type claudeMessage struct {
-	Role    string         `json:"role"`
-	Content []claudeBlock  `json:"content,omitempty"`
+	Role    string        `json:"role"`
+	Content []claudeBlock `json:"content,omitempty"`
 }
 
 type claudeBlock struct {
@@ -30,7 +31,7 @@ type claudeBlock struct {
 }
 
 type claudeResult struct {
-	IsError bool   `json:"is_error"`
+	IsError  bool    `json:"is_error"`
 	Duration float64 `json:"duration_ms"`
 }
 
@@ -38,13 +39,14 @@ type claudeResult struct {
 // Each prompt spawns a new process (no persistent RPC mode available).
 type ClaudeAgent struct {
 	timeout time.Duration
+	log     *observability.Logger
 }
 
 func NewClaudeAgent(timeout time.Duration) *ClaudeAgent {
 	if timeout == 0 {
 		timeout = 5 * time.Minute
 	}
-	return &ClaudeAgent{timeout: timeout}
+	return &ClaudeAgent{timeout: timeout, log: observability.Component("agent.claude")}
 }
 
 func (c *ClaudeAgent) SendPrompt(ctx context.Context, prompt string) (string, error) {
@@ -74,7 +76,7 @@ func (c *ClaudeAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 
 		var event claudeEvent
 		if err := json.Unmarshal([]byte(line), &event); err != nil {
-			log.Printf("claude: skipping unparseable line: %.100s", line)
+			c.log.Warn(ctx, "claude event parse failed", "line_preview", truncateLine(line, 100), "error", err.Error())
 			continue
 		}
 
@@ -82,7 +84,7 @@ func (c *ClaudeAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 		case "assistant":
 			var msg claudeMessage
 			if err := json.Unmarshal(event.Message, &msg); err != nil {
-				log.Printf("claude: bad assistant message: %v", err)
+				c.log.Warn(ctx, "claude assistant message parse failed", "error", err.Error())
 				continue
 			}
 			for _, block := range msg.Content {

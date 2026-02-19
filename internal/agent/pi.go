@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
+
+	"visor/internal/observability"
 )
 
 // Pi RPC JSON-lines protocol types
@@ -33,15 +34,17 @@ type piAssistantEvent struct {
 
 // PiAgent implements Agent using `pi --mode rpc`.
 type PiAgent struct {
-	pm *ProcessManager
-	mu sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
+	pm  *ProcessManager
+	mu  sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
+	log *observability.Logger
 }
 
 func NewPiAgent(cfg ProcessConfig) *PiAgent {
 	cfg.Command = "pi"
 	cfg.Args = []string{"--mode", "rpc"}
 	return &PiAgent{
-		pm: NewProcessManager(cfg),
+		pm:  NewProcessManager(cfg),
+		log: observability.Component("agent.pi"),
 	}
 }
 
@@ -104,7 +107,7 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 
 		var event piEvent
 		if err := json.Unmarshal([]byte(line), &event); err != nil {
-			log.Printf("pi: skipping unparseable line: %s", line)
+			p.log.Warn(ctx, "pi event parse failed", "line_preview", truncateLine(line, 120), "error", err.Error())
 			continue
 		}
 
@@ -128,4 +131,11 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 
 func (p *PiAgent) Close() error {
 	return p.pm.Stop()
+}
+
+func truncateLine(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }

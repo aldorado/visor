@@ -274,6 +274,11 @@ Guarantee full processing visibility for humans: readable request lifecycle logs
 - [x] Add SigNoz setup doc with minimal env example and verification steps
 - [x] Add troubleshooting checklist for missing logs/traces/export failures
 
+#### Iteration 5: full codebase logging sweep
+- [x] Replace remaining `log.Printf` hotspots in runtime packages with structured observability logger
+- [x] Add component/function aware logging in voice, memory manager, pi/claude adapters, process manager, and email poller
+- [x] Ensure all core runtime paths emit consistent human-readable structured logs
+
 ### M1: skeleton — webhook + echo
 Get a Go binary that receives Telegram webhooks and echoes messages back.
 

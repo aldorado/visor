@@ -2,11 +2,12 @@ package voice
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
+	"visor/internal/observability"
 	"visor/internal/platform/telegram"
 )
 
@@ -15,12 +16,14 @@ type Handler struct {
 	tg      *telegram.Client
 	whisper *WhisperClient
 	tts     *ElevenLabsClient
+	log     *observability.Logger
 }
 
 func NewHandler(tg *telegram.Client, openAIKey string) *Handler {
 	return &Handler{
 		tg:      tg,
 		whisper: NewWhisperClient(openAIKey),
+		log:     observability.Component("voice.handler"),
 	}
 }
 
@@ -43,7 +46,7 @@ func (h *Handler) SynthesizeAndSend(chatID int64, text string) error {
 		return fmt.Errorf("voice: synthesize: %w", err)
 	}
 
-	log.Printf("voice: synthesized %d bytes for chat %d", len(audio), chatID)
+	h.log.Info(context.Background(), "voice synthesized", "chat_id", chatID, "audio_bytes", len(audio))
 
 	if err := h.tg.SendVoice(chatID, bytes.NewReader(audio), "voice.mp3"); err != nil {
 		return fmt.Errorf("voice: send voice: %w", err)
@@ -74,6 +77,6 @@ func (h *Handler) Transcribe(fileID string) (string, error) {
 		return "", fmt.Errorf("voice: transcribe: %w", err)
 	}
 
-	log.Printf("voice: transcribed %d chars from %s", len(text), fileID)
+	h.log.Info(context.Background(), "voice transcribed", "file_id", fileID, "chars", len(text))
 	return text, nil
 }

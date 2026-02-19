@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"os/exec"
 	"sync"
 	"time"
+
+	"visor/internal/observability"
 )
 
 type ProcessConfig struct {
@@ -27,12 +28,14 @@ type ProcessManager struct {
 	scanner *bufio.Scanner
 	running bool
 	stopCh  chan struct{}
+	log     *observability.Logger
 }
 
 func NewProcessManager(cfg ProcessConfig) *ProcessManager {
 	return &ProcessManager{
 		cfg:    cfg,
 		stopCh: make(chan struct{}),
+		log:    observability.Component("agent.process"),
 	}
 }
 
@@ -89,7 +92,7 @@ func (pm *ProcessManager) spawn() error {
 	pm.scanner = bufio.NewScanner(stdout)
 	pm.scanner.Buffer(make([]byte, 1024*1024), 1024*1024) // 1MB line buffer
 	pm.running = true
-	log.Printf("agent: spawned %s %v (pid %d)", pm.cfg.Command, pm.cfg.Args, cmd.Process.Pid)
+	pm.log.Info(nil, "agent process spawned", "command", pm.cfg.Command, "args", pm.cfg.Args, "pid", cmd.Process.Pid)
 	return nil
 }
 
@@ -146,9 +149,9 @@ func (pm *ProcessManager) watchLoop() {
 		}
 
 		if err != nil {
-			log.Printf("agent: process exited: %v, restarting in %v", err, pm.cfg.RestartDelay)
+			pm.log.Warn(nil, "agent process exited", "error", err.Error(), "restart_delay", pm.cfg.RestartDelay.String())
 		} else {
-			log.Printf("agent: process exited cleanly, restarting in %v", pm.cfg.RestartDelay)
+			pm.log.Info(nil, "agent process exited cleanly", "restart_delay", pm.cfg.RestartDelay.String())
 		}
 
 		time.Sleep(pm.cfg.RestartDelay)
@@ -156,7 +159,7 @@ func (pm *ProcessManager) watchLoop() {
 		pm.mu.Lock()
 		pm.running = false
 		if err := pm.spawn(); err != nil {
-			log.Printf("agent: restart failed: %v", err)
+			pm.log.Error(nil, "agent restart failed", "error", err.Error())
 		}
 		pm.mu.Unlock()
 	}
@@ -170,9 +173,9 @@ func (pm *ProcessManager) periodicRestartLoop() {
 		case <-pm.stopCh:
 			return
 		case <-ticker.C:
-			log.Printf("agent: periodic restart")
+			pm.log.Info(nil, "agent periodic restart")
 			if err := pm.Restart(); err != nil {
-				log.Printf("agent: periodic restart failed: %v", err)
+				pm.log.Error(nil, "agent periodic restart failed", "error", err.Error())
 			}
 		}
 	}

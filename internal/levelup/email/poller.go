@@ -3,9 +3,10 @@ package email
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
+
+	"visor/internal/observability"
 )
 
 type Poller struct {
@@ -15,6 +16,7 @@ type Poller struct {
 
 	mu   sync.Mutex
 	seen map[string]struct{}
+	log  *observability.Logger
 }
 
 func NewPoller(fetcher Fetcher, interval time.Duration, onEmail func(IncomingMessage)) *Poller {
@@ -26,15 +28,17 @@ func NewPoller(fetcher Fetcher, interval time.Duration, onEmail func(IncomingMes
 		interval: interval,
 		onEmail:  onEmail,
 		seen:     map[string]struct{}{},
+		log:      observability.Component("levelup.email.poller"),
 	}
 }
 
 func (p *Poller) Start(ctx context.Context) {
 	ticker := time.NewTicker(p.interval)
 	defer ticker.Stop()
+	p.log.Info(ctx, "email poller started", "interval_seconds", p.interval.Seconds())
 	for {
 		if err := p.Tick(ctx); err != nil {
-			log.Printf("email poller: %v", err)
+			p.log.Error(ctx, "email poller tick failed", "error", err.Error())
 		}
 		select {
 		case <-ctx.Done():
@@ -50,6 +54,7 @@ func (p *Poller) Tick(ctx context.Context) error {
 		return fmt.Errorf("fetch mail: %w", err)
 	}
 
+	newCount := 0
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for _, msg := range messages {
@@ -60,9 +65,11 @@ func (p *Poller) Tick(ctx context.Context) error {
 			continue
 		}
 		p.seen[msg.ID] = struct{}{}
+		newCount++
 		if p.onEmail != nil {
 			p.onEmail(msg)
 		}
 	}
+	p.log.Debug(ctx, "email poller tick done", "fetched", len(messages), "new", newCount)
 	return nil
 }

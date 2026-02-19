@@ -1,15 +1,15 @@
 # visor execution board
 
-current focus: *m0b / iteration 4* — docs + operability
+current focus: *m0b / iteration 5* — full codebase logging sweep
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m0b iteration 4 todos
-- [x] add readme section: where to read logs, verbose mode usage, sample output
-- [x] add signoz setup doc with minimal env example + verification steps
-- [x] add troubleshooting checklist for missing logs/traces/export failures
+## m0b iteration 5 todos
+- [x] replace remaining `log.Printf` hotspots with structured observability logger
+- [x] add consistent component/function log fields across runtime packages
+- [x] ensure voice, memory, agent adapters, process manager, email poller are all wired to structured logging
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -33,11 +33,13 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m0b it4)
-- `README.md` -> operability summary + sample log line
-- `docs/signoz-setup.md` -> signoz/otlp setup guide
-- `docs/observability-troubleshooting.md` -> troubleshooting checklist
-- `visor.forge.md` -> iteration-4 progress tracking
+## file touch map (m0b it5)
+- `internal/voice/handler.go` -> structured logs for tts/stt lifecycle
+- `internal/memory/manager.go` -> memory save/lookup lifecycle logs
+- `internal/agent/pi.go`, `internal/agent/claude.go` -> adapter parse/error logs
+- `internal/agent/process.go` -> process spawn/restart lifecycle logs
+- `internal/levelup/email/poller.go` -> poll loop + tick stats logs
+- `README.md`, `visor.forge.md` -> iteration-5 progress tracking
 
 ## next checkpoint question
 continue with *m1 deploy/e2e* or jump to another milestone?

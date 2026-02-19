@@ -1,15 +1,18 @@
 package memory
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"strings"
+
+	"visor/internal/observability"
 )
 
 // Manager ties together storage, embeddings, and search.
 type Manager struct {
 	store    *Store
 	embedder *EmbeddingClient
+	log      *observability.Logger
 }
 
 func NewManager(dataDir string, openAIKey string) (*Manager, error) {
@@ -20,6 +23,7 @@ func NewManager(dataDir string, openAIKey string) (*Manager, error) {
 	return &Manager{
 		store:    store,
 		embedder: NewEmbeddingClient(openAIKey),
+		log:      observability.Component("memory.manager"),
 	}, nil
 }
 
@@ -46,7 +50,7 @@ func (m *Manager) Save(texts []string) error {
 		return fmt.Errorf("memory save: store: %w", err)
 	}
 
-	log.Printf("memory: saved %d memories", len(texts))
+	m.log.Info(context.Background(), "memories saved", "count", len(texts))
 	return nil
 }
 
