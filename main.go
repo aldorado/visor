@@ -35,7 +35,7 @@ func main() {
 	}
 	defer shutdownOTel(context.Background())
 
-	a, err := createAgent(cfg)
+	a, err := createAgents(cfg)
 	if err != nil {
 		log.Error(context.Background(), "agent init failed", "error", err.Error())
 		os.Exit(1)
@@ -49,8 +49,27 @@ func main() {
 	}
 }
 
-func createAgent(cfg *config.Config) (agent.Agent, error) {
-	switch cfg.AgentBackend {
+func createAgents(cfg *config.Config) (agent.Agent, error) {
+	// single backend (backward compat)
+	if len(cfg.AgentBackends) <= 1 {
+		return createSingleAgent(cfg.AgentBackend)
+	}
+
+	// multi-backend registry
+	registry := agent.NewRegistry()
+	for i, name := range cfg.AgentBackends {
+		a, err := createSingleAgent(name)
+		if err != nil {
+			return nil, fmt.Errorf("backend %s: %w", name, err)
+		}
+		registry.Register(name, a, i)
+	}
+	registry.HealthCheckAll(context.Background())
+	return registry, nil
+}
+
+func createSingleAgent(name string) (agent.Agent, error) {
+	switch name {
 	case "pi":
 		pi := agent.NewPiAgent(agent.ProcessConfig{
 			RestartDelay:  3 * time.Second,
@@ -65,6 +84,6 @@ func createAgent(cfg *config.Config) (agent.Agent, error) {
 	case "echo":
 		return &agent.EchoAgent{}, nil
 	default:
-		return nil, fmt.Errorf("unknown agent backend: %s", cfg.AgentBackend)
+		return nil, fmt.Errorf("unknown agent backend: %s", name)
 	}
 }

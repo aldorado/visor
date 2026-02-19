@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -11,7 +12,8 @@ type Config struct {
 	TelegramWebhookSecret string
 	UserChatID            string
 	Port                  int
-	AgentBackend          string // "pi", "claude", "echo" (default: "echo")
+	AgentBackend          string   // primary backend for backward compat (first in AgentBackends)
+	AgentBackends         []string // priority-ordered list: "pi,claude,echo" (default: [AgentBackend])
 	OpenAIAPIKey          string
 	DataDir               string // base directory for runtime data (default: "data")
 	ElevenLabsAPIKey      string
@@ -53,6 +55,21 @@ func Load() (*Config, error) {
 		backend = "echo"
 	}
 
+	var backends []string
+	if b := os.Getenv("AGENT_BACKENDS"); b != "" {
+		for _, s := range strings.Split(b, ",") {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				backends = append(backends, s)
+			}
+		}
+	}
+	if len(backends) == 0 {
+		backends = []string{backend}
+	} else {
+		backend = backends[0]
+	}
+
 	himalayaEnabled := os.Getenv("HIMALAYA_ENABLED") == "1" || os.Getenv("HIMALAYA_ENABLED") == "true"
 	himalayaPollInterval := 60
 	if s := os.Getenv("HIMALAYA_POLL_INTERVAL_SECONDS"); s != "" {
@@ -91,6 +108,7 @@ func Load() (*Config, error) {
 		UserChatID:            userChatID,
 		Port:                  port,
 		AgentBackend:          backend,
+		AgentBackends:         backends,
 		OpenAIAPIKey:          os.Getenv("OPENAI_API_KEY"),
 		ElevenLabsAPIKey:      os.Getenv("ELEVENLABS_API_KEY"),
 		ElevenLabsVoiceID:     os.Getenv("ELEVENLABS_VOICE_ID"),

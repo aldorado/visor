@@ -1,18 +1,20 @@
 # visor execution board
 
-current focus: *m6 / iteration 3* — skill import
+current focus: *m7 / iteration 1* — backend registry
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m6 iteration 3 todos
-- [x] Import from git repos: clone, shallow clone, checkout by ref (tag/branch/hash)
-- [x] Version tracking: stamp source URL + git hash into skill.toml on import
-- [x] Update: git pull --ff-only + re-stamp version hash
-- [x] Dependency resolution: CheckDependencies verifies tools on PATH, warns on missing
-- [x] Manifest extended: source + version fields in skill.toml
-- [x] 10 new tests (41 total): repo name parsing, hash detection, dep checks, import, duplicate, no-manifest, update, update-no-source
+## m7 iteration 1 todos
+- [x] Backend registry with priority-based selection (lowest priority = preferred)
+- [x] Health check per backend: CLI binary detection + `--version` invocation
+- [x] Highest-priority healthy backend auto-selected
+- [x] MarkUnhealthy / MarkHealthy with automatic fallover/recovery
+- [x] Registry implements Agent interface (transparent proxy)
+- [x] Config: `AGENT_BACKENDS=pi,claude,echo` (comma-separated priority order)
+- [x] main.go: createAgents uses Registry when multiple backends configured
+- [x] 10 new tests (51 total): priority selection, proxy, no-healthy, fallback, recovery, status, close, health checks
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -36,18 +38,15 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m6 it3)
-- `internal/skills/importer.go` -> Import, Update, CheckDependencies, repoNameFromURL, gitHeadHash
-- `internal/skills/importer_test.go` -> 10 tests (local git import, duplicate, no-manifest, update, dep checks)
-- `internal/skills/skill.go` -> Manifest extended with Source + Version fields
-- `README.md`, `visor.forge.md` -> m6 iteration-3 progress tracking
+## file touch map (m7 it1)
+- `internal/agent/registry.go` -> Registry, Backend, BackendStatus, Register, HealthCheckAll, MarkUnhealthy, MarkHealthy, SendPrompt, Status, Close, checkHealth
+- `internal/agent/registry_test.go` -> 10 tests (priority, proxy, no-healthy, fallback, recovery, status, close, health checks)
+- `internal/config/config.go` -> AgentBackends field, AGENT_BACKENDS env var parsing
+- `main.go` -> createAgents with Registry for multi-backend, createSingleAgent extracted
+- `README.md`, `visor.forge.md` -> m7 iteration-1 progress tracking
 
-## next checkpoint question
-*M6 complete* ✅ — continue with *M7* (multi-backend + auto-switch)?
-
-planning note:
-- m9 (multi-pi-subagent orchestration) was added to forge blueprint for later execution.
-- includes domain/station-based subagents with JSON-configurable model rank ladders per station.
+## next
+*M7-I1 complete* ✅ — continue with *M7-I2* (auto-failover)
 
 ---
 

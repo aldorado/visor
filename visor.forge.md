@@ -392,9 +392,9 @@ Agent can create, edit, import, and execute skills autonomously, and request lev
 Rotate between AI backends based on availability.
 
 #### Iteration 1: backend registry
-- [ ] Config: list of backends with priority order
-- [ ] Health check per backend (is the CLI installed? does auth work?)
-- [ ] Select highest-priority healthy backend
+- [x] Config: list of backends with priority order
+- [x] Health check per backend (is the CLI installed? does auth work?)
+- [x] Select highest-priority healthy backend
 
 #### Iteration 2: auto-failover
 - [ ] Detect rate limit / quota errors from backend
