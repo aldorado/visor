@@ -50,3 +50,22 @@ continue with *m1 deploy/e2e* or jump straight to *m3 memory system*?
 - [x] parse stream-json events: `assistant` (text blocks), `result` (error check)
 - [x] 5min timeout, proper process cleanup
 - [x] AGENT_BACKEND=claude wired in main.go
+
+---
+
+# M3: memory system
+
+current focus: *m3 / iteration 1* — parquet storage
+
+## m3 status
+- state: *iteration 1 done*
+
+## m3 iteration 1 todos
+- [x] parquet-go dependency added (v0.27.0)
+- [x] Memory schema: id, text, embedding (float32 list), created_at
+- [x] Store with append-by-new-chunk strategy
+- [x] ReadAll: load all chunks, sort by created_at
+- [x] FilterByDate: range filter on unix millis
+- [x] Compact: merge all chunks into single file
+- [x] Session logger: JSONL per session, ReadAllSessions
+- [x] Tests: 7 store tests + 4 session tests (all pass)

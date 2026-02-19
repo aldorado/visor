@@ -274,11 +274,11 @@ Persistent CLI agent process with RPC over stdin/stdout.
 Persistent memory with semantic search. All data in Parquet files — portable, remote-ready, can sync to S3/cloud later.
 
 #### Iteration 1: parquet storage
-- [ ] Parquet read/write in Go (parquet-go library or apache arrow)
-- [ ] Memories schema: id, text, embedding (float32 array), created_at
-- [ ] Sessions schema: id, user_id, role, content, timestamp
-- [ ] Store files in `data/memories.parquet` and `data/sessions/` (JSONL per session)
-- [ ] Basic CRUD: append to parquet, read all, filter by date
+- [x] Parquet read/write in Go (parquet-go library or apache arrow)
+- [x] Memories schema: id, text, embedding (float32 array), created_at
+- [x] Sessions schema: id, user_id, role, content, timestamp
+- [x] Store files in `data/memories.parquet` and `data/sessions/` (JSONL per session)
+- [x] Basic CRUD: append to parquet, read all, filter by date
 
 #### Iteration 2: embeddings + search
 - [ ] Call OpenAI embeddings API to generate vectors
