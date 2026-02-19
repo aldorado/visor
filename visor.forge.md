@@ -425,6 +425,28 @@ Visor's agent can modify visor's own source code, commit, push, rebuild, and res
 - [ ] Log all self-modifications to a dedicated changelog (who changed what, when, which agent backend)
 - [ ] User can disable self-evolution via config flag
 
+### M9: multi-pi-subagent orchestration
+Visor can spawn multiple pi subagents in parallel, coordinate them, and return one merged final answer.
+
+#### Iteration 1: manual orchestration (on-demand)
+- [ ] Add explicit trigger path (user command) to start multi-subagent execution
+- [ ] Add orchestrator that spawns N pi subagent runs concurrently with bounded worker limit
+- [ ] Add role templates per subagent (e.g. planner/researcher/critic/synthesizer)
+- [ ] Collect sub-results and produce one merged final response via coordinator step
+- [ ] Add timeout/cancel handling so one stuck subagent does not block finalization
+
+#### Iteration 2: reliability + observability
+- [ ] Add per-subagent run IDs and structured logs (start/end/duration/error)
+- [ ] Add partial-failure strategy (continue with surviving agents, mark degraded mode)
+- [ ] Add execution report block in final response (which subagents ran, success/fail, latency)
+- [ ] Add tests for fan-out/fan-in correctness and timeout behavior
+
+#### Iteration 3: automatic orchestration
+- [ ] Add policy layer to auto-enable multi-subagent mode for complex tasks
+- [ ] Add complexity heuristics (task size, ambiguity, required breadth) for auto-trigger
+- [ ] Add budget/latency guardrails to avoid over-spawning
+- [ ] Add fallback to single-agent mode when orchestration is unnecessary
+
 ## Stack / tech
 - Language: Go 1.22+
 - HTTP: net/http (stdlib) or chi router

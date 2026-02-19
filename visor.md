@@ -101,6 +101,12 @@ Visor just needs a unified interface per backend: send prompt → get response. 
 
 This means visor is the "body" and the CLI agent is the "brain". Swap brains without changing anything else — and ride the free tier wave.
 
+## Multi-subagent direction
+Visor should support coordinated multi-agent thinking with pi subagents.
+- v1: on-demand (explicit user call) fan-out to multiple pi subagents
+- coordinator merges sub-results into one final answer
+- later: automatic activation via complexity heuristics and latency/budget guardrails
+
 ## Skill parity bootstrap
 Visor should start with the same skill surface as ubik.
 - copied baseline skill pack from `ubik/.pi/skills` into `visor/skills/`

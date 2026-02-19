@@ -43,6 +43,9 @@ sample structured line:
 ## next checkpoint question
 continue with *m5 / iteration 2* (agent integration for create/modify/delete/list tasks)?
 
+planning note:
+- m9 (multi-pi-subagent orchestration) was added to forge blueprint for later execution.
+
 ---
 
 # M1: skeleton — webhook + echo
