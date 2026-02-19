@@ -230,6 +230,7 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 - [x] Add visor skill `levelup-creator` that lets visor create its own level-ups end-to-end
 - [x] Require this skill to use M0 docs (`levelup-authoring`, `levelup-failure-modes`, `levelup-manifest`)
 - [x] Enforce validation + docs sync + iteration-scoped commit in the skill workflow
+- [x] Extend skill for operations: update `.levelup.env`, enable/disable level-ups, trigger validation via structured actions
 
 #### Iteration 5: base cloudflared level-up
 - [x] Add cloudflared base level-up manifest for first-start connectivity setup
