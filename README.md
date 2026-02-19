@@ -1,31 +1,30 @@
 # visor execution board
 
-current focus: *m0b / iteration 1* — logging contract + modes
+current focus: *m0b / iteration 2* — request lifecycle visibility
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m0b iteration 1 todos
-- [x] define global logging schema (`component`, `function`, `request_id`, `message`, attrs)
-- [x] implement logger package with normal/verbose mode (`LOG_LEVEL`, `LOG_VERBOSE`)
-- [x] add helper wrappers for consistent component/function naming
-- [x] add panic/recover middleware with compact traceback logging
+## m0b iteration 2 todos
+- [x] add request-id middleware for all webhook paths
+- [x] log request lifecycle events (received, parsed, deduped, authorized, queued, processed, replied)
+- [x] add agent lifecycle logs (queueing, backend, duration, errors)
+- [x] add level-up lifecycle logs (list/enable/disable/validate + compose validation stage)
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
 - verbose mode: `LOG_LEVEL=debug`, `LOG_VERBOSE=true`
 
-## file touch map (m0b it1)
-- `internal/observability/logger.go` -> slog setup, schema helpers, component/function fields
-- `internal/observability/context.go` -> request-id context helpers
-- `internal/observability/recover.go` -> panic/recover middleware + compact traceback
-- `internal/server/server.go` -> structured lifecycle logs + recover middleware wiring
-- `internal/agent/queue.go` -> queue processing logs with component naming
-- `main.go`, `internal/config/config.go` -> logging mode config + initialization
+## file touch map (m0b it2)
+- `internal/observability/request.go` -> request-id middleware + request start/complete logs
+- `internal/server/server.go` -> webhook lifecycle stage logs + processed/replied logs
+- `internal/agent/queue.go` -> backend + duration + queue lifecycle logs
+- `internal/levelup/admin.go` -> level-up lifecycle logs around operations
+- `internal/agent/queue_test.go`, `internal/observability/request_test.go` -> signature + middleware tests
 
 ## next checkpoint question
-continue with *m0b / iteration 2* (full request lifecycle visibility + request-id middleware)?
+continue with *m0b / iteration 3* (otel + signoz export)?
 
 ---
 

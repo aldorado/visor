@@ -23,7 +23,7 @@ func TestQueuedAgent_SingleMessage(t *testing.T) {
 	var mu sync.Mutex
 	var got []string
 
-	qa := NewQueuedAgent(&EchoAgent{}, func(chatID int64, response string, err error) {
+	qa := NewQueuedAgent(&EchoAgent{}, "echo", func(ctx context.Context, chatID int64, response string, err error) {
 		mu.Lock()
 		got = append(got, response)
 		mu.Unlock()
@@ -45,7 +45,7 @@ func TestQueuedAgent_QueueWhileBusy(t *testing.T) {
 	var mu sync.Mutex
 	var got []string
 
-	qa := NewQueuedAgent(&slowAgent{delay: 50 * time.Millisecond}, func(chatID int64, response string, err error) {
+	qa := NewQueuedAgent(&slowAgent{delay: 50 * time.Millisecond}, "slow", func(ctx context.Context, chatID int64, response string, err error) {
 		mu.Lock()
 		got = append(got, response)
 		mu.Unlock()
@@ -82,7 +82,7 @@ func TestQueuedAgent_QueueWhileBusy(t *testing.T) {
 }
 
 func TestQueuedAgent_QueueLenEmptyWhenIdle(t *testing.T) {
-	qa := NewQueuedAgent(&EchoAgent{}, func(int64, string, error) {})
+	qa := NewQueuedAgent(&EchoAgent{}, "echo", func(context.Context, int64, string, error) {})
 	if qa.QueueLen() != 0 {
 		t.Errorf("queue len = %d, want 0", qa.QueueLen())
 	}

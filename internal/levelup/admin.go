@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"sort"
+
+	"visor/internal/observability"
 )
 
 type Status struct {
@@ -12,7 +14,11 @@ type Status struct {
 	Enabled     bool
 }
 
+var adminLog = observability.Component("levelup.admin")
+
 func List(projectRoot string) ([]Status, error) {
+	ctx := context.Background()
+	adminLog.Debug(ctx, "list levelups start", "project_root", projectRoot)
 	manifests, err := DiscoverManifests(projectRoot)
 	if err != nil {
 		return nil, err
@@ -39,10 +45,13 @@ func List(projectRoot string) ([]Status, error) {
 	}
 
 	sort.Slice(statuses, func(i, j int) bool { return statuses[i].Name < statuses[j].Name })
+	adminLog.Info(ctx, "list levelups done", "count", len(statuses))
 	return statuses, nil
 }
 
 func Enable(projectRoot string, names []string) error {
+	ctx := context.Background()
+	adminLog.Info(ctx, "enable levelups start", "project_root", projectRoot, "names", names)
 	if len(names) == 0 {
 		return fmt.Errorf("at least one level-up name is required")
 	}
@@ -74,10 +83,16 @@ func Enable(projectRoot string, names []string) error {
 		updated = append(updated, name)
 	}
 
-	return SaveState(projectRoot, State{Enabled: updated})
+	if err := SaveState(projectRoot, State{Enabled: updated}); err != nil {
+		return err
+	}
+	adminLog.Info(ctx, "enable levelups done", "enabled", updated)
+	return nil
 }
 
 func Disable(projectRoot string, names []string) error {
+	ctx := context.Background()
+	adminLog.Info(ctx, "disable levelups start", "project_root", projectRoot, "names", names)
 	if len(names) == 0 {
 		return fmt.Errorf("at least one level-up name is required")
 	}
@@ -109,10 +124,15 @@ func Disable(projectRoot string, names []string) error {
 		updated = append(updated, name)
 	}
 
-	return SaveState(projectRoot, State{Enabled: updated})
+	if err := SaveState(projectRoot, State{Enabled: updated}); err != nil {
+		return err
+	}
+	adminLog.Info(ctx, "disable levelups done", "enabled", updated)
+	return nil
 }
 
 func ValidateEnabled(ctx context.Context, projectRoot, baseComposeFile string) error {
+	adminLog.Info(ctx, "validate enabled levelups start", "project_root", projectRoot, "base_compose", baseComposeFile)
 	manifests, err := DiscoverManifests(projectRoot)
 	if err != nil {
 		return err
@@ -152,6 +172,7 @@ func ValidateEnabled(ctx context.Context, projectRoot, baseComposeFile string) e
 		}
 	}
 
+	adminLog.Info(ctx, "levelup compose validation", "overlays", overlays)
 	if err := ValidateComposeConfig(ctx, assembly, env); err != nil {
 		return err
 	}
@@ -164,6 +185,7 @@ func ValidateEnabled(ctx context.Context, projectRoot, baseComposeFile string) e
 		}
 	}
 
+	adminLog.Info(ctx, "validate enabled levelups done", "enabled", state.Enabled)
 	return nil
 }
 

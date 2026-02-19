@@ -61,10 +61,9 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		})
 	}
 
-	s.agent = agent.NewQueuedAgent(a, func(chatID int64, response string, err error) {
-		ctx := context.Background()
+	s.agent = agent.NewQueuedAgent(a, cfg.AgentBackend, func(ctx context.Context, chatID int64, response string, err error) {
 		if err != nil {
-			s.log.Error(ctx, "agent processing failed", "chat_id", chatID, "error", err.Error())
+			s.log.Error(ctx, "agent processing failed", "chat_id", chatID, "backend", cfg.AgentBackend, "error", err.Error())
 			response = fmt.Sprintf("error: %v", err)
 		}
 
@@ -91,6 +90,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 			response = "ok"
 		}
 
+		s.log.Info(ctx, "webhook message processed", "chat_id", chatID, "backend", cfg.AgentBackend)
 		text, sendVoice := parseResponse(response)
 
 		if sendVoice && s.voice != nil && s.voice.TTSEnabled() {
@@ -98,11 +98,17 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 				s.log.Error(ctx, "voice synth failed, fallback to text", "chat_id", chatID, "error", err.Error())
 				if sendErr := tg.SendMessage(chatID, text); sendErr != nil {
 					s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
+				} else {
+					s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "text-fallback")
 				}
+			} else {
+				s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "voice")
 			}
 		} else {
 			if sendErr := tg.SendMessage(chatID, text); sendErr != nil {
 				s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
+			} else {
+				s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "text")
 			}
 		}
 	})
@@ -121,7 +127,7 @@ func (s *Server) ListenAndServe() error {
 		s.log.Info(context.Background(), "email poller started", "interval_seconds", s.cfg.HimalayaPollInterval)
 	}
 
-	handler := observability.RecoverMiddleware("http", s.mux)
+	handler := observability.RequestIDMiddleware(observability.RecoverMiddleware("http", s.mux))
 	return http.ListenAndServe(addr, handler)
 }
 
@@ -131,8 +137,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
+	s.log.Debug(r.Context(), "webhook lifecycle", "stage", "received", "method", r.Method, "path", r.URL.Path)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		s.log.Warn(r.Context(), "webhook read body failed", "error", err.Error())
 		http.Error(w, "read body failed", http.StatusBadRequest)
 		return
 	}
@@ -152,12 +160,14 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "bad json", http.StatusBadRequest)
 		return
 	}
+	s.log.Debug(r.Context(), "webhook lifecycle", "stage", "parsed", "update_id", update.UpdateID)
 
 	if s.dedup.IsDuplicate(update.UpdateID) {
-		s.log.Debug(r.Context(), "webhook duplicate update ignored", "update_id", update.UpdateID)
+		s.log.Debug(r.Context(), "webhook lifecycle", "stage", "deduped", "result", "duplicate", "update_id", update.UpdateID)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+	s.log.Debug(r.Context(), "webhook lifecycle", "stage", "deduped", "result", "accepted", "update_id", update.UpdateID)
 
 	msg := update.Message
 	if msg == nil {
@@ -172,6 +182,7 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+	s.log.Debug(r.Context(), "webhook lifecycle", "stage", "authorized", "chat_id", chatID)
 
 	var content string
 	var msgType string
@@ -212,7 +223,7 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		Content: content,
 		Type:    msgType,
 	})
-	s.log.Debug(r.Context(), "webhook message enqueued", "chat_id", chatID, "message_type", msgType, "queue_len", s.agent.QueueLen())
+	s.log.Debug(r.Context(), "webhook lifecycle", "stage", "queued", "chat_id", chatID, "message_type", msgType, "queue_len", s.agent.QueueLen())
 
 	w.WriteHeader(http.StatusOK)
 }

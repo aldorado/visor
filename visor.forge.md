@@ -258,10 +258,10 @@ Guarantee full processing visibility for humans: readable request lifecycle logs
 - [x] Add panic/recover middleware that logs compact traceback with request context
 
 #### Iteration 2: request lifecycle visibility
-- [ ] Add request-id middleware for all webhook/admin paths
-- [ ] Log request lifecycle events: received, parsed, deduped, authorized, queued, processed, replied
-- [ ] Add agent lifecycle logs: queue length, start/end, backend used, duration, errors
-- [ ] Add level-up lifecycle logs: validate, enable/disable, compose config check, apply outcome
+- [x] Add request-id middleware for all webhook/admin paths
+- [x] Log request lifecycle events: received, parsed, deduped, authorized, queued, processed, replied
+- [x] Add agent lifecycle logs: queue length, start/end, backend used, duration, errors
+- [x] Add level-up lifecycle logs: validate, enable/disable, compose config check, apply outcome
 
 #### Iteration 3: OTEL + SigNoz export
 - [ ] Initialize OTEL provider with env config (`OTEL_EXPORTER_OTLP_ENDPOINT`, service name, environment)
