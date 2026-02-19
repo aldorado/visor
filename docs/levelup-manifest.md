@@ -32,7 +32,8 @@ tags = ["email", "imap", "smtp"]
 
 ## Runtime rules
 
-- `compose_file` is always resolved relative to project root (`/root/code/visor`).
+- compose assembly order is deterministic: base compose file first, then overlays in selected order.
+- overlay file paths are resolved relative to the base compose file directory.
 - every entry in `required_env` must exist after env layering (`.env` + `.levelup.env` + process env). missing keys are hard errors.
 - `healthcheck` is a simple probe target for status reporting.
 - manifests are discovered under `levelups/*/levelup.toml`.

@@ -203,7 +203,7 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 #### Iteration 1: level-up framework
 - [x] Define level-up manifest format (`levelup.toml`) with name, compose overlay file, required env keys, healthcheck
 - [x] Add loader for `.levelup.env` with strict validation (fail fast if required vars missing)
-- [ ] Implement compose assembly strategy (base + selected overlays)
+- [x] Implement compose assembly strategy (base + selected overlays)
 - [ ] Add CLI/admin command to list/enable/disable level-ups
 - [ ] Compose merge rules in runtime builder:
   - base file first, then overlays in declared order
