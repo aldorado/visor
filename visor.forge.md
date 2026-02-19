@@ -255,10 +255,10 @@ Persistent CLI agent process with RPC over stdin/stdout.
 - [x] Message queue: if agent is busy, queue incoming messages
 
 #### Iteration 2: pi adapter
-- [ ] Implement pi CLI adapter (`pi --mode rpc`)
-- [ ] Handle JSON-lines protocol: send `{ type: "prompt", message: "..." }`
-- [ ] Collect `text_delta` events, resolve on `agent_end`
-- [ ] Handle errors, timeouts (configurable per-prompt timeout)
+- [x] Implement pi CLI adapter (`pi --mode rpc`)
+- [x] Handle JSON-lines protocol: send `{ type: "prompt", message: "..." }`
+- [x] Collect `text_delta` events, resolve on `agent_end`
+- [x] Handle errors, timeouts (configurable per-prompt timeout)
 
 #### Iteration 3: claude code adapter
 - [ ] Research Claude Code RPC protocol (depends on research task)

@@ -7,10 +7,11 @@ import (
 )
 
 type Config struct {
-	TelegramBotToken  string
+	TelegramBotToken      string
 	TelegramWebhookSecret string
-	UserChatID        string
-	Port              int
+	UserChatID            string
+	Port                  int
+	AgentBackend          string // "pi", "claude", "echo" (default: "echo")
 }
 
 func Load() (*Config, error) {
@@ -33,10 +34,16 @@ func Load() (*Config, error) {
 		}
 	}
 
+	backend := os.Getenv("AGENT_BACKEND")
+	if backend == "" {
+		backend = "echo"
+	}
+
 	return &Config{
 		TelegramBotToken:      token,
 		TelegramWebhookSecret: os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
 		UserChatID:            userChatID,
 		Port:                  port,
+		AgentBackend:          backend,
 	}, nil
 }

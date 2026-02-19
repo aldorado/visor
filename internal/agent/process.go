@@ -1,7 +1,9 @@
 package agent
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os/exec"
 	"sync"
@@ -9,19 +11,20 @@ import (
 )
 
 type ProcessConfig struct {
-	Command        string        // e.g. "pi"
-	Args           []string      // e.g. ["--mode", "rpc"]
-	RestartDelay   time.Duration // delay before restarting crashed process
-	PeriodicRestart time.Duration // restart interval (0 = disabled)
-	PromptTimeout  time.Duration // max time per prompt
+	Command         string
+	Args            []string
+	RestartDelay    time.Duration
+	PeriodicRestart time.Duration // 0 = disabled
+	PromptTimeout   time.Duration
 }
 
-// ProcessManager manages a persistent CLI agent subprocess.
-// Concrete adapters (pi, claude, etc.) embed this and implement the Agent interface.
+// ProcessManager manages a persistent CLI agent subprocess with stdin/stdout pipes.
 type ProcessManager struct {
 	cfg     ProcessConfig
 	mu      sync.Mutex
 	cmd     *exec.Cmd
+	stdin   io.WriteCloser
+	scanner *bufio.Scanner
 	running bool
 	stopCh  chan struct{}
 }
@@ -53,29 +56,63 @@ func (pm *ProcessManager) Stop() error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 	close(pm.stopCh)
+	if pm.stdin != nil {
+		pm.stdin.Close()
+	}
 	if pm.cmd != nil && pm.cmd.Process != nil {
 		return pm.cmd.Process.Kill()
 	}
 	return nil
 }
 
-func (pm *ProcessManager) Cmd() *exec.Cmd {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-	return pm.cmd
-}
-
 func (pm *ProcessManager) spawn() error {
 	cmd := exec.Command(pm.cfg.Command, pm.cfg.Args...)
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("stdin pipe: %w", err)
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		stdin.Close()
+		return fmt.Errorf("stdout pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		stdin.Close()
+		return fmt.Errorf("start process: %w", err)
+	}
+
 	pm.cmd = cmd
+	pm.stdin = stdin
+	pm.scanner = bufio.NewScanner(stdout)
+	pm.scanner.Buffer(make([]byte, 1024*1024), 1024*1024) // 1MB line buffer
 	pm.running = true
-	log.Printf("agent: spawning %s %v", pm.cfg.Command, pm.cfg.Args)
+	log.Printf("agent: spawned %s %v (pid %d)", pm.cfg.Command, pm.cfg.Args, cmd.Process.Pid)
 	return nil
+}
+
+// Stdin returns the writer to the child process stdin.
+func (pm *ProcessManager) Stdin() io.Writer {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	return pm.stdin
+}
+
+// Scanner returns the line scanner on child process stdout.
+func (pm *ProcessManager) Scanner() *bufio.Scanner {
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+	return pm.scanner
 }
 
 func (pm *ProcessManager) Restart() error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
+	if pm.stdin != nil {
+		pm.stdin.Close()
+	}
 	if pm.cmd != nil && pm.cmd.Process != nil {
 		_ = pm.cmd.Process.Kill()
 		_ = pm.cmd.Wait()
@@ -84,7 +121,6 @@ func (pm *ProcessManager) Restart() error {
 	return pm.spawn()
 }
 
-// watchLoop monitors the child process and restarts on crash.
 func (pm *ProcessManager) watchLoop() {
 	for {
 		select {
@@ -102,7 +138,6 @@ func (pm *ProcessManager) watchLoop() {
 			continue
 		}
 
-		// wait for process to exit
 		err := cmd.Wait()
 		select {
 		case <-pm.stopCh:

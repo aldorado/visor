@@ -54,14 +54,18 @@ continue with m0/iteration1 chunk 4 (`admin command: list/enable/disable level-u
 
 # M2: agent process manager
 
-current focus: *m2 / iteration 1* — agent interface
+current focus: *m2 / iteration 2* — pi adapter
 
 ## m2 status
-- state: *iteration 1 done*
+- iteration 1: done (agent interface + queue)
+- state: *iteration 2 done*
 
-## m2 iteration 1 todos
-- [x] define Agent interface: `SendPrompt(ctx, prompt) -> (string, error)`
-- [x] process manager: spawn, restart on crash, periodic restart
-- [x] message queue: enqueue when busy, drain sequentially
-- [x] echo agent stub for testing
-- [x] wire QueuedAgent into server webhook handler
+## m2 iteration 2 todos
+- [x] refactor ProcessManager with real stdin/stdout pipes + process start
+- [x] pi adapter: `pi --mode rpc` JSON-lines protocol
+- [x] send `{"type":"prompt","message":"..."}` on stdin
+- [x] collect `text_delta` events, resolve on `agent_end`
+- [x] handle `response success:false` as hard failure
+- [x] configurable prompt timeout (default 2min)
+- [x] config: AGENT_BACKEND env var (pi/echo)
+- [x] main.go: agent backend selection from config
