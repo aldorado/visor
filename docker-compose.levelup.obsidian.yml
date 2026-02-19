@@ -1,0 +1,21 @@
+services:
+  obsidian:
+    image: lscr.io/linuxserver/obsidian:latest
+    container_name: visor-levelup-obsidian
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - PUID=${OBSIDIAN_PUID:-1000}
+      - PGID=${OBSIDIAN_PGID:-1000}
+      - TZ=${TZ:-Europe/Vienna}
+      - CUSTOM_USER=${OBSIDIAN_CUSTOM_USER:-}
+      - PASSWORD=${OBSIDIAN_PASSWORD:-}
+      - SUBFOLDER=${OBSIDIAN_SUBFOLDER:-/}
+      - TITLE=${OBSIDIAN_TITLE:-Visor Obsidian}
+    volumes:
+      - ${OBSIDIAN_CONFIG_PATH:-./data/levelups/obsidian/config}:/config
+      - ${OBSIDIAN_VAULT_PATH:-./data/levelups/obsidian/vault}:/vault
+    ports:
+      - ${OBSIDIAN_HTTP_PORT:-3010}:3000
+      - ${OBSIDIAN_HTTPS_PORT:-3011}:3001
+    restart: unless-stopped
