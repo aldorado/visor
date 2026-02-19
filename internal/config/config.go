@@ -28,6 +28,9 @@ type Config struct {
 	OTELServiceName       string
 	OTELEnvironment       string
 	OTELInsecure          bool
+	SelfEvolutionEnabled  bool
+	SelfEvolutionRepoDir  string
+	SelfEvolutionPush     bool
 }
 
 func Load() (*Config, error) {
@@ -102,6 +105,13 @@ func Load() (*Config, error) {
 	}
 	otelInsecure := os.Getenv("OTEL_INSECURE") == "1" || os.Getenv("OTEL_INSECURE") == "true"
 
+	selfEvolutionEnabled := os.Getenv("SELF_EVOLUTION_ENABLED") == "1" || os.Getenv("SELF_EVOLUTION_ENABLED") == "true"
+	selfEvolutionRepoDir := os.Getenv("SELF_EVOLUTION_REPO_DIR")
+	if selfEvolutionRepoDir == "" {
+		selfEvolutionRepoDir = "."
+	}
+	selfEvolutionPush := os.Getenv("SELF_EVOLUTION_PUSH") == "1" || os.Getenv("SELF_EVOLUTION_PUSH") == "true"
+
 	return &Config{
 		TelegramBotToken:      token,
 		TelegramWebhookSecret: os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
@@ -123,5 +133,8 @@ func Load() (*Config, error) {
 		OTELServiceName:       otelServiceName,
 		OTELEnvironment:       otelEnvironment,
 		OTELInsecure:          otelInsecure,
+		SelfEvolutionEnabled:  selfEvolutionEnabled,
+		SelfEvolutionRepoDir:  selfEvolutionRepoDir,
+		SelfEvolutionPush:     selfEvolutionPush,
 	}, nil
 }

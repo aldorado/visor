@@ -1,18 +1,17 @@
 # visor execution board
 
-current focus: *m7 / iteration 2* — auto-failover
+current focus: *m8 / iteration 1* — self-edit pipeline
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m7 iteration 2 todos
-- [x] IsRetryableError: pattern matching for rate limit, quota, 429, overloaded, throttle, capacity errors
-- [x] Auto-failover in SendPrompt: on retryable error, mark unhealthy → select next → retry once
-- [x] Cooldown recovery: backends auto-recover after 5min (lazy check in selectActiveLocked)
-- [x] OnSwitch callback: Registry notifies server, server sends Telegram message to user
-- [x] Per-request logging: active backend logged on every prompt routing
-- [x] 8 new tests (59 total): retryable error detection, auto-failover, non-retryable passthrough, exhaustion, cooldown recovery/expiry, OnSwitch
+## m8 iteration 1 todos
+- [x] selfevolve.Manager: git add -A, commit, push pipeline with change detection
+- [x] Config: SELF_EVOLUTION_ENABLED, SELF_EVOLUTION_REPO_DIR, SELF_EVOLUTION_PUSH env vars
+- [x] parseResponse: extract code_changes + commit_message from agent response metadata
+- [x] Server wiring: on code_changes:true, sends response first, then triggers self-evolution async
+- [x] Tests: updated parseResponse tests (7 total), config clearEnv for new vars
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -36,14 +35,16 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m7 it2)
-- `internal/agent/registry.go` -> IsRetryableError, retryablePatterns, SendPrompt with auto-failover, cooldown recovery in selectActiveLocked, OnSwitch callback, UnhealthyAt timestamp on Backend
-- `internal/agent/registry_test.go` -> 8 new tests (IsRetryableError, auto-failover, non-retryable, exhaustion, cooldown, OnSwitch)
-- `internal/server/server.go` -> OnSwitch wiring: sends Telegram notification on backend failover
-- `README.md`, `visor.forge.md` -> m7 iteration-2 progress tracking
+## file touch map (m8 it1)
+- `internal/selfevolve/manager.go` -> Manager, Apply, hasGitChanges, run (git add/commit/push pipeline)
+- `internal/config/config.go` -> SelfEvolutionEnabled, SelfEvolutionRepoDir, SelfEvolutionPush fields
+- `internal/config/config_test.go` -> clearEnv updated for self-evolution vars
+- `internal/server/server.go` -> parseResponse returns responseMeta (code_changes, commit_message), runSelfEvolution async trigger
+- `internal/server/server_test.go` -> 7 parseResponse tests updated for responseMeta struct
+- `README.md`, `visor.forge.md` -> m8 iteration-1 progress tracking
 
 ## next
-*M7 complete* ✅ — continue with *M8* (self-evolution)?
+*M8-I1 complete* ✅ — continue with *M8-I2* (self-rebuild + restart)
 
 ---
 

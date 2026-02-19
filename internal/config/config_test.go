@@ -11,6 +11,9 @@ func clearEnv() {
 	os.Unsetenv("PORT")
 	os.Unsetenv("TELEGRAM_WEBHOOK_SECRET")
 	os.Unsetenv("AGENT_BACKEND")
+	os.Unsetenv("SELF_EVOLUTION_ENABLED")
+	os.Unsetenv("SELF_EVOLUTION_REPO_DIR")
+	os.Unsetenv("SELF_EVOLUTION_PUSH")
 }
 
 func TestLoad_MinimalValid(t *testing.T) {
