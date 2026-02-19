@@ -397,19 +397,19 @@ Rotate between AI backends based on availability.
 - [x] Select highest-priority healthy backend
 
 #### Iteration 2: auto-failover
-- [ ] Detect rate limit / quota errors from backend
-- [ ] Auto-switch to next available backend
-- [ ] Log which backend is active
-- [ ] Notify user on backend switch (optional)
+- [x] Detect rate limit / quota errors from backend
+- [x] Auto-switch to next available backend
+- [x] Log which backend is active
+- [x] Notify user on backend switch (optional)
 
 ### M8: self-evolution
 Visor's agent can modify visor's own source code, commit, push, rebuild, and restart — fully autonomous.
 
 #### Iteration 1: self-edit pipeline
-- [ ] Agent has read/write access to visor's source directory (its own codebase)
-- [ ] Structured output includes `code_changes: true` flag when source was modified
-- [ ] On `code_changes: true`: visor sends the response to the user FIRST, then triggers the build/restart pipeline
-- [ ] Pipeline: `git add -A && git commit -m "..." && git push` (agent provides commit message)
+- [x] Agent has read/write access to visor's source directory (its own codebase)
+- [x] Structured output includes `code_changes: true` flag when source was modified
+- [x] On `code_changes: true`: visor sends the response to the user FIRST, then triggers the build/restart pipeline
+- [x] Pipeline: `git add -A && git commit -m "..." && git push` (agent provides commit message)
 
 #### Iteration 2: self-rebuild + restart
 - [ ] After commit: run `go build -o visor-new .` to compile the new binary

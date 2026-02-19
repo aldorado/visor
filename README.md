@@ -1,20 +1,18 @@
 # visor execution board
 
-current focus: *m7 / iteration 1* — backend registry
+current focus: *m7 / iteration 2* — auto-failover
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m7 iteration 1 todos
-- [x] Backend registry with priority-based selection (lowest priority = preferred)
-- [x] Health check per backend: CLI binary detection + `--version` invocation
-- [x] Highest-priority healthy backend auto-selected
-- [x] MarkUnhealthy / MarkHealthy with automatic fallover/recovery
-- [x] Registry implements Agent interface (transparent proxy)
-- [x] Config: `AGENT_BACKENDS=pi,claude,echo` (comma-separated priority order)
-- [x] main.go: createAgents uses Registry when multiple backends configured
-- [x] 10 new tests (51 total): priority selection, proxy, no-healthy, fallback, recovery, status, close, health checks
+## m7 iteration 2 todos
+- [x] IsRetryableError: pattern matching for rate limit, quota, 429, overloaded, throttle, capacity errors
+- [x] Auto-failover in SendPrompt: on retryable error, mark unhealthy → select next → retry once
+- [x] Cooldown recovery: backends auto-recover after 5min (lazy check in selectActiveLocked)
+- [x] OnSwitch callback: Registry notifies server, server sends Telegram message to user
+- [x] Per-request logging: active backend logged on every prompt routing
+- [x] 8 new tests (59 total): retryable error detection, auto-failover, non-retryable passthrough, exhaustion, cooldown recovery/expiry, OnSwitch
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -38,15 +36,14 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m7 it1)
-- `internal/agent/registry.go` -> Registry, Backend, BackendStatus, Register, HealthCheckAll, MarkUnhealthy, MarkHealthy, SendPrompt, Status, Close, checkHealth
-- `internal/agent/registry_test.go` -> 10 tests (priority, proxy, no-healthy, fallback, recovery, status, close, health checks)
-- `internal/config/config.go` -> AgentBackends field, AGENT_BACKENDS env var parsing
-- `main.go` -> createAgents with Registry for multi-backend, createSingleAgent extracted
-- `README.md`, `visor.forge.md` -> m7 iteration-1 progress tracking
+## file touch map (m7 it2)
+- `internal/agent/registry.go` -> IsRetryableError, retryablePatterns, SendPrompt with auto-failover, cooldown recovery in selectActiveLocked, OnSwitch callback, UnhealthyAt timestamp on Backend
+- `internal/agent/registry_test.go` -> 8 new tests (IsRetryableError, auto-failover, non-retryable, exhaustion, cooldown, OnSwitch)
+- `internal/server/server.go` -> OnSwitch wiring: sends Telegram notification on backend failover
+- `README.md`, `visor.forge.md` -> m7 iteration-2 progress tracking
 
 ## next
-*M7-I1 complete* ✅ — continue with *M7-I2* (auto-failover)
+*M7 complete* ✅ — continue with *M8* (self-evolution)?
 
 ---
 

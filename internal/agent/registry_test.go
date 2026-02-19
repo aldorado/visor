@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 )
 
 type failAgent struct {
@@ -147,5 +148,172 @@ func TestCheckHealthUnknown(t *testing.T) {
 	healthy, _ := checkHealth(context.Background(), "unknown-backend")
 	if !healthy {
 		t.Error("unknown backends should default to healthy")
+	}
+}
+
+// --- M7-I2: auto-failover tests ---
+
+// rateLimitAgent returns a retryable error on first call, succeeds after.
+type rateLimitAgent struct {
+	calls int
+}
+
+func (r *rateLimitAgent) SendPrompt(_ context.Context, prompt string) (string, error) {
+	r.calls++
+	if r.calls == 1 {
+		return "", fmt.Errorf("rate limit exceeded (429)")
+	}
+	return "rateLimitAgent: " + prompt, nil
+}
+func (r *rateLimitAgent) Close() error { return nil }
+
+func TestIsRetryableError(t *testing.T) {
+	tests := []struct {
+		err  string
+		want bool
+	}{
+		{"rate limit exceeded", true},
+		{"rate_limit_event from backend", true},
+		{"429 Too Many Requests", true},
+		{"quota exhausted for today", true},
+		{"server overloaded, try later", true},
+		{"resource_exhausted", true},
+		{"throttled by upstream", true},
+		{"capacity reached", true},
+		{"connection refused", false},
+		{"timeout waiting for response", false},
+		{"pi: process closed stdout", false},
+		{"claude: exit: exit status 1", false},
+	}
+	for _, tc := range tests {
+		got := IsRetryableError(fmt.Errorf("%s", tc.err))
+		if got != tc.want {
+			t.Errorf("IsRetryableError(%q) = %v, want %v", tc.err, got, tc.want)
+		}
+	}
+}
+
+func TestIsRetryableErrorNil(t *testing.T) {
+	if IsRetryableError(nil) {
+		t.Error("expected false for nil error")
+	}
+}
+
+func TestSendPromptAutoFailover(t *testing.T) {
+	r := NewRegistry()
+	r.Register("primary", &failAgent{err: fmt.Errorf("rate limit exceeded (429)")}, 0)
+	r.Register("fallback", &EchoAgent{}, 1)
+	r.HealthCheckAll(context.Background())
+
+	var switched bool
+	r.OnSwitch = func(from, to string) {
+		switched = true
+		if from != "primary" || to != "fallback" {
+			t.Errorf("switch = %s→%s, want primary→fallback", from, to)
+		}
+	}
+
+	resp, err := r.SendPrompt(context.Background(), "hello")
+	if err != nil {
+		t.Fatalf("expected failover to succeed, got error: %v", err)
+	}
+	if resp != "echo: hello" {
+		t.Errorf("response = %q, want 'echo: hello'", resp)
+	}
+	if !switched {
+		t.Error("expected OnSwitch to be called")
+	}
+	if r.Active() != "fallback" {
+		t.Errorf("active after failover = %q, want 'fallback'", r.Active())
+	}
+}
+
+func TestSendPromptNoFailoverOnNonRetryable(t *testing.T) {
+	r := NewRegistry()
+	r.Register("primary", &failAgent{err: fmt.Errorf("connection refused")}, 0)
+	r.Register("fallback", &EchoAgent{}, 1)
+	r.HealthCheckAll(context.Background())
+
+	_, err := r.SendPrompt(context.Background(), "hello")
+	if err == nil {
+		t.Fatal("expected error for non-retryable failure")
+	}
+	// primary should still be active (not marked unhealthy)
+	if r.Active() != "primary" {
+		t.Errorf("active = %q, want 'primary' (non-retryable shouldn't trigger failover)", r.Active())
+	}
+}
+
+func TestSendPromptAllBackendsExhausted(t *testing.T) {
+	r := NewRegistry()
+	r.Register("a", &failAgent{err: fmt.Errorf("rate limit exceeded")}, 0)
+	r.Register("b", &failAgent{err: fmt.Errorf("quota exhausted")}, 1)
+	r.HealthCheckAll(context.Background())
+
+	_, err := r.SendPrompt(context.Background(), "hello")
+	if err == nil {
+		t.Fatal("expected error when all backends fail")
+	}
+	// after first fails, second becomes active and also fails
+	// but the second failure just returns the error (no more backends to try)
+}
+
+func TestCooldownRecovery(t *testing.T) {
+	r := NewRegistry()
+	r.cooldown = 10 * time.Millisecond // short cooldown for testing
+	r.Register("primary", &EchoAgent{}, 0)
+	r.Register("fallback", &EchoAgent{}, 1)
+	r.HealthCheckAll(context.Background())
+
+	r.MarkUnhealthy("primary", "rate limited")
+	if r.Active() != "fallback" {
+		t.Fatalf("expected fallback, got %q", r.Active())
+	}
+
+	// wait for cooldown
+	time.Sleep(20 * time.Millisecond)
+
+	// trigger reselection via any operation that calls selectActiveLocked
+	// MarkHealthy on fallback is a no-op but triggers reselect
+	r.MarkHealthy("fallback")
+
+	if r.Active() != "primary" {
+		t.Errorf("after cooldown, active = %q, want 'primary'", r.Active())
+	}
+}
+
+func TestCooldownNotYetExpired(t *testing.T) {
+	r := NewRegistry()
+	r.cooldown = 1 * time.Hour // long cooldown — won't expire in test
+	r.Register("primary", &EchoAgent{}, 0)
+	r.Register("fallback", &EchoAgent{}, 1)
+	r.HealthCheckAll(context.Background())
+
+	r.MarkUnhealthy("primary", "rate limited")
+	if r.Active() != "fallback" {
+		t.Fatalf("expected fallback, got %q", r.Active())
+	}
+
+	// trigger reselection — primary should NOT recover yet
+	r.MarkHealthy("fallback")
+	if r.Active() != "fallback" {
+		t.Errorf("before cooldown expires, active = %q, want 'fallback'", r.Active())
+	}
+}
+
+func TestOnSwitchNotCalledWithoutFailover(t *testing.T) {
+	r := NewRegistry()
+	r.Register("echo", &EchoAgent{}, 0)
+	r.HealthCheckAll(context.Background())
+
+	called := false
+	r.OnSwitch = func(_, _ string) { called = true }
+
+	_, err := r.SendPrompt(context.Background(), "hello")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Error("OnSwitch should not be called when no failover happens")
 	}
 }

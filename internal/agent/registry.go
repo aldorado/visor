@@ -13,25 +13,31 @@ import (
 
 // Backend wraps an Agent with metadata for the registry.
 type Backend struct {
-	Name     string
-	Agent    Agent
-	Priority int    // lower = higher priority
-	Healthy  bool
-	LastErr  string
+	Name        string
+	Agent       Agent
+	Priority    int // lower = higher priority
+	Healthy     bool
+	LastErr     string
+	UnhealthyAt time.Time // when it was marked unhealthy (for cooldown recovery)
 }
 
 // Registry manages multiple backends with priority-based selection.
 // It implements the Agent interface by proxying to the active backend.
 type Registry struct {
-	backends []*Backend // sorted by priority (lowest first = highest priority)
-	active   *Backend
-	mu       sync.RWMutex
-	log      *observability.Logger
+	backends    []*Backend // sorted by priority (lowest first = highest priority)
+	active      *Backend
+	mu          sync.RWMutex
+	cooldown    time.Duration // how long before unhealthy backends are retried
+	OnSwitch    func(from, to string) // called when active backend changes due to failover
+	log         *observability.Logger
 }
+
+const defaultCooldown = 5 * time.Minute
 
 func NewRegistry() *Registry {
 	return &Registry{
-		log: observability.Component("agent.registry"),
+		cooldown: defaultCooldown,
+		log:      observability.Component("agent.registry"),
 	}
 }
 
@@ -68,9 +74,11 @@ func (r *Registry) HealthCheckAll(ctx context.Context) {
 		b.Healthy = healthy
 		if !healthy {
 			b.LastErr = reason
+			b.UnhealthyAt = time.Now()
 			r.log.Warn(ctx, "backend unhealthy", "name", b.Name, "reason", reason)
 		} else {
 			b.LastErr = ""
+			b.UnhealthyAt = time.Time{}
 			r.log.Info(ctx, "backend healthy", "name", b.Name)
 		}
 	}
@@ -79,7 +87,19 @@ func (r *Registry) HealthCheckAll(ctx context.Context) {
 }
 
 // selectActiveLocked picks the highest-priority healthy backend. Must hold mu.
+// Also performs cooldown recovery: backends unhealthy for longer than cooldown
+// are automatically marked healthy again.
 func (r *Registry) selectActiveLocked(ctx context.Context) {
+	now := time.Now()
+	for _, b := range r.backends {
+		if !b.Healthy && !b.UnhealthyAt.IsZero() && now.Sub(b.UnhealthyAt) >= r.cooldown {
+			b.Healthy = true
+			b.LastErr = ""
+			b.UnhealthyAt = time.Time{}
+			r.log.Info(ctx, "backend recovered after cooldown", "name", b.Name)
+		}
+	}
+
 	old := r.active
 	r.active = nil
 	for _, b := range r.backends {
@@ -118,6 +138,7 @@ func (r *Registry) MarkUnhealthy(name, reason string) {
 		if b.Name == name {
 			b.Healthy = false
 			b.LastErr = reason
+			b.UnhealthyAt = time.Now()
 			r.log.Warn(nil, "backend marked unhealthy", "name", name, "reason", reason)
 			break
 		}
@@ -135,6 +156,7 @@ func (r *Registry) MarkHealthy(name string) {
 		if b.Name == name {
 			b.Healthy = true
 			b.LastErr = ""
+			b.UnhealthyAt = time.Time{}
 			break
 		}
 	}
@@ -174,6 +196,8 @@ type BackendStatus struct {
 }
 
 // SendPrompt implements Agent by proxying to the active backend.
+// On retryable errors (rate limit, quota), marks the backend unhealthy
+// and retries with the next available backend.
 func (r *Registry) SendPrompt(ctx context.Context, prompt string) (string, error) {
 	r.mu.RLock()
 	active := r.active
@@ -183,8 +207,43 @@ func (r *Registry) SendPrompt(ctx context.Context, prompt string) (string, error
 		return "", fmt.Errorf("no healthy backend available")
 	}
 
-	r.log.Debug(ctx, "routing prompt to backend", "backend", active.Name)
-	return active.Agent.SendPrompt(ctx, prompt)
+	r.log.Info(ctx, "routing prompt", "backend", active.Name)
+	resp, err := active.Agent.SendPrompt(ctx, prompt)
+	if err == nil {
+		return resp, nil
+	}
+
+	if !IsRetryableError(err) {
+		return resp, err
+	}
+
+	// retryable error — mark unhealthy and try next backend
+	oldName := active.Name
+	r.log.Warn(ctx, "retryable error from backend, failing over", "backend", oldName, "error", err.Error())
+
+	r.mu.Lock()
+	for _, b := range r.backends {
+		if b.Name == oldName {
+			b.Healthy = false
+			b.LastErr = err.Error()
+			b.UnhealthyAt = time.Now()
+			break
+		}
+	}
+	r.selectActiveLocked(ctx)
+	next := r.active
+	r.mu.Unlock()
+
+	if next == nil || next.Name == oldName {
+		return resp, fmt.Errorf("all backends exhausted (last: %s): %w", oldName, err)
+	}
+
+	r.log.Info(ctx, "failover: retrying with next backend", "from", oldName, "to", next.Name)
+	if r.OnSwitch != nil {
+		r.OnSwitch(oldName, next.Name)
+	}
+
+	return next.Agent.SendPrompt(ctx, prompt)
 }
 
 // Close shuts down all registered backends.
@@ -202,6 +261,35 @@ func (r *Registry) Close() error {
 		return fmt.Errorf("close backends: %s", strings.Join(errs, "; "))
 	}
 	return nil
+}
+
+// IsRetryableError checks if an error indicates a rate limit, quota exhaustion,
+// or capacity issue that warrants failing over to another backend.
+func IsRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	for _, pattern := range retryablePatterns {
+		if strings.Contains(msg, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+var retryablePatterns = []string{
+	"rate limit",
+	"rate_limit",
+	"ratelimit",
+	"quota",
+	"overloaded",
+	"429",
+	"too many requests",
+	"capacity",
+	"server_overloaded",
+	"resource_exhausted",
+	"throttl",
 }
 
 // checkHealth verifies a backend is available.

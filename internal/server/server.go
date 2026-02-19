@@ -17,6 +17,7 @@ import (
 	"visor/internal/observability"
 	"visor/internal/platform/telegram"
 	"visor/internal/scheduler"
+	"visor/internal/selfevolve"
 	"visor/internal/skills"
 	"visor/internal/voice"
 )
@@ -32,6 +33,7 @@ type Server struct {
 	emailPoller *emaillevelup.Poller
 	scheduler   *scheduler.Scheduler
 	skills      *skills.Manager
+	selfevolver *selfevolve.Manager
 	log         *observability.Logger
 }
 
@@ -71,6 +73,23 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		s.log.Warn(context.Background(), "skills load failed", "error", loadErr.Error())
 	}
 	s.skills = sm
+
+	s.selfevolver = selfevolve.New(selfevolve.Config{
+		Enabled: cfg.SelfEvolutionEnabled,
+		RepoDir: cfg.SelfEvolutionRepoDir,
+		Push:    cfg.SelfEvolutionPush,
+	})
+
+	// wire up backend switch notification for multi-backend registry
+	if reg, ok := a.(*agent.Registry); ok {
+		reg.OnSwitch = func(from, to string) {
+			note := fmt.Sprintf("⚡ backend switched: %s → %s (rate limit / quota)", from, to)
+			s.log.Info(context.Background(), "backend failover", "from", from, "to", to)
+			if cfg.UserChatID != "" {
+				_ = tg.SendMessage(mustParseChatID(cfg.UserChatID), note)
+			}
+		}
+	}
 
 	s.agent = agent.NewQueuedAgent(a, cfg.AgentBackend, func(ctx context.Context, chatID int64, response string, err error) {
 		if err != nil {
@@ -113,9 +132,9 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		}
 
 		s.log.Info(ctx, "webhook message processed", "chat_id", chatID, "backend", cfg.AgentBackend)
-		text, sendVoice := parseResponse(response)
+		text, meta := parseResponse(response)
 
-		if sendVoice && s.voice != nil && s.voice.TTSEnabled() {
+		if meta.SendVoice && s.voice != nil && s.voice.TTSEnabled() {
 			if err := s.voice.SynthesizeAndSend(chatID, text); err != nil {
 				s.log.Error(ctx, "voice synth failed, fallback to text", "chat_id", chatID, "error", err.Error())
 				if sendErr := tg.SendMessage(chatID, text); sendErr != nil {
@@ -132,6 +151,10 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 			} else {
 				s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "text")
 			}
+		}
+
+		if meta.CodeChanges && s.selfevolver != nil && s.selfevolver.Enabled() {
+			go s.runSelfEvolution(chatID, meta.CommitMessage)
 		}
 	})
 
@@ -370,22 +393,46 @@ func (s *Server) executeSkillActions(ctx context.Context, chatID int64, actions 
 	}
 }
 
+type responseMeta struct {
+	SendVoice     bool
+	CodeChanges   bool
+	CommitMessage string
+}
+
 // parseResponse extracts metadata from agent response.
-// The agent can signal voice response by ending with:
+// metadata block format:
 //
 //	---
 //	send_voice: true
-func parseResponse(raw string) (text string, sendVoice bool) {
+//	code_changes: true
+//	commit_message: your message
+func parseResponse(raw string) (text string, meta responseMeta) {
 	parts := strings.SplitN(raw, "\n---\n", 2)
 	text = parts[0]
 	if len(parts) == 2 {
-		meta := parts[1]
-		for _, line := range strings.Split(meta, "\n") {
+		for _, line := range strings.Split(parts[1], "\n") {
 			line = strings.TrimSpace(line)
-			if line == "send_voice: true" || line == "send_voice:true" {
-				sendVoice = true
+			switch {
+			case line == "send_voice: true" || line == "send_voice:true":
+				meta.SendVoice = true
+			case line == "code_changes: true" || line == "code_changes:true":
+				meta.CodeChanges = true
+			case strings.HasPrefix(line, "commit_message:"):
+				meta.CommitMessage = strings.TrimSpace(strings.TrimPrefix(line, "commit_message:"))
 			}
 		}
 	}
 	return
+}
+
+func (s *Server) runSelfEvolution(chatID int64, commitMessage string) {
+	ctx := context.Background()
+	err := s.selfevolver.Apply(ctx, selfevolve.Request{CommitMessage: commitMessage, ChatID: chatID})
+	if err != nil {
+		s.log.Error(ctx, "self-evolution failed", "chat_id", chatID, "error", err.Error())
+		_ = s.tg.SendMessage(chatID, "self-evolution failed: "+truncate(err.Error(), 200))
+		return
+	}
+	s.log.Info(ctx, "self-evolution completed", "chat_id", chatID)
+	_ = s.tg.SendMessage(chatID, "self-evolution done ✅")
 }
