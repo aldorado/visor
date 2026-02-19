@@ -89,3 +89,72 @@ func TestSchedulerPersistsAcrossRestart(t *testing.T) {
 		t.Fatalf("expected persisted task count=1, got %d", len(s2.List()))
 	}
 }
+
+func TestSchedulerUpdateOneShot(t *testing.T) {
+	tmp := t.TempDir()
+	s, err := New(filepath.Join(tmp, "scheduler"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := s.AddOneShot("a", time.Now().UTC().Add(10*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newPrompt := "b"
+	runAt := time.Now().UTC().Add(20 * time.Minute)
+	if err := s.Update(id, UpdateTaskInput{Prompt: &newPrompt, RunAt: &runAt}); err != nil {
+		t.Fatal(err)
+	}
+
+	list := s.List()
+	if len(list) != 1 {
+		t.Fatalf("len=%d", len(list))
+	}
+	if list[0].Prompt != "b" {
+		t.Fatalf("prompt=%q", list[0].Prompt)
+	}
+	if !list[0].NextRunAt.Equal(runAt) {
+		t.Fatalf("runAt=%s want=%s", list[0].NextRunAt, runAt)
+	}
+}
+
+func TestSchedulerUpdateRecurringValidation(t *testing.T) {
+	tmp := t.TempDir()
+	s, err := New(filepath.Join(tmp, "scheduler"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id, err := s.AddOneShot("a", time.Now().UTC().Add(10*time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	recurring := true
+	if err := s.Update(id, UpdateTaskInput{Recurring: &recurring}); err == nil {
+		t.Fatal("expected recurring validation error")
+	}
+
+	interval := int64(120)
+	if err := s.Update(id, UpdateTaskInput{Recurring: &recurring, IntervalSeconds: &interval}); err != nil {
+		t.Fatal(err)
+	}
+	list := s.List()
+	if !list[0].Recurring {
+		t.Fatal("expected recurring true")
+	}
+	if list[0].IntervalSeconds != 120 {
+		t.Fatalf("interval=%d", list[0].IntervalSeconds)
+	}
+}
+
+func TestSchedulerUpdateUnknownTask(t *testing.T) {
+	tmp := t.TempDir()
+	s, err := New(filepath.Join(tmp, "scheduler"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Update("missing", UpdateTaskInput{}); err == nil {
+		t.Fatal("expected not found error")
+	}
+}

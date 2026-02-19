@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -29,6 +30,13 @@ type Scheduler struct {
 	storePath string
 	onTrigger func(context.Context, Task)
 	log       *observability.Logger
+}
+
+type UpdateTaskInput struct {
+	Prompt          *string
+	RunAt           *time.Time
+	Recurring       *bool
+	IntervalSeconds *int64
 }
 
 func New(dataDir string, onTrigger func(context.Context, Task)) (*Scheduler, error) {
@@ -118,6 +126,51 @@ func (s *Scheduler) Delete(taskID string) error {
 		return err
 	}
 	s.log.Info(context.Background(), "scheduler task deleted", "task_id", taskID)
+	return nil
+}
+
+func (s *Scheduler) Update(taskID string, in UpdateTaskInput) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	task, ok := s.tasks[taskID]
+	if !ok {
+		return fmt.Errorf("task not found: %s", taskID)
+	}
+
+	if in.Prompt != nil {
+		if strings.TrimSpace(*in.Prompt) == "" {
+			return fmt.Errorf("prompt is required")
+		}
+		task.Prompt = *in.Prompt
+	}
+	if in.RunAt != nil {
+		if in.RunAt.IsZero() {
+			return fmt.Errorf("runAt is required")
+		}
+		task.NextRunAt = in.RunAt.UTC()
+	}
+	if in.IntervalSeconds != nil {
+		if *in.IntervalSeconds <= 0 {
+			return fmt.Errorf("interval_seconds must be > 0")
+		}
+		task.IntervalSeconds = *in.IntervalSeconds
+	}
+	if in.Recurring != nil {
+		task.Recurring = *in.Recurring
+		if !task.Recurring {
+			task.IntervalSeconds = 0
+		}
+	}
+	if task.Recurring && task.IntervalSeconds <= 0 {
+		return fmt.Errorf("recurring task requires interval_seconds > 0")
+	}
+
+	s.tasks[taskID] = task
+	if err := s.saveLocked(); err != nil {
+		return err
+	}
+	s.log.Info(context.Background(), "scheduler task updated", "task_id", taskID, "recurring", task.Recurring, "next_run_at", task.NextRunAt)
 	return nil
 }
 

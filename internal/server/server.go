@@ -127,6 +127,20 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 			}
 		}
 
+		// scheduler actions from agent response
+		if s.scheduler != nil {
+			clean, scheduleActions, parseErr := scheduler.ExtractActions(response)
+			if parseErr != nil {
+				s.log.Error(ctx, "schedule action parse failed", "chat_id", chatID, "error", parseErr.Error())
+			} else if scheduleActions != nil {
+				response = clean
+				note := s.executeScheduleActions(ctx, scheduleActions)
+				if note != "" {
+					response = strings.TrimSpace(response + "\n\n" + note)
+				}
+			}
+		}
+
 		if strings.TrimSpace(response) == "" {
 			response = "ok"
 		}
@@ -391,6 +405,103 @@ func (s *Server) executeSkillActions(ctx context.Context, chatID int64, actions 
 			s.log.Info(ctx, "skill deleted by agent", "name", a.Name)
 		}
 	}
+}
+
+func (s *Server) executeScheduleActions(ctx context.Context, actions *scheduler.ActionEnvelope) string {
+	messages := make([]string, 0)
+
+	for _, a := range actions.Create {
+		runAt, err := time.Parse(time.RFC3339, strings.TrimSpace(a.RunAt))
+		if err != nil {
+			msg := fmt.Sprintf("schedule create failed (%q): invalid run_at (RFC3339 required)", a.Prompt)
+			messages = append(messages, msg)
+			s.log.Error(ctx, "schedule create failed", "prompt", a.Prompt, "error", err.Error())
+			continue
+		}
+
+		if a.IntervalSeconds > 0 {
+			id, err := s.scheduler.AddRecurring(a.Prompt, runAt.UTC(), time.Duration(a.IntervalSeconds)*time.Second)
+			if err != nil {
+				msg := fmt.Sprintf("schedule create failed (%q): %s", a.Prompt, err.Error())
+				messages = append(messages, msg)
+				s.log.Error(ctx, "schedule create recurring failed", "prompt", a.Prompt, "error", err.Error())
+				continue
+			}
+			messages = append(messages, fmt.Sprintf("scheduled recurring ✅ id=%s", id))
+			continue
+		}
+
+		id, err := s.scheduler.AddOneShot(a.Prompt, runAt.UTC())
+		if err != nil {
+			msg := fmt.Sprintf("schedule create failed (%q): %s", a.Prompt, err.Error())
+			messages = append(messages, msg)
+			s.log.Error(ctx, "schedule create one-shot failed", "prompt", a.Prompt, "error", err.Error())
+			continue
+		}
+		messages = append(messages, fmt.Sprintf("scheduled ✅ id=%s", id))
+	}
+
+	for _, a := range actions.Update {
+		in := scheduler.UpdateTaskInput{}
+		if strings.TrimSpace(a.Prompt) != "" {
+			prompt := a.Prompt
+			in.Prompt = &prompt
+		}
+		if strings.TrimSpace(a.RunAt) != "" {
+			runAt, err := time.Parse(time.RFC3339, strings.TrimSpace(a.RunAt))
+			if err != nil {
+				msg := fmt.Sprintf("schedule update failed (%s): invalid run_at (RFC3339 required)", a.ID)
+				messages = append(messages, msg)
+				s.log.Error(ctx, "schedule update failed", "task_id", a.ID, "error", err.Error())
+				continue
+			}
+			r := runAt.UTC()
+			in.RunAt = &r
+		}
+		in.Recurring = a.Recurring
+		in.IntervalSeconds = a.IntervalSeconds
+
+		if err := s.scheduler.Update(a.ID, in); err != nil {
+			msg := fmt.Sprintf("schedule update failed (%s): %s", a.ID, err.Error())
+			messages = append(messages, msg)
+			s.log.Error(ctx, "schedule update failed", "task_id", a.ID, "error", err.Error())
+			continue
+		}
+		messages = append(messages, fmt.Sprintf("schedule updated ✅ id=%s", a.ID))
+	}
+
+	for _, a := range actions.Delete {
+		if err := s.scheduler.Delete(a.ID); err != nil {
+			msg := fmt.Sprintf("schedule delete failed (%s): %s", a.ID, err.Error())
+			messages = append(messages, msg)
+			s.log.Error(ctx, "schedule delete failed", "task_id", a.ID, "error", err.Error())
+			continue
+		}
+		messages = append(messages, fmt.Sprintf("schedule deleted ✅ id=%s", a.ID))
+	}
+
+	if actions.List {
+		list := s.scheduler.List()
+		if len(list) == 0 {
+			messages = append(messages, "no scheduled tasks")
+		} else {
+			messages = append(messages, "scheduled tasks:")
+			for i, task := range list {
+				if i >= 20 {
+					messages = append(messages, "...truncated")
+					break
+				}
+				when := task.NextRunAt.UTC().Format(time.RFC3339)
+				if task.Recurring {
+					messages = append(messages, fmt.Sprintf("- %s @ %s (every %ds) [%s]", task.Prompt, when, task.IntervalSeconds, task.ID))
+				} else {
+					messages = append(messages, fmt.Sprintf("- %s @ %s [%s]", task.Prompt, when, task.ID))
+				}
+			}
+		}
+	}
+
+	return strings.TrimSpace(strings.Join(messages, "\n"))
 }
 
 type responseMeta struct {

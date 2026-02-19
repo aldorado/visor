@@ -362,8 +362,15 @@ In-process scheduler for reminders and recurring tasks.
 - [x] On trigger: send prompt to agent with context about what was scheduled
 
 #### Iteration 2: agent integration
-- [ ] Agent can create/modify/delete scheduled tasks via structured output
-- [ ] List upcoming tasks on request
+- [x] Agent can create/modify/delete scheduled tasks via structured output
+- [x] List upcoming tasks on request
+
+#### Iteration 2.5: reminder ergonomics (quick actions)
+- [ ] Add quick actions for triggered reminders: `done`, `snooze <duration>`, `reschedule <time>`
+- [ ] Add parser for natural short forms (`in 10m`, `tomorrow 09:00`) in reminder follow-ups
+- [ ] Keep recurrence semantics intact when snoozing recurring tasks (no accidental series drift)
+- [ ] Add idempotency guard for duplicate quick-action replies
+- [ ] Add tests for snooze/done/reschedule flows and edge cases (past time, invalid duration, timezone boundaries)
 
 ### M6: skills system
 Agent can create, edit, import, and execute skills autonomously, and request level-up enablement when infra dependencies are needed.

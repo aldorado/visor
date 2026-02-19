@@ -1,51 +1,29 @@
 # visor execution board
 
-current focus: *m8 / iteration 3* — safety rails
+current focus: *m5 / iteration 2* — agent scheduler integration
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m8 iteration 3 todos
-- [x] Pre-build validation: `go vet ./...` runs after commit, before build. Failure rolls back.
-- [x] Binary backup rotation: last 3 binaries kept as `.bak.1`/`.bak.2`/`.bak.3`, shifted on each build
-- [x] Crash detection: `ShouldAutoRollback()` checks if crashed within 30s of startup
-- [x] Auto-rollback: `AutoRollback()` restores latest backup + rolls back git commit
-- [x] Self-modification changelog: `data/selfevolve.log` with timestamp, backend, chat_id, commit message
-- [x] Disable via config: `SELF_EVOLUTION_ENABLED=false` (already wired from M8-I1)
-- [x] Server wiring: VetErr handling, backend passed to Request
-- [x] 13 tests total: +5 new (vet-failure-rollback, backup-rotation, latest-backup, crash-window, changelog)
+## m5 iteration 2 todos
+- [x] schedule actions contract via structured output (`schedule_actions`)
+- [x] create / update / delete task wiring from agent response
+- [x] list upcoming tasks on request
+- [x] strict validation (RFC3339 `run_at`, unknown task fail fast)
+- [x] tests for create/update/delete/list + invalid payload + unknown task
 
-## m0b usage
-- normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
-- verbose mode: `LOG_LEVEL=debug`, `LOG_VERBOSE=true`
-- otel disabled: `OTEL_ENABLED=false`
-- otel enabled (signoz):
-  - `OTEL_ENABLED=true`
-  - `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`
-  - `OTEL_SERVICE_NAME=visor`
-  - `OTEL_ENVIRONMENT=dev`
-
-## m0b log reading quickstart
-- systemd: `journalctl -u visor -f`
-- docker: `docker logs -f <visor-container>`
-- local run: stdout/stderr stream from process
-
-sample structured line:
-`time=... level=INFO msg="webhook message processed" component=server function=server.(*Server).handleWebhook request_id=... trace_id=... span_id=... chat_id=... backend=pi`
-
-## docs
-- `docs/signoz-setup.md`
-- `docs/observability-troubleshooting.md`
-
-## file touch map (m8 it3)
-- `internal/selfevolve/manager.go` -> go vet step, backupBinary rotation, latestBackup, pruneBackups, ShouldAutoRollback (30s crash window), AutoRollback, writeChangelog, rollback helper, DataDir config
-- `internal/selfevolve/manager_test.go` -> 13 tests: +vet-failure-rollback, backup-rotation, latest-backup, crash-window, changelog, config-disabled
-- `internal/server/server.go` -> VetErr handling in runSelfEvolution, backend passed to Request
-- `README.md`, `visor.forge.md` -> m8 iteration-3 progress tracking
+## file touch map (m5 it2)
+- `internal/scheduler/actions.go` -> schedule action envelope + json block extractor
+- `internal/scheduler/scheduler.go` -> task update API (`UpdateTaskInput`, `Update`)
+- `internal/server/server.go` -> schedule action extraction + execution flow
+- `internal/scheduler/actions_test.go` -> extractor tests
+- `internal/scheduler/scheduler_test.go` -> update validation + unknown-task tests
+- `internal/server/scheduler_actions_test.go` -> end-to-end action execution tests
+- `visor.forge.md` -> m5 iteration-2 marked done
 
 ## next
-*M8 complete* ✅ — continue with *M9* (multi-pi-subagent orchestration)?
+continue with *m5 iteration 2.5* (quick actions: done / snooze / reschedule).
 
 ---
 
