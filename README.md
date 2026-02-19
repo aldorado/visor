@@ -49,6 +49,7 @@ continue with *m6 / iteration 2* (agent-authored skills, discovery, auto-trigger
 
 planning note:
 - m9 (multi-pi-subagent orchestration) was added to forge blueprint for later execution.
+- includes domain/station-based subagents with task-specific model routing.
 
 ---
 

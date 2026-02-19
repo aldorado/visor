@@ -104,6 +104,8 @@ This means visor is the "body" and the CLI agent is the "brain". Swap brains wit
 ## Multi-subagent direction
 Visor should support coordinated multi-agent thinking with pi subagents.
 - v1: on-demand (explicit user call) fan-out to multiple pi subagents
+- subagents have fixed domain stations (starship style), each with dedicated task area
+- each station can route to its preferred model/provider for best fit
 - coordinator merges sub-results into one final answer
 - later: automatic activation via complexity heuristics and latency/budget guardrails
 

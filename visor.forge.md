@@ -432,18 +432,21 @@ Visor can spawn multiple pi subagents in parallel, coordinate them, and return o
 - [ ] Add explicit trigger path (user command) to start multi-subagent execution
 - [ ] Add orchestrator that spawns N pi subagent runs concurrently with bounded worker limit
 - [ ] Add role templates per subagent (e.g. planner/researcher/critic/synthesizer)
+- [ ] Add domain-specialized subagents ("starship stations") with fixed task areas
+- [ ] Add per-domain preferred model/provider mapping (task → best model route)
 - [ ] Collect sub-results and produce one merged final response via coordinator step
 - [ ] Add timeout/cancel handling so one stuck subagent does not block finalization
 
 #### Iteration 2: reliability + observability
 - [ ] Add per-subagent run IDs and structured logs (start/end/duration/error)
 - [ ] Add partial-failure strategy (continue with surviving agents, mark degraded mode)
-- [ ] Add execution report block in final response (which subagents ran, success/fail, latency)
+- [ ] Add execution report block in final response (which subagents ran, station/domain, model route, success/fail, latency)
 - [ ] Add tests for fan-out/fan-in correctness and timeout behavior
 
 #### Iteration 3: automatic orchestration
 - [ ] Add policy layer to auto-enable multi-subagent mode for complex tasks
 - [ ] Add complexity heuristics (task size, ambiguity, required breadth) for auto-trigger
+- [ ] Add station/domain auto-selection + model routing based on task classification
 - [ ] Add budget/latency guardrails to avoid over-spawning
 - [ ] Add fallback to single-agent mode when orchestration is unnecessary
 
