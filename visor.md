@@ -50,7 +50,11 @@ Activation concept:
 - merged config is validated via `docker compose config` before apply
 - visor stays a host process managed by systemd/supervisor, independent of compose
 
-### Standard level-ups: Himalaya + Obsidian
+### Standard level-ups: Cloudflared + Himalaya + Obsidian
+Cloudflared is the base connectivity level-up for first startup:
+- token/env-based tunnel bootstrap via `docker-compose.levelup.cloudflared.yml`
+- enables connection setup immediately at first startup without manual tunnel commands
+
 Himalaya stays the canonical example for generic level-ups and the first one shipped in visor:
 - adds email send/receive capability
 - demonstrates extra container/service wiring + env injection

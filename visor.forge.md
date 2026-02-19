@@ -231,6 +231,11 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 - [x] Require this skill to use M0 docs (`levelup-authoring`, `levelup-failure-modes`, `levelup-manifest`)
 - [x] Enforce validation + docs sync + iteration-scoped commit in the skill workflow
 
+#### Iteration 5: base cloudflared level-up
+- [x] Add cloudflared base level-up manifest for first-start connectivity setup
+- [x] Add `docker-compose.levelup.cloudflared.yml` with token/env-based tunnel startup
+- [x] Add cloudflared env keys to `.levelup.env.example`
+
 ### M1: skeleton — webhook + echo
 Get a Go binary that receives Telegram webhooks and echoes messages back.
 

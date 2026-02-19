@@ -1,0 +1,13 @@
+name = "cloudflared"
+display_name = "Cloudflared Tunnel"
+version = "0.1.0"
+description = "Base connectivity level-up for first-start tunnel routing"
+kind = "infra"
+enabled_by_default = true
+compose_file = "docker-compose.levelup.cloudflared.yml"
+healthcheck = "http://127.0.0.1:${CLOUDFLARED_METRICS_PORT:-20241}/ready"
+tags = ["base", "connectivity", "tunnel", "cloudflare"]
+required_env = [
+  "CLOUDFLARED_TUNNEL_TOKEN",
+  "CLOUDFLARED_METRICS_PORT",
+]

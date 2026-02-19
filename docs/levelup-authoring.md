@@ -79,8 +79,12 @@ minimum:
 - one integration-ish roundtrip test for the capability flow
 - mount/reachability smoke tests if sidecar has volumes or http endpoint
 
-## toy reference in this repo
+## reference level-ups in this repo
 
-for a minimal generic example see:
+base connectivity reference:
+- `levelups/cloudflared/levelup.toml`
+- `docker-compose.levelup.cloudflared.yml`
+
+minimal generic example:
 - `levelups/echo-stub/levelup.toml`
 - `docker-compose.levelup.echo-stub.yml`

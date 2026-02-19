@@ -1,20 +1,22 @@
 # visor execution board
 
-current focus: *m0 / iteration 4* — self-authored level-up skill
+current focus: *m0 / iteration 5* — cloudflared base level-up
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m0 iteration 4 todos
-- [x] add `skills/levelup-creator/SKILL.md`
-- [x] force skill to use M0 docs (`levelup-authoring`, `levelup-failure-modes`, `levelup-manifest`)
-- [x] enforce validation flow + docs sync + commit rule in the skill
+## m0 iteration 5 todos
+- [x] add cloudflared base level-up manifest
+- [x] add `docker-compose.levelup.cloudflared.yml`
+- [x] add cloudflared env contract for first-start setup
 
-## file touch map (iteration 4)
-- `skills/levelup-creator/SKILL.md` -> level-up self-authoring skill workflow
-- `visor.forge.md` -> M0 iteration-4 tracking/checklist
-- `README.md` -> execution board status
+## file touch map (iteration 5)
+- `levelups/cloudflared/levelup.toml` -> base connectivity level-up manifest
+- `docker-compose.levelup.cloudflared.yml` -> tunnel sidecar overlay
+- `.levelup.env.example` -> tunnel token + metrics envs
+- `visor.forge.md` -> M0 iteration-5 tracking/checklist
+- `visor.md` -> architecture direction update (cloudflared as base level-up)
 
 ## next checkpoint question
 continue with *m1 deploy/e2e* or jump straight to *m3 memory system*?
