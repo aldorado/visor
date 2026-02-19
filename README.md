@@ -34,3 +34,26 @@ agent-c (ops layer)
 
 ## next checkpoint question
 continue with m0/iteration1 chunk 2 (`.levelup.env` loader + strict required-env validation)?
+
+---
+
+# M1: skeleton — webhook + echo
+
+current focus: *m1 / iteration 1* — project setup
+
+## m1 status
+- state: *iteration 1 done*
+
+## m1 granular todos
+- [x] init Go module (`go.mod`)
+- [x] create project structure: `main.go`, `internal/platform/`, `internal/config/`, `internal/server/`
+- [x] config loader from env vars (TELEGRAM_BOT_TOKEN, USER_PHONE_NUMBER, PORT)
+- [x] HTTP server with `/webhook` and `/health` routes
+
+## m1 file touch map
+| task | files |
+|------|-------|
+| go module | `go.mod` |
+| project structure | `main.go`, `internal/platform/`, `internal/config/`, `internal/server/` |
+| config loader | `internal/config/config.go` |
+| http server | `main.go`, `internal/server/server.go` |

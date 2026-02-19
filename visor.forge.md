@@ -230,10 +230,10 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 Get a Go binary that receives Telegram webhooks and echoes messages back.
 
 #### Iteration 1: project setup
-- [ ] Init Go module in `/root/code/visor`
-- [ ] Basic project structure: `main.go`, `internal/platform/`, `internal/agent/`
-- [ ] Load config from env vars (TELEGRAM_BOT_TOKEN, USER_PHONE_NUMBER, PORT)
-- [ ] HTTP server with /webhook and /health routes
+- [x] Init Go module in `/root/code/visor`
+- [x] Basic project structure: `main.go`, `internal/platform/`, `internal/agent/`
+- [x] Load config from env vars (TELEGRAM_BOT_TOKEN, USER_PHONE_NUMBER, PORT)
+- [x] HTTP server with /webhook and /health routes
 
 #### Iteration 2: telegram integration
 - [ ] Parse Telegram webhook payloads (text, voice, image, reactions)
