@@ -205,7 +205,7 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 - [x] Add loader for `.levelup.env` with strict validation (fail fast if required vars missing)
 - [x] Implement compose assembly strategy (base + selected overlays)
 - [x] Add CLI/admin command to list/enable/disable level-ups
-- [ ] Compose merge rules in runtime builder:
+- [x] Compose merge rules in runtime builder:
   - base file first, then overlays in declared order
   - never include visor service in compose (sidecars only)
   - enforce all relative paths resolved from base compose file directory

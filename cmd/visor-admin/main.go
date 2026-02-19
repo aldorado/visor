@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 
 func main() {
 	projectRoot := flag.String("project-root", ".", "visor project root")
+	baseCompose := flag.String("base-compose", "docker-compose.yml", "base compose file path")
 	flag.Parse()
 
 	args := flag.Args()
@@ -50,6 +52,11 @@ func main() {
 			log.Fatalf("disable level-up: %v", err)
 		}
 		fmt.Printf("disabled: %s\n", strings.Join(names, ", "))
+	case "validate":
+		if err := levelup.ValidateEnabled(context.Background(), *projectRoot, *baseCompose); err != nil {
+			log.Fatalf("validate compose: %v", err)
+		}
+		fmt.Println("compose config: valid")
 	default:
 		printUsage()
 		os.Exit(2)
@@ -83,4 +90,5 @@ func printUsage() {
 	fmt.Println("  visor-admin [-project-root .] levelup list")
 	fmt.Println("  visor-admin [-project-root .] levelup enable <name>[,<name>...]")
 	fmt.Println("  visor-admin [-project-root .] levelup disable <name>[,<name>...]")
+	fmt.Println("  visor-admin [-project-root .] [-base-compose docker-compose.yml] levelup validate")
 }

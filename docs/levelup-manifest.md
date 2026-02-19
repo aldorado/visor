@@ -35,6 +35,7 @@ tags = ["email", "imap", "smtp"]
 - compose assembly order is deterministic: base compose file first, then overlays in selected order.
 - overlay file paths are resolved relative to the base compose file directory.
 - every entry in `required_env` must exist after env layering (`.env` + `.levelup.env` + process env). missing keys are hard errors.
+- before any apply/up/down operation, merged config must pass `docker compose ... config` validation.
 - `healthcheck` is a simple probe target for status reporting.
 - manifests are discovered under `levelups/*/levelup.toml`.
 - visor itself is never declared in these compose files (sidecars only).

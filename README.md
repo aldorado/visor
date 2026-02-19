@@ -3,7 +3,7 @@
 current focus: *m0 / iteration 1* — level-up framework
 
 ## status
-- chunk in this commit: add admin command for list/enable/disable level-ups
+- chunk in this commit: add compose builder validation via `docker compose config`
 - state: done
 
 ## granular todos
@@ -11,7 +11,7 @@ current focus: *m0 / iteration 1* — level-up framework
 - [x] add `.levelup.env` loader with required-key validation (fail fast)
 - [x] implement compose assembly (base + selected overlays)
 - [x] add admin command: list/enable/disable level-ups
-- [ ] add compose builder validation via `docker compose config`
+- [x] add compose builder validation via `docker compose config`
 
 ## multi-agent work split
 agent-a (spec/docs)
@@ -27,16 +27,15 @@ agent-c (ops layer)
 - wire list/enable/disable commands
 
 ## file touch map
-- `internal/levelup/manifest.go` -> discover + parse `levelup.toml`
-- `internal/levelup/state.go` -> persist enabled level-ups (`data/levelups/enabled.json`)
-- `internal/levelup/admin.go` -> list/enable/disable operations
-- `internal/levelup/admin_test.go` -> command behavior tests
-- `cmd/visor-admin/main.go` -> CLI admin entrypoint (`levelup list|enable|disable`)
-- `go.mod`, `go.sum` -> TOML parser dependency
+- `internal/levelup/compose_validate.go` -> compose config validation runner (`docker compose ... config`)
+- `internal/levelup/compose_validate_test.go` -> args/env/runner tests
+- `internal/levelup/admin.go` -> `ValidateEnabled` flow (assembly + env validation + compose config check)
+- `cmd/visor-admin/main.go` -> CLI command `levelup validate`
+- `docs/levelup-manifest.md` -> runtime validation rule sync
 - `README.md` -> execution board + task states (shared, small edits only)
 
 ## next checkpoint question
-continue with m0/iteration1 chunk 5 (`compose builder validation via docker compose config`)?
+continue with m0/iteration2 chunk 1 (`docker-compose.levelup.email-himalaya.yml` as first concrete level-up)?
 
 ---
 
