@@ -36,16 +36,14 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m6 it2)
-- `internal/skills/manager.go` -> Manager with CRUD, Describe, Match, Reload
-- `internal/skills/actions.go` -> action types (Create/Edit/Delete) + ExtractActions parser
-- `internal/skills/manager_test.go` -> 12 manager tests
-- `internal/skills/actions_test.go` -> 6 action parser tests
-- `internal/server/server.go` -> skills integration: enrichWithSkills, executeSkillActions, skill manager init
-- `README.md`, `visor.forge.md` -> m6 iteration-2 progress tracking
+## file touch map (m6 it3)
+- `internal/skills/importer.go` -> Import, Update, CheckDependencies, repoNameFromURL, gitHeadHash
+- `internal/skills/importer_test.go` -> 10 tests (local git import, duplicate, no-manifest, update, dep checks)
+- `internal/skills/skill.go` -> Manifest extended with Source + Version fields
+- `README.md`, `visor.forge.md` -> m6 iteration-3 progress tracking
 
 ## next checkpoint question
-continue with *m6 / iteration 3* (skill import from git/URLs)?
+*M6 complete* ✅ — continue with *M7* (multi-backend + auto-switch)?
 
 planning note:
 - m9 (multi-pi-subagent orchestration) was added to forge blueprint for later execution.

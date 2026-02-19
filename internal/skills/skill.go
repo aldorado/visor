@@ -18,6 +18,8 @@ type Manifest struct {
 	Dependencies []string `toml:"dependencies"`   // required tools/packages
 	LevelUps     []string `toml:"level_ups"`      // required level-ups (e.g. "email-himalaya")
 	Timeout      int      `toml:"timeout"`        // execution timeout in seconds (default: 30)
+	Source       string   `toml:"source"`         // git repo URL or import URL
+	Version      string   `toml:"version"`        // git hash, tag, or semver
 }
 
 // Skill is a loaded, ready-to-match skill.
