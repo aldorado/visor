@@ -250,9 +250,9 @@ Get a Go binary that receives Telegram webhooks and echoes messages back.
 Persistent CLI agent process with RPC over stdin/stdout.
 
 #### Iteration 1: agent interface
-- [ ] Define Go interface: `Agent { SendPrompt(ctx, prompt) -> (response, error) }`
-- [ ] Implement process manager: spawn, restart on crash, periodic restart (configurable)
-- [ ] Message queue: if agent is busy, queue incoming messages
+- [x] Define Go interface: `Agent { SendPrompt(ctx, prompt) -> (response, error) }`
+- [x] Implement process manager: spawn, restart on crash, periodic restart (configurable)
+- [x] Message queue: if agent is busy, queue incoming messages
 
 #### Iteration 2: pi adapter
 - [ ] Implement pi CLI adapter (`pi --mode rpc`)

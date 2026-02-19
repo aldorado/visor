@@ -49,3 +49,19 @@ continue with m0/iteration1 chunk 4 (`admin command: list/enable/disable level-u
 ## m1 iteration 3 todos
 - [x] wire webhook → parse → echo response → send
 - [x] text echo, voice acknowledgment, photo acknowledgment
+
+---
+
+# M2: agent process manager
+
+current focus: *m2 / iteration 1* — agent interface
+
+## m2 status
+- state: *iteration 1 done*
+
+## m2 iteration 1 todos
+- [x] define Agent interface: `SendPrompt(ctx, prompt) -> (string, error)`
+- [x] process manager: spawn, restart on crash, periodic restart
+- [x] message queue: enqueue when busy, drain sequentially
+- [x] echo agent stub for testing
+- [x] wire QueuedAgent into server webhook handler
