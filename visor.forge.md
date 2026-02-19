@@ -384,9 +384,9 @@ Agent can create, edit, import, and execute skills autonomously, and request lev
 - [x] Skill dependency handshake: skill can declare required level-up(s); visor prompts for enablement if missing
 
 #### Iteration 3: skill import
-- [ ] Import skills from git repos or URLs
-- [ ] Dependency resolution: skills can declare required tools/packages
-- [ ] Version tracking: git hash or semver per skill
+- [x] Import skills from git repos or URLs
+- [x] Dependency resolution: skills can declare required tools/packages
+- [x] Version tracking: git hash or semver per skill
 
 ### M7: multi-backend + auto-switch
 Rotate between AI backends based on availability.
@@ -433,20 +433,22 @@ Visor can spawn multiple pi subagents in parallel, coordinate them, and return o
 - [ ] Add orchestrator that spawns N pi subagent runs concurrently with bounded worker limit
 - [ ] Add role templates per subagent (e.g. planner/researcher/critic/synthesizer)
 - [ ] Add domain-specialized subagents ("starship stations") with fixed task areas
-- [ ] Add per-domain preferred model/provider mapping (task → best model route)
+- [ ] Add per-domain model rank ladders (e.g. engineering: opus high rank, haiku fallback)
+- [ ] Add JSON-configurable station registry (`config/subagent-stations.json`) with model/provider ranks per station
 - [ ] Collect sub-results and produce one merged final response via coordinator step
 - [ ] Add timeout/cancel handling so one stuck subagent does not block finalization
 
 #### Iteration 2: reliability + observability
 - [ ] Add per-subagent run IDs and structured logs (start/end/duration/error)
 - [ ] Add partial-failure strategy (continue with surviving agents, mark degraded mode)
-- [ ] Add execution report block in final response (which subagents ran, station/domain, model route, success/fail, latency)
+- [ ] Add execution report block in final response (which subagents ran, station/domain, model rank used, success/fail, latency)
 - [ ] Add tests for fan-out/fan-in correctness and timeout behavior
+- [ ] Add tests for rank-based fallback behavior inside one station
 
 #### Iteration 3: automatic orchestration
 - [ ] Add policy layer to auto-enable multi-subagent mode for complex tasks
 - [ ] Add complexity heuristics (task size, ambiguity, required breadth) for auto-trigger
-- [ ] Add station/domain auto-selection + model routing based on task classification
+- [ ] Add station/domain auto-selection + model rank routing based on task classification
 - [ ] Add budget/latency guardrails to avoid over-spawning
 - [ ] Add fallback to single-agent mode when orchestration is unnecessary
 

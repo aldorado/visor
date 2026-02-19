@@ -105,7 +105,8 @@ This means visor is the "body" and the CLI agent is the "brain". Swap brains wit
 Visor should support coordinated multi-agent thinking with pi subagents.
 - v1: on-demand (explicit user call) fan-out to multiple pi subagents
 - subagents have fixed domain stations (starship style), each with dedicated task area
-- each station can route to its preferred model/provider for best fit
+- each station has a ranked model ladder (best -> fallback), e.g. engineering: opus high rank, haiku low rank
+- station model ladders are JSON-configurable so routing can be tuned without code changes
 - coordinator merges sub-results into one final answer
 - later: automatic activation via complexity heuristics and latency/budget guardrails
 

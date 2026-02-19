@@ -1,19 +1,18 @@
 # visor execution board
 
-current focus: *m6 / iteration 2* — agent-authored skills
+current focus: *m6 / iteration 3* — skill import
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m6 iteration 2 todos
-- [x] skill manager: CRUD operations (create/edit/delete skill dirs with skill.toml + script)
-- [x] skill action parsing: extract `skill_actions` JSON from agent response (create/edit/delete)
-- [x] skill discovery: Describe() builds formatted skill list for agent prompt injection
-- [x] auto-trigger: match incoming messages against triggers, run matching skills, prepend output to agent context
-- [x] dependency handshake: log required level-ups when skill triggers
-- [x] server wiring: enrichWithSkills in webhook flow, executeSkillActions in response handler
-- [x] 31 tests total (13 I1 + 18 I2): manager CRUD, action parsing, describe, match, create/edit/delete lifecycle
+## m6 iteration 3 todos
+- [x] Import from git repos: clone, shallow clone, checkout by ref (tag/branch/hash)
+- [x] Version tracking: stamp source URL + git hash into skill.toml on import
+- [x] Update: git pull --ff-only + re-stamp version hash
+- [x] Dependency resolution: CheckDependencies verifies tools on PATH, warns on missing
+- [x] Manifest extended: source + version fields in skill.toml
+- [x] 10 new tests (41 total): repo name parsing, hash detection, dep checks, import, duplicate, no-manifest, update, update-no-source
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -50,7 +49,7 @@ continue with *m6 / iteration 3* (skill import from git/URLs)?
 
 planning note:
 - m9 (multi-pi-subagent orchestration) was added to forge blueprint for later execution.
-- includes domain/station-based subagents with task-specific model routing.
+- includes domain/station-based subagents with JSON-configurable model rank ladders per station.
 
 ---
 
