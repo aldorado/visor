@@ -1,15 +1,16 @@
 # visor execution board
 
-current focus: *m0b / iteration 5* — full codebase logging sweep
+current focus: *m5 / iteration 1* — scheduler
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m0b iteration 5 todos
-- [x] replace remaining `log.Printf` hotspots with structured observability logger
-- [x] add consistent component/function log fields across runtime packages
-- [x] ensure voice, memory, agent adapters, process manager, email poller are all wired to structured logging
+## m5 iteration 1 todos
+- [x] in-process scheduler loop (no system crontab)
+- [x] persist scheduled tasks as JSON on disk
+- [x] support one-shot and recurring tasks
+- [x] on trigger, enqueue context prompt to agent
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -33,16 +34,14 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m0b it5)
-- `internal/voice/handler.go` -> structured logs for tts/stt lifecycle
-- `internal/memory/manager.go` -> memory save/lookup lifecycle logs
-- `internal/agent/pi.go`, `internal/agent/claude.go` -> adapter parse/error logs
-- `internal/agent/process.go` -> process spawn/restart lifecycle logs
-- `internal/levelup/email/poller.go` -> poll loop + tick stats logs
-- `README.md`, `visor.forge.md` -> iteration-5 progress tracking
+## file touch map (m5 it1)
+- `internal/scheduler/scheduler.go` -> scheduler core loop + persistence + one-shot/recurring behavior
+- `internal/scheduler/scheduler_test.go` -> persistence + trigger behavior tests
+- `internal/server/server.go` -> scheduler init + start + trigger -> agent enqueue wiring
+- `README.md`, `visor.forge.md` -> m5 iteration-1 progress tracking
 
 ## next checkpoint question
-continue with *m1 deploy/e2e* or jump to another milestone?
+continue with *m5 / iteration 2* (agent integration for create/modify/delete/list tasks)?
 
 ---
 

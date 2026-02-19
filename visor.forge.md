@@ -356,10 +356,10 @@ Transcription + text-to-speech.
 In-process scheduler for reminders and recurring tasks.
 
 #### Iteration 1: scheduler
-- [ ] In-process cron scheduler (no system crontab dependency)
-- [ ] Persist scheduled tasks to disk as JSON (survives restarts)
-- [ ] Support one-shot and recurring schedules
-- [ ] On trigger: send prompt to agent with context about what was scheduled
+- [x] In-process cron scheduler (no system crontab dependency)
+- [x] Persist scheduled tasks to disk as JSON (survives restarts)
+- [x] Support one-shot and recurring schedules
+- [x] On trigger: send prompt to agent with context about what was scheduled
 
 #### Iteration 2: agent integration
 - [ ] Agent can create/modify/delete scheduled tasks via structured output

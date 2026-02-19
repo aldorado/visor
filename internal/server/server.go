@@ -16,6 +16,7 @@ import (
 	emaillevelup "visor/internal/levelup/email"
 	"visor/internal/observability"
 	"visor/internal/platform/telegram"
+	"visor/internal/scheduler"
 	"visor/internal/voice"
 )
 
@@ -28,6 +29,7 @@ type Server struct {
 	voice       *voice.Handler
 	emailSender emaillevelup.Sender
 	emailPoller *emaillevelup.Poller
+	scheduler   *scheduler.Scheduler
 	log         *observability.Logger
 }
 
@@ -113,6 +115,19 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		}
 	})
 
+	schedulerInstance, err := scheduler.New(cfg.DataDir+"/scheduler", func(ctx context.Context, task scheduler.Task) {
+		content := fmt.Sprintf("[scheduled task]\nid: %s\nrecurring: %t\nprompt: %s", task.ID, task.Recurring, task.Prompt)
+		s.agent.Enqueue(ctx, agent.Message{
+			ChatID:  mustParseChatID(cfg.UserChatID),
+			Content: content,
+			Type:    "scheduled",
+		})
+	})
+	if err != nil {
+		panic(fmt.Sprintf("scheduler init failed: %v", err))
+	}
+	s.scheduler = schedulerInstance
+
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("POST /webhook", s.handleWebhook)
 	return s
@@ -125,6 +140,10 @@ func (s *Server) ListenAndServe() error {
 	if s.emailPoller != nil {
 		go s.emailPoller.Start(context.Background())
 		s.log.Info(context.Background(), "email poller started", "interval_seconds", s.cfg.HimalayaPollInterval)
+	}
+	if s.scheduler != nil {
+		go s.scheduler.Start(context.Background())
+		s.log.Info(context.Background(), "scheduler started")
 	}
 
 	handler := observability.RequestIDMiddleware(observability.RecoverMiddleware("http", s.mux))
