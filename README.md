@@ -85,10 +85,11 @@ current focus: *m3 / iteration 2* — embeddings + search
 
 # M4: voice pipeline
 
-current focus: *m4 / iteration 1* — speech-to-text
+current focus: *m4 / iteration 2* — text-to-speech
 
 ## m4 status
-- state: *iteration 1 done*
+- iteration 1: done (speech-to-text)
+- state: *iteration 2 done*
 
 ## m4 iteration 1 todos
 - [x] Whisper STT client (multipart upload to OpenAI API)
@@ -96,3 +97,12 @@ current focus: *m4 / iteration 1* — speech-to-text
 - [x] Server wiring: voice messages auto-transcribed with [Voice message] tag
 - [x] Graceful fallback: if no OPENAI_API_KEY, passes raw file ID
 - [x] Tests: whisper response parsing (normal, empty, unicode)
+
+## m4 iteration 2 todos
+- [x] ElevenLabs TTS client (eleven_multilingual_v2, returns MP3 bytes)
+- [x] Telegram SendVoice: multipart upload of audio file
+- [x] Config: ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID
+- [x] Voice handler: SynthesizeAndSend (TTS → send voice message)
+- [x] Agent response metadata: `send_voice: true` flag via `---` separator
+- [x] Server callback: parseResponse extracts send_voice, routes to TTS with text fallback
+- [x] Tests: 3 elevenlabs tests, 6 parseResponse tests

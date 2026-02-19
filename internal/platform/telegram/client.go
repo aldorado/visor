@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"strconv"
 )
 
 const apiBase = "https://api.telegram.org/bot"
@@ -31,8 +33,32 @@ func (c *Client) SendMessage(chatID int64, text string) error {
 }
 
 func (c *Client) SendVoice(chatID int64, audio io.Reader, filename string) error {
-	// TODO: M4 — multipart upload for voice
-	return fmt.Errorf("voice send not implemented yet")
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+
+	w.WriteField("chat_id", strconv.FormatInt(chatID, 10))
+
+	part, err := w.CreateFormFile("voice", filename)
+	if err != nil {
+		return fmt.Errorf("sendVoice: create form: %w", err)
+	}
+	if _, err := io.Copy(part, audio); err != nil {
+		return fmt.Errorf("sendVoice: copy audio: %w", err)
+	}
+	w.Close()
+
+	url := fmt.Sprintf("%s%s/sendVoice", apiBase, c.token)
+	resp, err := c.httpClient.Post(url, w.FormDataContentType(), &buf)
+	if err != nil {
+		return fmt.Errorf("sendVoice: request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("sendVoice: status %d: %s", resp.StatusCode, respBody)
+	}
+	return nil
 }
 
 func (c *Client) GetFileURL(fileID string) (string, error) {

@@ -343,9 +343,9 @@ Transcription + text-to-speech.
 - [x] Feed transcribed text to agent as normal message with [Voice message] tag
 
 #### Iteration 2: text-to-speech
-- [ ] ElevenLabs TTS API integration
-- [ ] Agent can request voice response (send_voice flag)
-- [ ] Send audio file back via Telegram
+- [x] ElevenLabs TTS API integration
+- [x] Agent can request voice response (send_voice flag)
+- [x] Send audio file back via Telegram
 
 ### M5: scheduling + cron
 In-process scheduler for reminders and recurring tasks.

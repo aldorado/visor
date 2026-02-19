@@ -15,6 +15,7 @@ import (
 	"visor/internal/agent"
 	"visor/internal/config"
 	emaillevelup "visor/internal/levelup/email"
+	"visor/internal/observability"
 	"visor/internal/platform/telegram"
 	"visor/internal/voice"
 )
@@ -28,6 +29,7 @@ type Server struct {
 	voice       *voice.Handler
 	emailSender emaillevelup.Sender
 	emailPoller *emaillevelup.Poller
+	log         *observability.Logger
 }
 
 func New(cfg *config.Config, a agent.Agent) *Server {
@@ -38,10 +40,14 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		mux:   http.NewServeMux(),
 		tg:    tg,
 		dedup: telegram.NewDedup(5 * time.Minute),
+		log:   observability.Component("server"),
 	}
 
 	if cfg.OpenAIAPIKey != "" {
 		s.voice = voice.NewHandler(tg, cfg.OpenAIAPIKey)
+		if cfg.ElevenLabsAPIKey != "" && cfg.ElevenLabsVoiceID != "" {
+			s.voice.SetTTS(cfg.ElevenLabsAPIKey, cfg.ElevenLabsVoiceID)
+		}
 	}
 
 	if cfg.HimalayaEnabled {
@@ -57,23 +63,25 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 	}
 
 	s.agent = agent.NewQueuedAgent(a, func(chatID int64, response string, err error) {
+		ctx := context.Background()
 		if err != nil {
-			log.Printf("agent: error: %v", err)
+			s.log.Error(ctx, "agent processing failed", "chat_id", chatID, "error", err.Error())
 			response = fmt.Sprintf("error: %v", err)
 		}
 
 		if s.emailSender != nil {
 			clean, actions, parseErr := emaillevelup.ExtractActions(response)
 			if parseErr != nil {
-				log.Printf("email action parse failed: %v", parseErr)
+				s.log.Error(ctx, "email action parse failed", "chat_id", chatID, "error", parseErr.Error())
 				response = response + "\n\n(email action parse failed)"
 			} else {
 				response = clean
 				if len(actions) > 0 {
-					if sendErr := emaillevelup.ExecuteActions(context.Background(), s.emailSender, actions); sendErr != nil {
-						log.Printf("email send failed: %v", sendErr)
+					if sendErr := emaillevelup.ExecuteActions(ctx, s.emailSender, actions); sendErr != nil {
+						s.log.Error(ctx, "email action execution failed", "chat_id", chatID, "error", sendErr.Error())
 						response = strings.TrimSpace(response + "\n\nemail send failed: " + sendErr.Error())
 					} else {
+						s.log.Info(ctx, "email action executed", "chat_id", chatID, "actions", len(actions))
 						response = strings.TrimSpace(response + "\n\nemail action executed ✅")
 					}
 				}
@@ -83,8 +91,20 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		if strings.TrimSpace(response) == "" {
 			response = "ok"
 		}
-		if sendErr := tg.SendMessage(chatID, response); sendErr != nil {
-			log.Printf("agent: send reply failed: %v", sendErr)
+
+		text, sendVoice := parseResponse(response)
+
+		if sendVoice && s.voice != nil && s.voice.TTSEnabled() {
+			if err := s.voice.SynthesizeAndSend(chatID, text); err != nil {
+				s.log.Error(ctx, "voice synth failed, fallback to text", "chat_id", chatID, "error", err.Error())
+				if sendErr := tg.SendMessage(chatID, text); sendErr != nil {
+					s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
+				}
+			}
+		} else {
+			if sendErr := tg.SendMessage(chatID, text); sendErr != nil {
+				s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
+			}
 		}
 	})
 
@@ -95,14 +115,15 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 
 func (s *Server) ListenAndServe() error {
 	addr := fmt.Sprintf(":%d", s.cfg.Port)
-	log.Printf("visor listening on %s", addr)
+	s.log.Info(context.Background(), "server starting", "addr", addr, "log_level", s.cfg.LogLevel, "log_verbose", s.cfg.LogVerbose)
 
 	if s.emailPoller != nil {
 		go s.emailPoller.Start(context.Background())
-		log.Printf("email poller started")
+		s.log.Info(context.Background(), "email poller started", "interval_seconds", s.cfg.HimalayaPollInterval)
 	}
 
-	return http.ListenAndServe(addr, s.mux)
+	handler := observability.RecoverMiddleware("http", s.mux)
+	return http.ListenAndServe(addr, handler)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +141,7 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.TelegramWebhookSecret != "" {
 		sig := r.Header.Get("X-Telegram-Bot-Api-Secret-Token")
 		if !verifySignature(sig, s.cfg.TelegramWebhookSecret) {
-			log.Printf("webhook: invalid signature")
+			s.log.Warn(r.Context(), "webhook signature invalid", "remote_addr", r.RemoteAddr)
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -128,25 +149,27 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	var update telegram.Update
 	if err := json.Unmarshal(body, &update); err != nil {
-		log.Printf("webhook: bad json: %v", err)
+		s.log.Warn(r.Context(), "webhook bad json", "error", err.Error())
 		http.Error(w, "bad json", http.StatusBadRequest)
 		return
 	}
 
 	if s.dedup.IsDuplicate(update.UpdateID) {
+		s.log.Debug(r.Context(), "webhook duplicate update ignored", "update_id", update.UpdateID)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	msg := update.Message
 	if msg == nil {
+		s.log.Debug(r.Context(), "webhook has no message payload", "update_id", update.UpdateID)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	chatID := strconv.FormatInt(msg.Chat.ID, 10)
 	if chatID != s.cfg.UserChatID {
-		log.Printf("webhook: dropping message from unauthorized chat %s", chatID)
+		s.log.Warn(r.Context(), "webhook unauthorized chat", "chat_id", chatID)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -159,7 +182,7 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		if s.voice != nil {
 			text, err := s.voice.Transcribe(msg.Voice.FileID)
 			if err != nil {
-				log.Printf("webhook: voice transcription failed: %v", err)
+				s.log.Error(r.Context(), "voice transcription failed", "chat_id", chatID, "error", err.Error())
 				content = "[Voice message - transcription failed]"
 			} else {
 				content = fmt.Sprintf("[Voice message] %s", text)
@@ -178,18 +201,19 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		msgType = "text"
 		content = msg.Text
 	default:
-		log.Printf("webhook: unsupported message type from chat %s", chatID)
+		s.log.Warn(r.Context(), "webhook unsupported message type", "chat_id", chatID)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	log.Printf("webhook: %s message from %s: %s", msgType, chatID, truncate(content, 80))
+	s.log.Info(r.Context(), "webhook message accepted", "message_type", msgType, "chat_id", chatID, "preview", truncate(content, 80))
 
-	s.agent.Enqueue(context.Background(), agent.Message{
+	s.agent.Enqueue(r.Context(), agent.Message{
 		ChatID:  msg.Chat.ID,
 		Content: content,
 		Type:    msgType,
 	})
+	s.log.Debug(r.Context(), "webhook message enqueued", "chat_id", chatID, "message_type", msgType, "queue_len", s.agent.QueueLen())
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -211,4 +235,24 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+// parseResponse extracts metadata from agent response.
+// The agent can signal voice response by ending with:
+//
+//	---
+//	send_voice: true
+func parseResponse(raw string) (text string, sendVoice bool) {
+	parts := strings.SplitN(raw, "\n---\n", 2)
+	text = parts[0]
+	if len(parts) == 2 {
+		meta := parts[1]
+		for _, line := range strings.Split(meta, "\n") {
+			line = strings.TrimSpace(line)
+			if line == "send_voice: true" || line == "send_voice:true" {
+				sendVoice = true
+			}
+		}
+	}
+	return
 }

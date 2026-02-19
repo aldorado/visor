@@ -206,3 +206,67 @@ func TestTruncate(t *testing.T) {
 		t.Errorf("truncate long = %q", got)
 	}
 }
+
+func TestParseResponse_PlainText(t *testing.T) {
+	text, sendVoice := parseResponse("hello world")
+	if text != "hello world" {
+		t.Errorf("text = %q, want %q", text, "hello world")
+	}
+	if sendVoice {
+		t.Error("sendVoice should be false for plain text")
+	}
+}
+
+func TestParseResponse_WithSendVoice(t *testing.T) {
+	raw := "here is my response\n---\nsend_voice: true"
+	text, sendVoice := parseResponse(raw)
+	if text != "here is my response" {
+		t.Errorf("text = %q, want %q", text, "here is my response")
+	}
+	if !sendVoice {
+		t.Error("sendVoice should be true")
+	}
+}
+
+func TestParseResponse_SendVoiceNoSpace(t *testing.T) {
+	raw := "response text\n---\nsend_voice:true"
+	text, sendVoice := parseResponse(raw)
+	if text != "response text" {
+		t.Errorf("text = %q", text)
+	}
+	if !sendVoice {
+		t.Error("sendVoice should be true without space")
+	}
+}
+
+func TestParseResponse_MetaWithoutVoice(t *testing.T) {
+	raw := "response text\n---\nsome_other_flag: true"
+	text, sendVoice := parseResponse(raw)
+	if text != "response text" {
+		t.Errorf("text = %q", text)
+	}
+	if sendVoice {
+		t.Error("sendVoice should be false when not present in meta")
+	}
+}
+
+func TestParseResponse_MultilineMeta(t *testing.T) {
+	raw := "the actual response\n---\nfoo: bar\nsend_voice: true\nbaz: 42"
+	text, sendVoice := parseResponse(raw)
+	if text != "the actual response" {
+		t.Errorf("text = %q", text)
+	}
+	if !sendVoice {
+		t.Error("sendVoice should be true in multiline meta")
+	}
+}
+
+func TestParseResponse_EmptyResponse(t *testing.T) {
+	text, sendVoice := parseResponse("")
+	if text != "" {
+		t.Errorf("text = %q, want empty", text)
+	}
+	if sendVoice {
+		t.Error("sendVoice should be false for empty response")
+	}
+}

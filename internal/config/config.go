@@ -14,9 +14,13 @@ type Config struct {
 	AgentBackend          string // "pi", "claude", "echo" (default: "echo")
 	OpenAIAPIKey          string
 	DataDir               string // base directory for runtime data (default: "data")
+	ElevenLabsAPIKey      string
+	ElevenLabsVoiceID     string
 	HimalayaEnabled       bool
 	HimalayaAccount       string
 	HimalayaPollInterval  int // seconds
+	LogLevel              string
+	LogVerbose            bool
 }
 
 func Load() (*Config, error) {
@@ -59,6 +63,12 @@ func Load() (*Config, error) {
 		dataDir = "data"
 	}
 
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+	logVerbose := os.Getenv("LOG_VERBOSE") == "1" || os.Getenv("LOG_VERBOSE") == "true"
+
 	return &Config{
 		TelegramBotToken:      token,
 		TelegramWebhookSecret: os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
@@ -66,9 +76,13 @@ func Load() (*Config, error) {
 		Port:                  port,
 		AgentBackend:          backend,
 		OpenAIAPIKey:          os.Getenv("OPENAI_API_KEY"),
+		ElevenLabsAPIKey:      os.Getenv("ELEVENLABS_API_KEY"),
+		ElevenLabsVoiceID:     os.Getenv("ELEVENLABS_VOICE_ID"),
 		DataDir:               dataDir,
 		HimalayaEnabled:       himalayaEnabled,
 		HimalayaAccount:       os.Getenv("HIMALAYA_ACCOUNT"),
 		HimalayaPollInterval:  himalayaPollInterval,
+		LogLevel:              logLevel,
+		LogVerbose:            logVerbose,
 	}, nil
 }
