@@ -114,8 +114,24 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("webhook: %s message from %s: %s", msgType, chatID, truncate(content, 80))
 
-	// TODO: M2 will forward to agent process manager
-	// for now, just acknowledge
+	// echo mode — will be replaced by agent process manager in M2
+	var reply string
+	switch msgType {
+	case "voice":
+		reply = fmt.Sprintf("🎤 got your voice message (%ds)", msg.Voice.Duration)
+	case "photo":
+		reply = "📷 got your photo"
+		if msg.Caption != "" {
+			reply += fmt.Sprintf(": %s", msg.Caption)
+		}
+	default:
+		reply = content
+	}
+
+	if err := s.tg.SendMessage(msg.Chat.ID, reply); err != nil {
+		log.Printf("webhook: send reply failed: %v", err)
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
 

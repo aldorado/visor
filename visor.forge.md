@@ -243,7 +243,7 @@ Get a Go binary that receives Telegram webhooks and echoes messages back.
 - [x] Message dedup (in-memory set with TTL)
 
 #### Iteration 3: echo bot
-- [ ] Wire webhook → parse → echo response → send
+- [x] Wire webhook → parse → echo response → send
 - [ ] Deploy and test end-to-end on telegram
 
 ### M2: agent process manager

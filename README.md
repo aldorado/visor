@@ -39,24 +39,13 @@ continue with m0/iteration1 chunk 4 (`admin command: list/enable/disable level-u
 
 # M1: skeleton — webhook + echo
 
-current focus: *m1 / iteration 2* — telegram integration
+*M1 complete* ✅
 
 ## m1 status
 - iteration 1: done (project setup)
-- state: *iteration 2 done*
+- iteration 2: done (telegram integration)
+- iteration 3: done (echo bot)
 
-## m1 iteration 2 todos
-- [x] parse Telegram webhook payloads (text, voice, photo, reactions)
-- [x] Telegram API client (send text messages, get file URLs)
-- [x] webhook signature verification (X-Telegram-Bot-Api-Secret-Token)
-- [x] auth check: drop messages not from USER_PHONE_NUMBER
-- [x] message dedup (in-memory set with 5min TTL + background cleanup)
-
-## m1 file touch map
-| task | files |
-|------|-------|
-| telegram types | `internal/platform/telegram/types.go` |
-| telegram client | `internal/platform/telegram/client.go` |
-| message dedup | `internal/platform/telegram/dedup.go` |
-| webhook handler | `internal/server/server.go` |
-| config (webhook secret) | `internal/config/config.go` |
+## m1 iteration 3 todos
+- [x] wire webhook → parse → echo response → send
+- [x] text echo, voice acknowledgment, photo acknowledgment
