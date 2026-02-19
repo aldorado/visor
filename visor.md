@@ -61,6 +61,7 @@ Obsidian is added as a default/standard level-up alongside Himalaya:
 - provides an always-available personal knowledge base workspace
 - runs as an optional sidecar web app via `docker-compose.levelup.obsidian.yml`
 - uses dedicated env keys in `.levelup.env` for auth, paths, ports, and timezone
+- vault/config are bind-mounted to host filesystem paths so visor can read/write files directly
 
 ## Storage direction (research update)
 - For Go implementation, prefer `parquet-go/parquet-go` for core read/write path.
@@ -94,6 +95,12 @@ current finding: gemini cli is available and supports headless `stream-json` out
 Visor just needs a unified interface per backend: send prompt → get response. Each backend gets an adapter that translates the common protocol to the CLI's specific RPC format.
 
 This means visor is the "body" and the CLI agent is the "brain". Swap brains without changing anything else — and ride the free tier wave.
+
+## Skill parity bootstrap
+Visor should start with the same skill surface as ubik.
+- copied baseline skill pack from `ubik/.pi/skills` into `visor/skills/`
+- includes all currently available skills (chat-history, memory-lookup, scheduling, email, obsidian, forge flows, minecraft, etc.)
+- this is a bootstrap snapshot; visor can later evolve manifests/runtime details while preserving behavior parity
 
 ## Open questions
 - How to handle the skill system in a compiled language? (scripts? WASM plugins? just let the agent write code?)

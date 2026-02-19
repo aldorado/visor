@@ -16,6 +16,7 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 - Level-ups: optional infra sidecars via Docker Compose overlays + `.levelup.env` (visor itself stays host-native, not containerized).
 - Himalaya: official reference implementation of the level-up pattern (email as exemplar) and the *first* implemented level-up in the project.
 - Obsidian: additional standard level-up shipped by default (knowledge workspace sidecar) via LinuxServer container.
+- Skill parity bootstrap: ship visor with the same baseline skills as current ubik by copying them into `visor/skills/` as the initial pack.
 
 ## Research tasks
 - [x] Investigate Claude Code RPC mode — does `claude --mode rpc` exist? what's the protocol? document stdin/stdout message format
@@ -190,6 +191,10 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 - Env contract added for `.levelup.env`: PUID/PGID/TZ, optional basic auth (CUSTOM_USER/PASSWORD), title/subfolder, host paths, and host ports.
 - Positioning: Obsidian is a standard level-up shipped alongside Himalaya (not replacing Himalaya as first canonical example).
 
+### 2026-02-19 — Skill parity + filesystem mount update
+- Copied the full current ubik skill pack from `/root/code/ubik/.pi/skills/` to `/root/code/visor/skills/` as visor bootstrap parity.
+- Obsidian level-up explicitly uses host bind mounts for `/config` and `/vault` so host-native visor can directly read/write vault files.
+
 ## Milestones
 
 ### M0: host-native runtime boundary + level-up foundation + native email baseline
@@ -214,6 +219,7 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 - [ ] Implement outbound mail send action from agent structured output
 - [ ] Add roundtrip tests: receive email → agent sees it → send reply
 - [ ] Add smoke test: Obsidian sidecar is reachable and persists vault/config mounts
+- [ ] Ensure Obsidian bind mounts resolve to host filesystem paths accessible by visor runtime
 
 #### Iteration 3: generalization docs
 - [ ] Write "how to build a level-up" guide using Himalaya as template
@@ -310,6 +316,7 @@ In-process scheduler for reminders and recurring tasks.
 Agent can create, edit, import, and execute skills autonomously, and request level-up enablement when infra dependencies are needed.
 
 #### Iteration 1: skill runtime
+- [x] Bootstrap parity pack copied from ubik into `visor/skills/`
 - [ ] Define skill format: executable scripts in `skills/` directory (shell, python, etc.)
 - [ ] Skill manifest: each skill has a `skill.toml` with name, description, trigger patterns, dependencies
 - [ ] Skill executor: visor runs skills in a sandboxed subprocess, captures stdout/stderr

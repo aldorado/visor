@@ -13,8 +13,8 @@ services:
       - SUBFOLDER=${OBSIDIAN_SUBFOLDER:-/}
       - TITLE=${OBSIDIAN_TITLE:-Visor Obsidian}
     volumes:
-      - ${OBSIDIAN_CONFIG_PATH:-./data/levelups/obsidian/config}:/config
-      - ${OBSIDIAN_VAULT_PATH:-./data/levelups/obsidian/vault}:/vault
+      - ${OBSIDIAN_CONFIG_PATH:-/root/code/visor/data/levelups/obsidian/config}:/config
+      - ${OBSIDIAN_VAULT_PATH:-/root/code/visor/data/levelups/obsidian/vault}:/vault
     ports:
       - ${OBSIDIAN_HTTP_PORT:-3010}:3000
       - ${OBSIDIAN_HTTPS_PORT:-3011}:3001
