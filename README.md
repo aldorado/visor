@@ -11,6 +11,16 @@ current focus: *m0 / iteration 5* — cloudflared base level-up
 - [x] add `docker-compose.levelup.cloudflared.yml`
 - [x] add cloudflared env contract for first-start setup
 
+## cloudflared setup for new users
+- `CLOUDFLARED_TUNNEL_TOKEN`:
+  generate in cloudflare zero trust:
+  `networks -> tunnels -> create tunnel -> docker connector -> copy token`
+  then paste it into `.levelup.env`.
+- `CLOUDFLARED_METRICS_PORT`:
+  this is a local host port for cloudflared metrics/health endpoint.
+  pick a free local port (default `20241` is fine).
+  if that port is already used, change it to another free one (example: `20242`).
+
 ## file touch map (iteration 5)
 - `levelups/cloudflared/levelup.toml` -> base connectivity level-up manifest
 - `docker-compose.levelup.cloudflared.yml` -> tunnel sidecar overlay
