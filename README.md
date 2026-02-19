@@ -1,35 +1,31 @@
 # visor execution board
 
-current focus: *m0 / iteration 5* — cloudflared base level-up
+current focus: *m0b / iteration 1* — logging contract + modes
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m0 iteration 5 todos
-- [x] add cloudflared base level-up manifest
-- [x] add `docker-compose.levelup.cloudflared.yml`
-- [x] add cloudflared env contract for first-start setup
+## m0b iteration 1 todos
+- [x] define global logging schema (`component`, `function`, `request_id`, `message`, attrs)
+- [x] implement logger package with normal/verbose mode (`LOG_LEVEL`, `LOG_VERBOSE`)
+- [x] add helper wrappers for consistent component/function naming
+- [x] add panic/recover middleware with compact traceback logging
 
-## cloudflared setup for new users
-- `CLOUDFLARED_TUNNEL_TOKEN`:
-  generate in cloudflare zero trust:
-  `networks -> tunnels -> create tunnel -> docker connector -> copy token`
-  then paste it into `.levelup.env`.
-- `CLOUDFLARED_METRICS_PORT`:
-  this is a local host port for cloudflared metrics/health endpoint.
-  pick a free local port (default `20241` is fine).
-  if that port is already used, change it to another free one (example: `20242`).
+## m0b usage
+- normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
+- verbose mode: `LOG_LEVEL=debug`, `LOG_VERBOSE=true`
 
-## file touch map (iteration 5)
-- `levelups/cloudflared/levelup.toml` -> base connectivity level-up manifest
-- `docker-compose.levelup.cloudflared.yml` -> tunnel sidecar overlay
-- `.levelup.env.example` -> tunnel token + metrics envs
-- `visor.forge.md` -> M0 iteration-5 tracking/checklist
-- `visor.md` -> architecture direction update (cloudflared as base level-up)
+## file touch map (m0b it1)
+- `internal/observability/logger.go` -> slog setup, schema helpers, component/function fields
+- `internal/observability/context.go` -> request-id context helpers
+- `internal/observability/recover.go` -> panic/recover middleware + compact traceback
+- `internal/server/server.go` -> structured lifecycle logs + recover middleware wiring
+- `internal/agent/queue.go` -> queue processing logs with component naming
+- `main.go`, `internal/config/config.go` -> logging mode config + initialization
 
 ## next checkpoint question
-before m1/m3: run new *m0b observability baseline* (human-readable lifecycle logs + verbose mode + otel/sigNoz)?
+continue with *m0b / iteration 2* (full request lifecycle visibility + request-id middleware)?
 
 ---
 

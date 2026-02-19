@@ -2,8 +2,9 @@ package agent
 
 import (
 	"context"
-	"log"
 	"sync"
+
+	"visor/internal/observability"
 )
 
 type Message struct {
@@ -18,11 +19,12 @@ type Response struct {
 }
 
 type QueuedAgent struct {
-	agent    Agent
-	mu       sync.Mutex
-	busy     bool
-	queue    []pendingMsg
-	handler  func(chatID int64, response string, err error)
+	agent   Agent
+	mu      sync.Mutex
+	busy    bool
+	queue   []pendingMsg
+	handler func(chatID int64, response string, err error)
+	log     *observability.Logger
 }
 
 type pendingMsg struct {
@@ -36,6 +38,7 @@ func NewQueuedAgent(agent Agent, handler func(chatID int64, response string, err
 	return &QueuedAgent{
 		agent:   agent,
 		handler: handler,
+		log:     observability.Component("agent.queue"),
 	}
 }
 
@@ -44,7 +47,8 @@ func NewQueuedAgent(agent Agent, handler func(chatID int64, response string, err
 func (qa *QueuedAgent) Enqueue(ctx context.Context, msg Message) {
 	qa.mu.Lock()
 	if qa.busy {
-		log.Printf("agent: queued message from %d (queue size: %d)", msg.ChatID, len(qa.queue)+1)
+		queueSize := len(qa.queue) + 1
+		qa.log.Info(ctx, "message queued", "chat_id", msg.ChatID, "message_type", msg.Type, "queue_size", queueSize)
 		qa.queue = append(qa.queue, pendingMsg{ctx: ctx, msg: msg})
 		qa.mu.Unlock()
 		return
@@ -52,11 +56,16 @@ func (qa *QueuedAgent) Enqueue(ctx context.Context, msg Message) {
 	qa.busy = true
 	qa.mu.Unlock()
 
+	qa.log.Debug(ctx, "processing message immediately", "chat_id", msg.ChatID, "message_type", msg.Type)
 	go qa.process(ctx, msg)
 }
 
 func (qa *QueuedAgent) process(ctx context.Context, msg Message) {
+	qa.log.Debug(ctx, "agent prompt start", "chat_id", msg.ChatID, "message_type", msg.Type)
 	response, err := qa.agent.SendPrompt(ctx, msg.Content)
+	if err != nil {
+		qa.log.Error(ctx, "agent prompt error", "chat_id", msg.ChatID, "error", err.Error())
+	}
 	qa.handler(msg.ChatID, response, err)
 
 	for {
@@ -64,13 +73,19 @@ func (qa *QueuedAgent) process(ctx context.Context, msg Message) {
 		if len(qa.queue) == 0 {
 			qa.busy = false
 			qa.mu.Unlock()
+			qa.log.Debug(ctx, "agent queue idle")
 			return
 		}
 		next := qa.queue[0]
 		qa.queue = qa.queue[1:]
+		remaining := len(qa.queue)
 		qa.mu.Unlock()
 
+		qa.log.Debug(next.ctx, "agent processing queued message", "chat_id", next.msg.ChatID, "message_type", next.msg.Type, "remaining_queue", remaining)
 		response, err := qa.agent.SendPrompt(next.ctx, next.msg.Content)
+		if err != nil {
+			qa.log.Error(next.ctx, "agent prompt error", "chat_id", next.msg.ChatID, "error", err.Error())
+		}
 		qa.handler(next.msg.ChatID, response, err)
 	}
 }

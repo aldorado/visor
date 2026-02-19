@@ -252,10 +252,10 @@ Guarantee full processing visibility for humans: readable request lifecycle logs
 - SigNoz integration path: OTLP exporter endpoint configurable by env (`OTEL_EXPORTER_OTLP_ENDPOINT`, service name/env attrs), with OTEL disable switch for local-only runs.
 
 #### Iteration 1: logging contract + modes
-- [ ] Define global logging schema (timestamp, level, component, function, request_id, trace_id, message, attrs)
-- [ ] Implement logger package with normal mode and verbose mode switch
-- [ ] Add helper wrappers for consistent function/class/component naming
-- [ ] Add panic/recover middleware that logs compact traceback with request context
+- [x] Define global logging schema (timestamp, level, component, function, request_id, trace_id, message, attrs)
+- [x] Implement logger package with normal mode and verbose mode switch
+- [x] Add helper wrappers for consistent function/class/component naming
+- [x] Add panic/recover middleware that logs compact traceback with request context
 
 #### Iteration 2: request lifecycle visibility
 - [ ] Add request-id middleware for all webhook/admin paths

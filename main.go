@@ -1,29 +1,38 @@
 package main
 
 import (
-	"log"
+	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"visor/internal/agent"
 	"visor/internal/config"
+	"visor/internal/observability"
 	"visor/internal/server"
 )
 
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		fmt.Fprintf(os.Stderr, "config: %v\n", err)
+		os.Exit(1)
 	}
+
+	observability.Init(observability.LogConfig{Level: cfg.LogLevel, Verbose: cfg.LogVerbose})
+	log := observability.Component("main")
 
 	a, err := createAgent(cfg)
 	if err != nil {
-		log.Fatalf("agent: %v", err)
+		log.Error(context.Background(), "agent init failed", "error", err.Error())
+		os.Exit(1)
 	}
 	defer a.Close()
 
 	srv := server.New(cfg, a)
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf("server: %v", err)
+		log.Error(context.Background(), "server failed", "error", err.Error())
+		os.Exit(1)
 	}
 }
 
@@ -43,7 +52,6 @@ func createAgent(cfg *config.Config) (agent.Agent, error) {
 	case "echo":
 		return &agent.EchoAgent{}, nil
 	default:
-		log.Fatalf("unknown agent backend: %s", cfg.AgentBackend)
-		return nil, nil
+		return nil, fmt.Errorf("unknown agent backend: %s", cfg.AgentBackend)
 	}
 }
