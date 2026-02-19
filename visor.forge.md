@@ -222,9 +222,9 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 - [x] Ensure Obsidian bind mounts resolve to host filesystem paths accessible by visor runtime
 
 #### Iteration 3: generalization docs
-- [ ] Write "how to build a level-up" guide using Himalaya as template
-- [ ] Add second toy level-up (minimal stub) to prove pattern is generic
-- [ ] Add failure-mode docs (missing env, container down, auth error)
+- [x] Write "how to build a level-up" guide using Himalaya as template
+- [x] Add second toy level-up (minimal stub) to prove pattern is generic
+- [x] Add failure-mode docs (missing env, container down, auth error)
 
 ### M1: skeleton — webhook + echo
 Get a Go binary that receives Telegram webhooks and echoes messages back.

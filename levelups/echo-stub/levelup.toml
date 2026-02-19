@@ -1,0 +1,12 @@
+name = "echo-stub"
+display_name = "Echo Stub"
+version = "0.1.0"
+description = "Minimal toy level-up to prove generic extension pattern"
+kind = "infra"
+enabled_by_default = false
+compose_file = "docker-compose.levelup.echo-stub.yml"
+healthcheck = "http://127.0.0.1:${ECHO_STUB_PORT:-5678}/"
+tags = ["toy", "example", "levelup"]
+required_env = [
+  "ECHO_STUB_PORT",
+]
