@@ -226,6 +226,11 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 - [x] Add second toy level-up (minimal stub) to prove pattern is generic
 - [x] Add failure-mode docs (missing env, container down, auth error)
 
+#### Iteration 4: self-authored level-up skill
+- [x] Add visor skill `levelup-creator` that lets visor create its own level-ups end-to-end
+- [x] Require this skill to use M0 docs (`levelup-authoring`, `levelup-failure-modes`, `levelup-manifest`)
+- [x] Enforce validation + docs sync + iteration-scoped commit in the skill workflow
+
 ### M1: skeleton — webhook + echo
 Get a Go binary that receives Telegram webhooks and echoes messages back.
 

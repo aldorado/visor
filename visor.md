@@ -101,6 +101,7 @@ Visor should start with the same skill surface as ubik.
 - copied baseline skill pack from `ubik/.pi/skills` into `visor/skills/`
 - includes all currently available skills (chat-history, memory-lookup, scheduling, email, obsidian, forge flows, minecraft, etc.)
 - this is a bootstrap snapshot; visor can later evolve manifests/runtime details while preserving behavior parity
+- added visor-native `levelup-creator` skill so visor can author its own future level-ups using the M0 playbooks (`levelup-authoring` + failure-mode guardrails)
 
 ## Open questions
 - How to handle the skill system in a compiled language? (scripts? WASM plugins? just let the agent write code?)

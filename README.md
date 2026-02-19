@@ -1,22 +1,20 @@
 # visor execution board
 
-current focus: *m0 / iteration 3* — level-up generalization docs
+current focus: *m0 / iteration 4* — self-authored level-up skill
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m0 iteration 3 todos
-- [x] write "how to build a level-up" guide using himalaya as template
-- [x] add second toy level-up (minimal stub) to prove pattern is generic
-- [x] add failure-mode docs (missing env, container down, auth error)
+## m0 iteration 4 todos
+- [x] add `skills/levelup-creator/SKILL.md`
+- [x] force skill to use M0 docs (`levelup-authoring`, `levelup-failure-modes`, `levelup-manifest`)
+- [x] enforce validation flow + docs sync + commit rule in the skill
 
-## file touch map (iteration 3)
-- `docs/levelup-authoring.md` -> end-to-end authoring guide (himalaya as reference)
-- `docs/levelup-failure-modes.md` -> operational troubleshooting playbook
-- `levelups/echo-stub/levelup.toml` -> toy generic level-up manifest
-- `docker-compose.levelup.echo-stub.yml` -> toy generic overlay
-- `.levelup.env.example` -> toy level-up env contract
+## file touch map (iteration 4)
+- `skills/levelup-creator/SKILL.md` -> level-up self-authoring skill workflow
+- `visor.forge.md` -> M0 iteration-4 tracking/checklist
+- `README.md` -> execution board status
 
 ## next checkpoint question
 continue with *m1 deploy/e2e* or jump straight to *m3 memory system*?
