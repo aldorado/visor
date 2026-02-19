@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -65,6 +66,59 @@ func ValidateRequiredEnv(env map[string]string, required []string) error {
 
 	sort.Strings(missing)
 	return fmt.Errorf("missing required env keys: %s", strings.Join(missing, ", "))
+}
+
+var envKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+func UpdateLevelupEnv(projectRoot string, set map[string]string, unset []string) error {
+	if projectRoot == "" {
+		return fmt.Errorf("project root is required")
+	}
+
+	path := filepath.Join(projectRoot, ".levelup.env")
+	current, err := parseEnvFile(path)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range set {
+		key := strings.TrimSpace(k)
+		if !envKeyPattern.MatchString(key) {
+			return fmt.Errorf("invalid env key: %s", k)
+		}
+		if strings.Contains(v, "\n") {
+			return fmt.Errorf("env value for %s contains newline", key)
+		}
+		current[key] = v
+	}
+
+	for _, k := range unset {
+		key := strings.TrimSpace(k)
+		if !envKeyPattern.MatchString(key) {
+			return fmt.Errorf("invalid env key: %s", k)
+		}
+		delete(current, key)
+	}
+
+	keys := make([]string, 0, len(current))
+	for k := range current {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	lines := make([]string, 0, len(keys))
+	for _, k := range keys {
+		lines = append(lines, fmt.Sprintf("%s=%s", k, current[k]))
+	}
+
+	content := ""
+	if len(lines) > 0 {
+		content = strings.Join(lines, "\n") + "\n"
+	}
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		return fmt.Errorf("write %s: %w", path, err)
+	}
+	return nil
 }
 
 func parseEnvFile(path string) (map[string]string, error) {

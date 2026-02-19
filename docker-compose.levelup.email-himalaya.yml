@@ -2,6 +2,8 @@ services:
   himalaya:
     image: ghcr.io/pimalaya/himalaya:latest
     container_name: visor-levelup-himalaya
+    env_file:
+      - .levelup.env
     environment:
       - TZ=${TZ:-Europe/Vienna}
       - HIMALAYA_IMAP_HOST=${HIMALAYA_IMAP_HOST}

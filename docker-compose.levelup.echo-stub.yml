@@ -2,6 +2,8 @@ services:
   echo-stub:
     image: hashicorp/http-echo:1.0
     container_name: visor-levelup-echo-stub
+    env_file:
+      - .levelup.env
     command: ["-text=visor echo levelup ok"]
     ports:
       - ${ECHO_STUB_PORT:-5678}:5678

@@ -13,6 +13,7 @@ import (
 
 	"visor/internal/agent"
 	"visor/internal/config"
+	"visor/internal/levelup"
 	emaillevelup "visor/internal/levelup/email"
 	"visor/internal/observability"
 	"visor/internal/platform/telegram"
@@ -138,6 +139,18 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 				if note != "" {
 					response = strings.TrimSpace(response + "\n\n" + note)
 				}
+			}
+		}
+
+		// level-up actions from agent response (.levelup.env updates, enable/disable)
+		clean, levelupActions, parseErr := levelup.ExtractActions(response)
+		if parseErr != nil {
+			s.log.Error(ctx, "levelup action parse failed", "chat_id", chatID, "error", parseErr.Error())
+		} else if levelupActions != nil {
+			response = clean
+			note := s.executeLevelupActions(ctx, levelupActions)
+			if note != "" {
+				response = strings.TrimSpace(response + "\n\n" + note)
 			}
 		}
 
@@ -498,6 +511,53 @@ func (s *Server) executeScheduleActions(ctx context.Context, actions *scheduler.
 					messages = append(messages, fmt.Sprintf("- %s @ %s [%s]", task.Prompt, when, task.ID))
 				}
 			}
+		}
+	}
+
+	return strings.TrimSpace(strings.Join(messages, "\n"))
+}
+
+func (s *Server) executeLevelupActions(ctx context.Context, actions *levelup.ActionEnvelope) string {
+	messages := make([]string, 0)
+	projectRoot := s.cfg.SelfEvolutionRepoDir
+	if strings.TrimSpace(projectRoot) == "" {
+		projectRoot = "."
+	}
+
+	if len(actions.EnvSet) > 0 || len(actions.EnvUnset) > 0 {
+		if err := levelup.UpdateLevelupEnv(projectRoot, actions.EnvSet, actions.EnvUnset); err != nil {
+			s.log.Error(ctx, "levelup env update failed", "error", err.Error())
+			messages = append(messages, "levelup env update failed: "+err.Error())
+		} else {
+			messages = append(messages, ".levelup.env updated ✅")
+			s.log.Info(ctx, "levelup env updated", "set_count", len(actions.EnvSet), "unset_count", len(actions.EnvUnset))
+		}
+	}
+
+	if len(actions.Enable) > 0 {
+		if err := levelup.Enable(projectRoot, actions.Enable); err != nil {
+			s.log.Error(ctx, "levelup enable failed", "error", err.Error(), "names", actions.Enable)
+			messages = append(messages, "levelup enable failed: "+err.Error())
+		} else {
+			messages = append(messages, "levelups enabled ✅")
+		}
+	}
+
+	if len(actions.Disable) > 0 {
+		if err := levelup.Disable(projectRoot, actions.Disable); err != nil {
+			s.log.Error(ctx, "levelup disable failed", "error", err.Error(), "names", actions.Disable)
+			messages = append(messages, "levelup disable failed: "+err.Error())
+		} else {
+			messages = append(messages, "levelups disabled ✅")
+		}
+	}
+
+	if actions.Validate {
+		if err := levelup.ValidateEnabled(ctx, projectRoot, "docker-compose.yml"); err != nil {
+			s.log.Error(ctx, "levelup validate failed", "error", err.Error())
+			messages = append(messages, "levelup validate failed: "+err.Error())
+		} else {
+			messages = append(messages, "levelups validated ✅")
 		}
 	}
 

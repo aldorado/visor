@@ -2,6 +2,8 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: visor-levelup-cloudflared
+    env_file:
+      - .levelup.env
     command:
       - tunnel
       - --no-autoupdate
