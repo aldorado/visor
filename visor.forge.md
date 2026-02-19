@@ -261,9 +261,9 @@ Persistent CLI agent process with RPC over stdin/stdout.
 - [x] Handle errors, timeouts (configurable per-prompt timeout)
 
 #### Iteration 3: claude code adapter
-- [ ] Research Claude Code RPC protocol (depends on research task)
-- [ ] Implement adapter following same interface
-- [ ] Test switching between pi and claude via config
+- [x] Research Claude Code RPC protocol (depends on research task)
+- [x] Implement adapter following same interface
+- [x] Test switching between pi and claude via config
 
 ### M3: memory system
 Persistent memory with semantic search. All data in Parquet files — portable, remote-ready, can sync to S3/cloud later.

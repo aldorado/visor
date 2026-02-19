@@ -57,18 +57,15 @@ continue with m0/iteration1 chunk 5 (`compose builder validation via docker comp
 
 # M2: agent process manager
 
-current focus: *m2 / iteration 2* — pi adapter
+*M2 complete* ✅
 
 ## m2 status
 - iteration 1: done (agent interface + queue)
-- state: *iteration 2 done*
+- iteration 2: done (pi adapter)
+- iteration 3: done (claude code adapter)
 
-## m2 iteration 2 todos
-- [x] refactor ProcessManager with real stdin/stdout pipes + process start
-- [x] pi adapter: `pi --mode rpc` JSON-lines protocol
-- [x] send `{"type":"prompt","message":"..."}` on stdin
-- [x] collect `text_delta` events, resolve on `agent_end`
-- [x] handle `response success:false` as hard failure
-- [x] configurable prompt timeout (default 2min)
-- [x] config: AGENT_BACKEND env var (pi/echo)
-- [x] main.go: agent backend selection from config
+## m2 iteration 3 todos
+- [x] claude code adapter: process-per-request `claude -p --output-format stream-json`
+- [x] parse stream-json events: `assistant` (text blocks), `result` (error check)
+- [x] 5min timeout, proper process cleanup
+- [x] AGENT_BACKEND=claude wired in main.go

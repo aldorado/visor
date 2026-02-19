@@ -38,6 +38,8 @@ func createAgent(cfg *config.Config) (agent.Agent, error) {
 			return nil, err
 		}
 		return pi, nil
+	case "claude":
+		return agent.NewClaudeAgent(5 * time.Minute), nil
 	case "echo":
 		return &agent.EchoAgent{}, nil
 	default:
