@@ -17,6 +17,7 @@ import (
 	"visor/internal/observability"
 	"visor/internal/platform/telegram"
 	"visor/internal/scheduler"
+	"visor/internal/skills"
 	"visor/internal/voice"
 )
 
@@ -30,6 +31,7 @@ type Server struct {
 	emailSender emaillevelup.Sender
 	emailPoller *emaillevelup.Poller
 	scheduler   *scheduler.Scheduler
+	skills      *skills.Manager
 	log         *observability.Logger
 }
 
@@ -63,6 +65,13 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		})
 	}
 
+	// skill manager
+	sm := skills.NewManager(cfg.DataDir + "/skills")
+	if loadErr := sm.Reload(); loadErr != nil {
+		s.log.Warn(context.Background(), "skills load failed", "error", loadErr.Error())
+	}
+	s.skills = sm
+
 	s.agent = agent.NewQueuedAgent(a, cfg.AgentBackend, func(ctx context.Context, chatID int64, response string, err error) {
 		if err != nil {
 			s.log.Error(ctx, "agent processing failed", "chat_id", chatID, "backend", cfg.AgentBackend, "error", err.Error())
@@ -85,6 +94,17 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 						response = strings.TrimSpace(response + "\n\nemail action executed ✅")
 					}
 				}
+			}
+		}
+
+		// skill actions from agent response
+		if s.skills != nil {
+			clean, skillActions, parseErr := skills.ExtractActions(response)
+			if parseErr != nil {
+				s.log.Error(ctx, "skill action parse failed", "chat_id", chatID, "error", parseErr.Error())
+			} else if skillActions != nil {
+				response = clean
+				s.executeSkillActions(ctx, chatID, skillActions)
 			}
 		}
 
@@ -241,6 +261,11 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 
 	s.log.Info(r.Context(), "webhook message accepted", "message_type", msgType, "chat_id", chatID, "preview", truncate(content, 80))
 
+	// auto-trigger: run matching skills and prepend output to agent context
+	if s.skills != nil {
+		content = s.enrichWithSkills(r.Context(), content, chatID, msgType)
+	}
+
 	s.agent.Enqueue(r.Context(), agent.Message{
 		ChatID:  msg.Chat.ID,
 		Content: content,
@@ -268,6 +293,81 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+// enrichWithSkills checks for auto-trigger matches and injects skill context.
+func (s *Server) enrichWithSkills(ctx context.Context, content, chatID, msgType string) string {
+	matched := s.skills.Match(content)
+	if len(matched) == 0 {
+		// no trigger matches, but still inject skill discovery
+		desc := s.skills.Describe()
+		if desc != "" {
+			return content + "\n\n[system context]\n" + desc
+		}
+		return content
+	}
+
+	var enrichments []string
+	for _, skill := range matched {
+		// dependency check: verify required level-ups
+		if len(skill.Manifest.LevelUps) > 0 {
+			s.log.Info(ctx, "skill requires level-ups", "skill", skill.Manifest.Name, "level_ups", skill.Manifest.LevelUps)
+		}
+
+		result, err := s.skills.Exec().Run(ctx, skill, skills.Context{
+			UserMessage: content,
+			ChatID:      chatID,
+			MessageType: msgType,
+			Platform:    "telegram",
+			DataDir:     s.cfg.DataDir,
+			SkillDir:    skill.Dir,
+		})
+		if err != nil {
+			s.log.Error(ctx, "auto-trigger skill failed", "skill", skill.Manifest.Name, "error", err.Error())
+			continue
+		}
+
+		if result.ExitCode != 0 {
+			s.log.Warn(ctx, "auto-trigger skill non-zero exit", "skill", skill.Manifest.Name, "exit_code", result.ExitCode, "stderr", truncate(result.Stderr, 200))
+			continue
+		}
+
+		output := strings.TrimSpace(result.Stdout)
+		if output != "" {
+			enrichments = append(enrichments, fmt.Sprintf("[skill:%s output]\n%s", skill.Manifest.Name, output))
+			s.log.Info(ctx, "auto-trigger skill ran", "skill", skill.Manifest.Name, "output_len", len(output))
+		}
+	}
+
+	if len(enrichments) > 0 {
+		return content + "\n\n" + strings.Join(enrichments, "\n\n")
+	}
+	return content
+}
+
+// executeSkillActions processes create/edit/delete actions from agent response.
+func (s *Server) executeSkillActions(ctx context.Context, chatID int64, actions *skills.ActionEnvelope) {
+	for _, a := range actions.Create {
+		if err := s.skills.Create(a); err != nil {
+			s.log.Error(ctx, "skill create failed", "name", a.Name, "error", err.Error())
+		} else {
+			s.log.Info(ctx, "skill created by agent", "name", a.Name)
+		}
+	}
+	for _, a := range actions.Edit {
+		if err := s.skills.Edit(a); err != nil {
+			s.log.Error(ctx, "skill edit failed", "name", a.Name, "error", err.Error())
+		} else {
+			s.log.Info(ctx, "skill edited by agent", "name", a.Name)
+		}
+	}
+	for _, a := range actions.Delete {
+		if err := s.skills.Delete(a.Name); err != nil {
+			s.log.Error(ctx, "skill delete failed", "name", a.Name, "error", err.Error())
+		} else {
+			s.log.Info(ctx, "skill deleted by agent", "name", a.Name)
+		}
+	}
 }
 
 // parseResponse extracts metadata from agent response.

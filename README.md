@@ -1,18 +1,19 @@
 # visor execution board
 
-current focus: *m6 / iteration 1* — skill runtime
+current focus: *m6 / iteration 2* — agent-authored skills
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m6 iteration 1 todos
-- [x] skill.toml manifest format: name, description, triggers (regex), run command, dependencies, level_ups, timeout
-- [x] skill loader: LoadAll scans directories, parses TOML, compiles trigger regexes
-- [x] skill executor: sandboxed subprocess, configurable timeout, stdout/stderr capture
-- [x] context passing: env vars (VISOR_USER_MESSAGE, VISOR_CHAT_ID, etc.) + JSON on stdin
-- [x] trigger matching: case-insensitive regex, MatchAll returns all matching skills
-- [x] 13 tests: load, defaults, missing fields, bad triggers, match, matchAll, execute, stdin, non-zero exit, timeout
+## m6 iteration 2 todos
+- [x] skill manager: CRUD operations (create/edit/delete skill dirs with skill.toml + script)
+- [x] skill action parsing: extract `skill_actions` JSON from agent response (create/edit/delete)
+- [x] skill discovery: Describe() builds formatted skill list for agent prompt injection
+- [x] auto-trigger: match incoming messages against triggers, run matching skills, prepend output to agent context
+- [x] dependency handshake: log required level-ups when skill triggers
+- [x] server wiring: enrichWithSkills in webhook flow, executeSkillActions in response handler
+- [x] 31 tests total (13 I1 + 18 I2): manager CRUD, action parsing, describe, match, create/edit/delete lifecycle
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -36,16 +37,16 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m6 it1)
-- `internal/skills/skill.go` -> Manifest struct, Skill loader, trigger matching
-- `internal/skills/executor.go` -> subprocess execution, context injection (env + stdin JSON), timeout handling
-- `internal/skills/skill_test.go` -> 13 tests covering load/match/execute
-- `.claude/` -> new claude backend config (CLAUDE.md + 18 skills)
-- `.pi/skills/levelup-creator/` -> synced missing skill from skills/
-- `README.md`, `visor.forge.md` -> m6 iteration-1 progress tracking
+## file touch map (m6 it2)
+- `internal/skills/manager.go` -> Manager with CRUD, Describe, Match, Reload
+- `internal/skills/actions.go` -> action types (Create/Edit/Delete) + ExtractActions parser
+- `internal/skills/manager_test.go` -> 12 manager tests
+- `internal/skills/actions_test.go` -> 6 action parser tests
+- `internal/server/server.go` -> skills integration: enrichWithSkills, executeSkillActions, skill manager init
+- `README.md`, `visor.forge.md` -> m6 iteration-2 progress tracking
 
 ## next checkpoint question
-continue with *m6 / iteration 2* (agent-authored skills, discovery, auto-trigger)?
+continue with *m6 / iteration 3* (skill import from git/URLs)?
 
 planning note:
 - m9 (multi-pi-subagent orchestration) was added to forge blueprint for later execution.

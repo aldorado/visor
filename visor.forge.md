@@ -376,12 +376,12 @@ Agent can create, edit, import, and execute skills autonomously, and request lev
 - [x] Pass context to skills via env vars or stdin (user message, chat history summary, etc.)
 
 #### Iteration 2: agent-authored skills
-- [ ] Agent can create new skills via structured output (writes script + manifest)
-- [ ] Agent can edit existing skills (modify script or manifest)
-- [ ] Agent can delete skills
-- [ ] Skill discovery: agent gets list of available skills in its system prompt context
-- [ ] Auto-trigger: visor matches incoming messages against skill trigger patterns, suggests or auto-runs
-- [ ] Skill dependency handshake: skill can declare required level-up(s); visor prompts for enablement if missing
+- [x] Agent can create new skills via structured output (writes script + manifest)
+- [x] Agent can edit existing skills (modify script or manifest)
+- [x] Agent can delete skills
+- [x] Skill discovery: agent gets list of available skills in its system prompt context
+- [x] Auto-trigger: visor matches incoming messages against skill trigger patterns, suggests or auto-runs
+- [x] Skill dependency handshake: skill can declare required level-up(s); visor prompts for enablement if missing
 
 #### Iteration 3: skill import
 - [ ] Import skills from git repos or URLs
