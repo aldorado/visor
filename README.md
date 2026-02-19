@@ -1,17 +1,18 @@
 # visor execution board
 
-current focus: *m8 / iteration 1* — self-edit pipeline
+current focus: *m8 / iteration 2* — self-rebuild + restart
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m8 iteration 1 todos
-- [x] selfevolve.Manager: git add -A, commit, push pipeline with change detection
-- [x] Config: SELF_EVOLUTION_ENABLED, SELF_EVOLUTION_REPO_DIR, SELF_EVOLUTION_PUSH env vars
-- [x] parseResponse: extract code_changes + commit_message from agent response metadata
-- [x] Server wiring: on code_changes:true, sends response first, then triggers self-evolution async
-- [x] Tests: updated parseResponse tests (7 total), config clearEnv for new vars
+## m8 iteration 2 todos
+- [x] After commit: `go build -o visor-new .` compiles new binary in repo dir
+- [x] Build failure: notify user with error, `git reset HEAD~1` rollback, keep running old binary
+- [x] Build success: atomic binary replacement via rename (cross-device fallback)
+- [x] Graceful restart: exit with code 42 (ExitCodeRestart) for supervisor/systemd to respawn
+- [x] Server wiring: runSelfEvolution handles Result (build error → notify, built → restart)
+- [x] 8 new tests: disabled, no-changes, commit+build, build-failure-rollback, default-message, replace-binary, restart-exit-code, exit-code-value
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -35,16 +36,14 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m8 it1)
-- `internal/selfevolve/manager.go` -> Manager, Apply, hasGitChanges, run (git add/commit/push pipeline)
-- `internal/config/config.go` -> SelfEvolutionEnabled, SelfEvolutionRepoDir, SelfEvolutionPush fields
-- `internal/config/config_test.go` -> clearEnv updated for self-evolution vars
-- `internal/server/server.go` -> parseResponse returns responseMeta (code_changes, commit_message), runSelfEvolution async trigger
-- `internal/server/server_test.go` -> 7 parseResponse tests updated for responseMeta struct
-- `README.md`, `visor.forge.md` -> m8 iteration-1 progress tracking
+## file touch map (m8 it2)
+- `internal/selfevolve/manager.go` -> Apply returns Result, go build pipeline, build-failure rollback, replaceBinary, Restart with ExitCodeRestart (42), exitFn for testing
+- `internal/selfevolve/manager_test.go` -> 8 tests: disabled, no-changes, commit+build, build-failure+rollback, default-message, replace-binary, restart-exit-code, exit-code-value
+- `internal/server/server.go` -> runSelfEvolution handles Result (build error → notify + rollback msg, built → restart)
+- `README.md`, `visor.forge.md` -> m8 iteration-2 progress tracking
 
 ## next
-*M8-I1 complete* ✅ — continue with *M8-I2* (self-rebuild + restart)
+*M8-I2 complete* ✅ — continue with *M8-I3* (safety rails)
 
 ---
 

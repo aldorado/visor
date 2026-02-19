@@ -412,11 +412,11 @@ Visor's agent can modify visor's own source code, commit, push, rebuild, and res
 - [x] Pipeline: `git add -A && git commit -m "..." && git push` (agent provides commit message)
 
 #### Iteration 2: self-rebuild + restart
-- [ ] After commit: run `go build -o visor-new .` to compile the new binary
-- [ ] If build fails: notify user with error, rollback the commit (`git reset HEAD~1`), keep running old binary
-- [ ] If build succeeds: replace the running binary with the new one
-- [ ] Graceful restart: finish in-flight requests, shut down agent process, exec() into new binary (or use a supervisor)
-- [ ] Supervisor approach: visor spawns itself as a child, parent watches and restarts on exit. On self-update, child exits with special code, parent replaces binary and respawns.
+- [x] After commit: run `go build -o visor-new .` to compile the new binary
+- [x] If build fails: notify user with error, rollback the commit (`git reset HEAD~1`), keep running old binary
+- [x] If build succeeds: replace the running binary with the new one
+- [x] Graceful restart: finish in-flight requests, shut down agent process, exec() into new binary (or use a supervisor)
+- [x] Supervisor approach: visor spawns itself as a child, parent watches and restarts on exit. On self-update, child exits with special code, parent replaces binary and respawns.
 
 #### Iteration 3: safety rails
 - [ ] Pre-build validation: run `go vet` and basic checks before committing
