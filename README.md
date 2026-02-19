@@ -1,16 +1,15 @@
 # visor execution board
 
-current focus: *m0b / iteration 3* — otel + signoz export
+current focus: *m0b / iteration 4* — docs + operability
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m0b iteration 3 todos
-- [x] initialize otel provider via env config (`OTEL_EXPORTER_OTLP_ENDPOINT`, service/env)
-- [x] add spans around webhook handling, agent processing, level-up operations
-- [x] bridge slog logs into otel events/attributes for key log lines
-- [x] add config toggle to disable otel cleanly (`OTEL_ENABLED=false`)
+## m0b iteration 4 todos
+- [x] add readme section: where to read logs, verbose mode usage, sample output
+- [x] add signoz setup doc with minimal env example + verification steps
+- [x] add troubleshooting checklist for missing logs/traces/export failures
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -22,16 +21,26 @@ current focus: *m0b / iteration 3* — otel + signoz export
   - `OTEL_SERVICE_NAME=visor`
   - `OTEL_ENVIRONMENT=dev`
 
-## file touch map (m0b it3)
-- `internal/observability/otel.go` -> otel provider + tracer helpers
-- `internal/observability/logger.go` -> trace_id/span_id fields + span event bridge
-- `internal/server/server.go` -> webhook span instrumentation
-- `internal/agent/queue.go` -> agent processing spans
-- `internal/levelup/admin.go` -> level-up operation spans
-- `main.go`, `internal/config/config.go` -> otel config + init wiring
+## m0b log reading quickstart
+- systemd: `journalctl -u visor -f`
+- docker: `docker logs -f <visor-container>`
+- local run: stdout/stderr stream from process
+
+sample structured line:
+`time=... level=INFO msg="webhook message processed" component=server function=server.(*Server).handleWebhook request_id=... trace_id=... span_id=... chat_id=... backend=pi`
+
+## docs
+- `docs/signoz-setup.md`
+- `docs/observability-troubleshooting.md`
+
+## file touch map (m0b it4)
+- `README.md` -> operability summary + sample log line
+- `docs/signoz-setup.md` -> signoz/otlp setup guide
+- `docs/observability-troubleshooting.md` -> troubleshooting checklist
+- `visor.forge.md` -> iteration-4 progress tracking
 
 ## next checkpoint question
-continue with *m0b / iteration 4* (docs + operability)?
+continue with *m1 deploy/e2e* or jump to another milestone?
 
 ---
 

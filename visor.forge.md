@@ -270,9 +270,9 @@ Guarantee full processing visibility for humans: readable request lifecycle logs
 - [x] Add config toggle to disable OTEL cleanly without changing code paths
 
 #### Iteration 4: docs + operability
-- [ ] Add README section: where to read logs, verbose mode usage, sample output
-- [ ] Add SigNoz setup doc with minimal env example and verification steps
-- [ ] Add troubleshooting checklist for missing logs/traces/export failures
+- [x] Add README section: where to read logs, verbose mode usage, sample output
+- [x] Add SigNoz setup doc with minimal env example and verification steps
+- [x] Add troubleshooting checklist for missing logs/traces/export failures
 
 ### M1: skeleton — webhook + echo
 Get a Go binary that receives Telegram webhooks and echoes messages back.
