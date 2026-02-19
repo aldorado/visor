@@ -16,6 +16,7 @@ import (
 	"visor/internal/config"
 	emaillevelup "visor/internal/levelup/email"
 	"visor/internal/platform/telegram"
+	"visor/internal/voice"
 )
 
 type Server struct {
@@ -24,6 +25,7 @@ type Server struct {
 	tg          *telegram.Client
 	dedup       *telegram.Dedup
 	agent       *agent.QueuedAgent
+	voice       *voice.Handler
 	emailSender emaillevelup.Sender
 	emailPoller *emaillevelup.Poller
 }
@@ -36,6 +38,10 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		mux:   http.NewServeMux(),
 		tg:    tg,
 		dedup: telegram.NewDedup(5 * time.Minute),
+	}
+
+	if cfg.OpenAIAPIKey != "" {
+		s.voice = voice.NewHandler(tg, cfg.OpenAIAPIKey)
 	}
 
 	if cfg.HimalayaEnabled {
@@ -150,7 +156,17 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case msg.Voice != nil:
 		msgType = "voice"
-		content = fmt.Sprintf("[voice:%s]", msg.Voice.FileID)
+		if s.voice != nil {
+			text, err := s.voice.Transcribe(msg.Voice.FileID)
+			if err != nil {
+				log.Printf("webhook: voice transcription failed: %v", err)
+				content = "[Voice message - transcription failed]"
+			} else {
+				content = fmt.Sprintf("[Voice message] %s", text)
+			}
+		} else {
+			content = fmt.Sprintf("[voice:%s]", msg.Voice.FileID)
+		}
 	case len(msg.Photo) > 0:
 		msgType = "photo"
 		best := msg.Photo[len(msg.Photo)-1]

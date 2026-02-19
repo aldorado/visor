@@ -338,9 +338,9 @@ Persistent memory with semantic search. All data in Parquet files — portable, 
 Transcription + text-to-speech.
 
 #### Iteration 1: speech-to-text
-- [ ] Download voice message from Telegram
-- [ ] Send to OpenAI Whisper API for transcription
-- [ ] Feed transcribed text to agent as normal message with [Voice message] tag
+- [x] Download voice message from Telegram
+- [x] Send to OpenAI Whisper API for transcription
+- [x] Feed transcribed text to agent as normal message with [Voice message] tag
 
 #### Iteration 2: text-to-speech
 - [ ] ElevenLabs TTS API integration

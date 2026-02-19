@@ -80,3 +80,19 @@ current focus: *m3 / iteration 2* — embeddings + search
 - [x] MemoryManager: Save (embed + store) and Lookup (search + format)
 - [x] config: OPENAI_API_KEY, DATA_DIR
 - [x] tests: 12 search/embedding tests (cosine sim, ranking, threshold, minResults, response parsing)
+
+---
+
+# M4: voice pipeline
+
+current focus: *m4 / iteration 1* — speech-to-text
+
+## m4 status
+- state: *iteration 1 done*
+
+## m4 iteration 1 todos
+- [x] Whisper STT client (multipart upload to OpenAI API)
+- [x] Voice handler: download from Telegram + transcribe
+- [x] Server wiring: voice messages auto-transcribed with [Voice message] tag
+- [x] Graceful fallback: if no OPENAI_API_KEY, passes raw file ID
+- [x] Tests: whisper response parsing (normal, empty, unicode)
