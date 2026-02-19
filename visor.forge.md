@@ -370,10 +370,10 @@ Agent can create, edit, import, and execute skills autonomously, and request lev
 
 #### Iteration 1: skill runtime
 - [x] Bootstrap parity pack copied from ubik into `visor/skills/`
-- [ ] Define skill format: executable scripts in `skills/` directory (shell, python, etc.)
-- [ ] Skill manifest: each skill has a `skill.toml` with name, description, trigger patterns, dependencies
-- [ ] Skill executor: visor runs skills in a sandboxed subprocess, captures stdout/stderr
-- [ ] Pass context to skills via env vars or stdin (user message, chat history summary, etc.)
+- [x] Define skill format: executable scripts in `skills/` directory (shell, python, etc.)
+- [x] Skill manifest: each skill has a `skill.toml` with name, description, trigger patterns, dependencies
+- [x] Skill executor: visor runs skills in a sandboxed subprocess, captures stdout/stderr
+- [x] Pass context to skills via env vars or stdin (user message, chat history summary, etc.)
 
 #### Iteration 2: agent-authored skills
 - [ ] Agent can create new skills via structured output (writes script + manifest)

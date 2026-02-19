@@ -1,16 +1,18 @@
 # visor execution board
 
-current focus: *m5 / iteration 1* — scheduler
+current focus: *m6 / iteration 1* — skill runtime
 
 ## status
 - iteration state: done ✅
 - reporting mode: per full iteration
 
-## m5 iteration 1 todos
-- [x] in-process scheduler loop (no system crontab)
-- [x] persist scheduled tasks as JSON on disk
-- [x] support one-shot and recurring tasks
-- [x] on trigger, enqueue context prompt to agent
+## m6 iteration 1 todos
+- [x] skill.toml manifest format: name, description, triggers (regex), run command, dependencies, level_ups, timeout
+- [x] skill loader: LoadAll scans directories, parses TOML, compiles trigger regexes
+- [x] skill executor: sandboxed subprocess, configurable timeout, stdout/stderr capture
+- [x] context passing: env vars (VISOR_USER_MESSAGE, VISOR_CHAT_ID, etc.) + JSON on stdin
+- [x] trigger matching: case-insensitive regex, MatchAll returns all matching skills
+- [x] 13 tests: load, defaults, missing fields, bad triggers, match, matchAll, execute, stdin, non-zero exit, timeout
 
 ## m0b usage
 - normal mode: `LOG_LEVEL=info`, `LOG_VERBOSE=false`
@@ -34,14 +36,16 @@ sample structured line:
 - `docs/signoz-setup.md`
 - `docs/observability-troubleshooting.md`
 
-## file touch map (m5 it1)
-- `internal/scheduler/scheduler.go` -> scheduler core loop + persistence + one-shot/recurring behavior
-- `internal/scheduler/scheduler_test.go` -> persistence + trigger behavior tests
-- `internal/server/server.go` -> scheduler init + start + trigger -> agent enqueue wiring
-- `README.md`, `visor.forge.md` -> m5 iteration-1 progress tracking
+## file touch map (m6 it1)
+- `internal/skills/skill.go` -> Manifest struct, Skill loader, trigger matching
+- `internal/skills/executor.go` -> subprocess execution, context injection (env + stdin JSON), timeout handling
+- `internal/skills/skill_test.go` -> 13 tests covering load/match/execute
+- `.claude/` -> new claude backend config (CLAUDE.md + 18 skills)
+- `.pi/skills/levelup-creator/` -> synced missing skill from skills/
+- `README.md`, `visor.forge.md` -> m6 iteration-1 progress tracking
 
 ## next checkpoint question
-continue with *m5 / iteration 2* (agent integration for create/modify/delete/list tasks)?
+continue with *m6 / iteration 2* (agent-authored skills, discovery, auto-trigger)?
 
 planning note:
 - m9 (multi-pi-subagent orchestration) was added to forge blueprint for later execution.
