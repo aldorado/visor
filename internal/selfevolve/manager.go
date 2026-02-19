@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"visor/internal/observability"
+	"visor/internal/promptsync"
 )
 
 // ExitCodeRestart is the exit code that signals the supervisor to restart
@@ -49,7 +50,7 @@ type Result struct {
 type Manager struct {
 	cfg       Config
 	startedAt time.Time
-	exitFn    func(code int) // overridable for testing (defaults to os.Exit)
+	exitFn    func(code int)   // overridable for testing (defaults to os.Exit)
 	nowFn     func() time.Time // overridable for testing
 	log       *observability.Logger
 }
@@ -80,6 +81,10 @@ func (m *Manager) Apply(ctx context.Context, req Request) (Result, error) {
 	}
 	if strings.TrimSpace(req.CommitMessage) == "" {
 		req.CommitMessage = "self-evolution update"
+	}
+
+	if err := promptsync.Sync(m.cfg.RepoDir); err != nil {
+		return Result{}, fmt.Errorf("sync prompt dirs: %w", err)
 	}
 
 	changed, err := hasGitChanges(ctx, m.cfg.RepoDir)

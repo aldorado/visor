@@ -1,6 +1,6 @@
 ---
 name: levelup-creator
-description: Use when asked to create a new visor level-up, add infrastructure sidecars, or extend visor with new levelup capabilities.
+description: Use when asked to create OR operate visor level-ups: add sidecars, set/update .levelup.env values, enable/disable level-ups, and validate level-up state.
 user-invocable: false
 ---
 
@@ -47,6 +47,31 @@ Always read these first:
 
 7) commit
 - commit with a clear level-up scoped message
+
+## Operate existing level-ups (self-leveling mode)
+
+When the task is operation (not creating a new level-up), prefer runtime actions over manual file edits.
+
+Use agent structured output block:
+
+```json
+{
+  "levelup_actions": {
+    "env_set": {"KEY": "value"},
+    "env_unset": ["OLD_KEY"],
+    "enable": ["obsidian"],
+    "disable": ["echo-stub"],
+    "validate": true
+  }
+}
+```
+
+Rules:
+- set/update credentials and config via `env_set`
+- remove obsolete keys via `env_unset`
+- turn level-ups on/off via `enable` / `disable`
+- run validation after changes (`validate: true`)
+- report what changed in plain language
 
 ## Guardrails
 
