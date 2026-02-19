@@ -1,7 +1,8 @@
 # visor execution board
 
-quickstart install guide (ubuntu 24.04, step-by-step):
-- `docs/ubuntu-24-noob-install.md`
+quickstart install guides (ubuntu 24.04, step-by-step):
+- english: `docs/ubuntu-24-noob-install.md`
+- deutsch: `docs/ubuntu-24-noob-install.de.md`
 
 current focus: *m5 / iteration 2* — agent scheduler integration
 
