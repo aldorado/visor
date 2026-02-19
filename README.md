@@ -3,12 +3,12 @@
 current focus: *m0 / iteration 1* — level-up framework
 
 ## status
-- chunk in this commit: define `levelup.toml` manifest format
+- chunk in this commit: add `.levelup.env` loader + strict required-key validation
 - state: done
 
 ## granular todos
 - [x] define level-up manifest schema (`levelup.toml`) and runtime rules
-- [ ] add `.levelup.env` loader with required-key validation (fail fast)
+- [x] add `.levelup.env` loader with required-key validation (fail fast)
 - [ ] implement compose assembly (base + selected overlays)
 - [ ] add admin command: list/enable/disable level-ups
 - [ ] add compose builder validation via `docker compose config`
@@ -27,13 +27,15 @@ agent-c (ops layer)
 - wire list/enable/disable commands
 
 ## file touch map
-- `docs/levelup-manifest.md` -> manifest schema + rules (agent-a)
-- `levelups/himalaya/levelup.toml` -> reference level-up manifest (agent-a)
-- `levelups/obsidian/levelup.toml` -> standard level-up manifest (agent-a)
+- `internal/levelup/env.go` -> layered env loader + strict required-env validation (agent-c)
+- `internal/levelup/env_test.go` -> loader/validator tests (agent-c)
+- `docs/levelup-manifest.md` -> env key contract alignment (agent-a)
+- `levelups/himalaya/levelup.toml` -> required env keys aligned with `.levelup.env` (agent-a)
+- `levelups/obsidian/levelup.toml` -> required env keys aligned with compose vars (agent-a)
 - `README.md` -> execution board + task states (shared, small edits only)
 
 ## next checkpoint question
-continue with m0/iteration1 chunk 2 (`.levelup.env` loader + strict required-env validation)?
+continue with m0/iteration1 chunk 3 (`compose assembly: base + selected overlays`)?
 
 ---
 
