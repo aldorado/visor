@@ -236,11 +236,11 @@ Get a Go binary that receives Telegram webhooks and echoes messages back.
 - [x] HTTP server with /webhook and /health routes
 
 #### Iteration 2: telegram integration
-- [ ] Parse Telegram webhook payloads (text, voice, image, reactions)
-- [ ] Send text responses via Telegram Bot API
-- [ ] Webhook signature verification
-- [ ] Auth check: drop messages not from USER_PHONE_NUMBER
-- [ ] Message dedup (in-memory set with TTL)
+- [x] Parse Telegram webhook payloads (text, voice, image, reactions)
+- [x] Send text responses via Telegram Bot API
+- [x] Webhook signature verification
+- [x] Auth check: drop messages not from USER_PHONE_NUMBER
+- [x] Message dedup (in-memory set with TTL)
 
 #### Iteration 3: echo bot
 - [ ] Wire webhook → parse → echo response → send

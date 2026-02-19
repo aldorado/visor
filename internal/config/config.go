@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	TelegramBotToken string
-	UserChatID       string
-	Port             int
+	TelegramBotToken  string
+	TelegramWebhookSecret string
+	UserChatID        string
+	Port              int
 }
 
 func Load() (*Config, error) {
@@ -33,8 +34,9 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		TelegramBotToken: token,
-		UserChatID:       userChatID,
-		Port:             port,
+		TelegramBotToken:      token,
+		TelegramWebhookSecret: os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
+		UserChatID:            userChatID,
+		Port:                  port,
 	}, nil
 }

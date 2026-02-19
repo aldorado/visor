@@ -39,21 +39,24 @@ continue with m0/iteration1 chunk 4 (`admin command: list/enable/disable level-u
 
 # M1: skeleton — webhook + echo
 
-current focus: *m1 / iteration 1* — project setup
+current focus: *m1 / iteration 2* — telegram integration
 
 ## m1 status
-- state: *iteration 1 done*
+- iteration 1: done (project setup)
+- state: *iteration 2 done*
 
-## m1 granular todos
-- [x] init Go module (`go.mod`)
-- [x] create project structure: `main.go`, `internal/platform/`, `internal/config/`, `internal/server/`
-- [x] config loader from env vars (TELEGRAM_BOT_TOKEN, USER_PHONE_NUMBER, PORT)
-- [x] HTTP server with `/webhook` and `/health` routes
+## m1 iteration 2 todos
+- [x] parse Telegram webhook payloads (text, voice, photo, reactions)
+- [x] Telegram API client (send text messages, get file URLs)
+- [x] webhook signature verification (X-Telegram-Bot-Api-Secret-Token)
+- [x] auth check: drop messages not from USER_PHONE_NUMBER
+- [x] message dedup (in-memory set with 5min TTL + background cleanup)
 
 ## m1 file touch map
 | task | files |
 |------|-------|
-| go module | `go.mod` |
-| project structure | `main.go`, `internal/platform/`, `internal/config/`, `internal/server/` |
-| config loader | `internal/config/config.go` |
-| http server | `main.go`, `internal/server/server.go` |
+| telegram types | `internal/platform/telegram/types.go` |
+| telegram client | `internal/platform/telegram/client.go` |
+| message dedup | `internal/platform/telegram/dedup.go` |
+| webhook handler | `internal/server/server.go` |
+| config (webhook secret) | `internal/config/config.go` |
