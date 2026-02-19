@@ -67,17 +67,16 @@ continue with *m1 deploy/e2e* or jump straight to *m3 memory system*?
 
 # M3: memory system
 
-current focus: *m3 / iteration 1* — parquet storage
+current focus: *m3 / iteration 2* — embeddings + search
 
 ## m3 status
-- state: *iteration 1 done*
+- iteration 1: done (parquet storage + session logger)
+- state: *iteration 2 done*
 
-## m3 iteration 1 todos
-- [x] parquet-go dependency added (v0.27.0)
-- [x] Memory schema: id, text, embedding (float32 list), created_at
-- [x] Store with append-by-new-chunk strategy
-- [x] ReadAll: load all chunks, sort by created_at
-- [x] FilterByDate: range filter on unix millis
-- [x] Compact: merge all chunks into single file
-- [x] Session logger: JSONL per session, ReadAllSessions
-- [x] Tests: 7 store tests + 4 session tests (all pass)
+## m3 iteration 2 todos
+- [x] OpenAI embeddings API client (single + batch)
+- [x] cosine similarity search in pure Go
+- [x] Search with maxResults, minResults, minSimilarity threshold
+- [x] MemoryManager: Save (embed + store) and Lookup (search + format)
+- [x] config: OPENAI_API_KEY, DATA_DIR
+- [x] tests: 12 search/embedding tests (cosine sim, ranking, threshold, minResults, response parsing)

@@ -12,6 +12,8 @@ type Config struct {
 	UserChatID            string
 	Port                  int
 	AgentBackend          string // "pi", "claude", "echo" (default: "echo")
+	OpenAIAPIKey          string
+	DataDir               string // base directory for runtime data (default: "data")
 	HimalayaEnabled       bool
 	HimalayaAccount       string
 	HimalayaPollInterval  int // seconds
@@ -52,12 +54,19 @@ func Load() (*Config, error) {
 		himalayaPollInterval = v
 	}
 
+	dataDir := os.Getenv("DATA_DIR")
+	if dataDir == "" {
+		dataDir = "data"
+	}
+
 	return &Config{
 		TelegramBotToken:      token,
 		TelegramWebhookSecret: os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
 		UserChatID:            userChatID,
 		Port:                  port,
 		AgentBackend:          backend,
+		OpenAIAPIKey:          os.Getenv("OPENAI_API_KEY"),
+		DataDir:               dataDir,
 		HimalayaEnabled:       himalayaEnabled,
 		HimalayaAccount:       os.Getenv("HIMALAYA_ACCOUNT"),
 		HimalayaPollInterval:  himalayaPollInterval,

@@ -286,11 +286,11 @@ Persistent memory with semantic search. All data in Parquet files — portable, 
 - [x] Basic CRUD: append to parquet, read all, filter by date
 
 #### Iteration 2: embeddings + search
-- [ ] Call OpenAI embeddings API to generate vectors
-- [ ] Store embeddings as float32 arrays in parquet columns
-- [ ] Implement cosine similarity search in Go (load parquet → scan embeddings → rank)
-- [ ] Memory save: agent response includes memories_to_save → auto-embed and store
-- [ ] Memory lookup: before each prompt, search relevant memories and inject as context
+- [x] Call OpenAI embeddings API to generate vectors
+- [x] Store embeddings as float32 arrays in parquet columns
+- [x] Implement cosine similarity search in Go (load parquet → scan embeddings → rank)
+- [x] Memory save: agent response includes memories_to_save → auto-embed and store
+- [x] Memory lookup: before each prompt, search relevant memories and inject as context
 
 #### Iteration 3: remote sync (future)
 - [ ] Design sync protocol: local parquet ↔ remote storage (S3, R2, or custom)
