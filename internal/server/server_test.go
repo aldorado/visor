@@ -1,0 +1,208 @@
+package server
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"visor/internal/agent"
+	"visor/internal/config"
+	"visor/internal/platform/telegram"
+)
+
+func testConfig(secret string) *config.Config {
+	return &config.Config{
+		TelegramBotToken:      "test-token",
+		TelegramWebhookSecret: secret,
+		UserChatID:            "12345",
+		Port:                  8080,
+		AgentBackend:          "echo",
+	}
+}
+
+func makeUpdate(updateID int, chatID int64, text string) telegram.Update {
+	return telegram.Update{
+		UpdateID: updateID,
+		Message: &telegram.Message{
+			MessageID: 1,
+			Chat:      telegram.Chat{ID: chatID, Type: "private"},
+			Text:      text,
+		},
+	}
+}
+
+func postWebhook(srv *Server, update telegram.Update, headers map[string]string) *httptest.ResponseRecorder {
+	body, _ := json.Marshal(update)
+	req := httptest.NewRequest("POST", "/webhook", bytes.NewReader(body))
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	w := httptest.NewRecorder()
+	srv.mux.ServeHTTP(w, req)
+	return w
+}
+
+func TestHealth(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	req := httptest.NewRequest("GET", "/health", nil)
+	w := httptest.NewRecorder()
+	srv.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+	var resp map[string]string
+	json.Unmarshal(w.Body.Bytes(), &resp)
+	if resp["status"] != "ok" {
+		t.Errorf("status = %q, want %q", resp["status"], "ok")
+	}
+}
+
+func TestWebhook_ValidTextMessage(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	update := makeUpdate(1, 12345, "hello")
+	w := postWebhook(srv, update, nil)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestWebhook_UnauthorizedChat(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	update := makeUpdate(1, 99999, "hello")
+	w := postWebhook(srv, update, nil)
+
+	// should still return 200 (don't leak auth info)
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestWebhook_DuplicateUpdate(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	update := makeUpdate(42, 12345, "hello")
+
+	postWebhook(srv, update, nil)
+	w := postWebhook(srv, update, nil)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestWebhook_SignatureValid(t *testing.T) {
+	srv := New(testConfig("my-secret"), &agent.EchoAgent{})
+	update := makeUpdate(1, 12345, "hello")
+	w := postWebhook(srv, update, map[string]string{
+		"X-Telegram-Bot-Api-Secret-Token": "my-secret",
+	})
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestWebhook_SignatureInvalid(t *testing.T) {
+	srv := New(testConfig("my-secret"), &agent.EchoAgent{})
+	update := makeUpdate(1, 12345, "hello")
+	w := postWebhook(srv, update, map[string]string{
+		"X-Telegram-Bot-Api-Secret-Token": "wrong-secret",
+	})
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestWebhook_SignatureMissing(t *testing.T) {
+	srv := New(testConfig("my-secret"), &agent.EchoAgent{})
+	update := makeUpdate(1, 12345, "hello")
+	w := postWebhook(srv, update, nil)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", w.Code)
+	}
+}
+
+func TestWebhook_NoMessage(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	update := telegram.Update{UpdateID: 1}
+	w := postWebhook(srv, update, nil)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestWebhook_BadJSON(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	req := httptest.NewRequest("POST", "/webhook", bytes.NewReader([]byte("not json")))
+	w := httptest.NewRecorder()
+	srv.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
+func TestWebhook_VoiceMessage(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	update := telegram.Update{
+		UpdateID: 2,
+		Message: &telegram.Message{
+			MessageID: 1,
+			Chat:      telegram.Chat{ID: 12345, Type: "private"},
+			Voice:     &telegram.Voice{FileID: "voice-file-123", Duration: 5},
+		},
+	}
+	w := postWebhook(srv, update, nil)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestWebhook_PhotoMessage(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	update := telegram.Update{
+		UpdateID: 3,
+		Message: &telegram.Message{
+			MessageID: 1,
+			Chat:      telegram.Chat{ID: 12345, Type: "private"},
+			Photo: []telegram.PhotoSize{
+				{FileID: "small", Width: 100, Height: 100},
+				{FileID: "large", Width: 800, Height: 800},
+			},
+			Caption: "look at this",
+		},
+	}
+	w := postWebhook(srv, update, nil)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+}
+
+func TestVerifySignature(t *testing.T) {
+	if !verifySignature("abc", "abc") {
+		t.Error("matching signatures should verify")
+	}
+	if verifySignature("abc", "xyz") {
+		t.Error("different signatures should not verify")
+	}
+	if verifySignature("", "secret") {
+		t.Error("empty vs non-empty should not verify")
+	}
+}
+
+func TestTruncate(t *testing.T) {
+	if got := truncate("short", 10); got != "short" {
+		t.Errorf("truncate(%q, 10) = %q", "short", got)
+	}
+	if got := truncate("this is a long string", 10); got != "this is a ..." {
+		t.Errorf("truncate long = %q", got)
+	}
+}
