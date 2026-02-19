@@ -31,6 +31,7 @@ Rewrite ubik from scratch in a compiled language (Rust or Go) for a faster, lean
 - Memory system (embeddings + vector search, parquet-first)
 - Cron/scheduling (in-process scheduler, persistent to disk)
 - Session logging (append-only JSONL files)
+- Human-readable observability baseline (request lifecycle logs, traceback quality, verbose/normal modes, optional OTEL export to SigNoz)
 - Native email in core capabilities (receive + send)
 - Level-up infra alongside visor via Docker Compose extensions
 - Self-edit: the agent edits source, triggers rebuild + restart

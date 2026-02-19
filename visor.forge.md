@@ -236,6 +236,44 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 - [x] Add `docker-compose.levelup.cloudflared.yml` with token/env-based tunnel startup
 - [x] Add cloudflared env keys to `.levelup.env.example`
 
+### M0b: observability + human-readable logging baseline
+Guarantee full processing visibility for humans: readable request lifecycle logs, meaningful call-site context, clear tracebacks, and optional OTEL export to SigNoz.
+
+#### Research notes (2026-02-19)
+- Go `log/slog` is the best default baseline for visor (structured logs, stable stdlib, easy level control).
+- `slog` can run with `AddSource: true` for file:line. function names should be added via a thin helper using `runtime.CallersFrames`.
+- Verbose/normal mode should be pure config: `LOG_LEVEL=debug|info` and `LOG_VERBOSE=true|false`.
+- Correlated request visibility needs a request-id in every log line plus span id/trace id fields where available.
+- OTEL Go stack to target:
+  - `go.opentelemetry.io/otel`
+  - `go.opentelemetry.io/otel/sdk`
+  - `go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp`
+  - `go.opentelemetry.io/contrib/bridges/otelslog`
+- SigNoz integration path: OTLP exporter endpoint configurable by env (`OTEL_EXPORTER_OTLP_ENDPOINT`, service name/env attrs), with OTEL disable switch for local-only runs.
+
+#### Iteration 1: logging contract + modes
+- [ ] Define global logging schema (timestamp, level, component, function, request_id, trace_id, message, attrs)
+- [ ] Implement logger package with normal mode and verbose mode switch
+- [ ] Add helper wrappers for consistent function/class/component naming
+- [ ] Add panic/recover middleware that logs compact traceback with request context
+
+#### Iteration 2: request lifecycle visibility
+- [ ] Add request-id middleware for all webhook/admin paths
+- [ ] Log request lifecycle events: received, parsed, deduped, authorized, queued, processed, replied
+- [ ] Add agent lifecycle logs: queue length, start/end, backend used, duration, errors
+- [ ] Add level-up lifecycle logs: validate, enable/disable, compose config check, apply outcome
+
+#### Iteration 3: OTEL + SigNoz export
+- [ ] Initialize OTEL provider with env config (`OTEL_EXPORTER_OTLP_ENDPOINT`, service name, environment)
+- [ ] Add spans around webhook handling, agent processing, and level-up operations
+- [ ] Bridge slog -> OTEL events/attributes for key log lines
+- [ ] Add config toggle to disable OTEL cleanly without changing code paths
+
+#### Iteration 4: docs + operability
+- [ ] Add README section: where to read logs, verbose mode usage, sample output
+- [ ] Add SigNoz setup doc with minimal env example and verification steps
+- [ ] Add troubleshooting checklist for missing logs/traces/export failures
+
 ### M1: skeleton — webhook + echo
 Get a Go binary that receives Telegram webhooks and echoes messages back.
 

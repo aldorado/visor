@@ -29,7 +29,7 @@ current focus: *m0 / iteration 5* — cloudflared base level-up
 - `visor.md` -> architecture direction update (cloudflared as base level-up)
 
 ## next checkpoint question
-continue with *m1 deploy/e2e* or jump straight to *m3 memory system*?
+before m1/m3: run new *m0b observability baseline* (human-readable lifecycle logs + verbose mode + otel/sigNoz)?
 
 ---
 
