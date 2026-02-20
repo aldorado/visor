@@ -352,6 +352,25 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
   - treat non-200 as actionable failure message (invalid key / quota / org / network)
 - **Decision:** keep validation in runtime setup-actions (not prompt-only). Add OpenAI key probe as next small hardening patch if needed.
 
+### 2026-02-20 — M12 optional level-up selection UX (M12 research #4)
+- **Best UX is staged + opinionated defaults, not full matrix upfront.**
+  - Step 1 (core): get bot online first (`.env`, webhook, health)
+  - Step 2 (optional level-ups): ask a single compact chooser after core success
+- **Recommended prompt shape:**
+  - "which add-ons do you want now?"
+  - options: `forgejo`, `himalaya`, `obsidian`, `cloudflared`
+  - allow: `none`, comma-list, or `recommended`
+- **Recommended default bundle (`recommended`):**
+  - keep currently enabled-by-default baseline (`proxy`, `obsidian`, `himalaya`, `cloudflared`) but gate with required-env readiness
+  - if required secrets missing, stay disabled and ask only for missing keys for selected level-up
+- **Execution order for selected level-ups:**
+  1) write `.levelup.env` keys for selected set only
+  2) enable selected level-ups
+  3) validate compose/env (`docker compose config` + required env)
+  4) start (`up -d`)
+  5) run healthchecks and show per-level-up pass/fail
+- **Decision:** setup should present one compact selection step with `recommended` shortcut and then execute selected level-ups deterministically with explicit health feedback.
+
 ## Milestones
 
 ### M0: host-native runtime boundary + level-up foundation + native email baseline
@@ -689,7 +708,7 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 - [x] Investigate how CLAUDE.md / .pi/instructions can detect first-run state (no `.env`, no `data/` dir, no running process)
 - [x] Investigate platform-specific setup flows: what needs to happen for Telegram (bot token, webhook URL, chat ID) and potentially Signal
 - [x] Investigate how to validate env vars interactively (test Telegram token, test OpenAI key, etc.)
-- [ ] Investigate optional level-up selection UX: how to present Forgejo, Himalaya, Obsidian as opt-in during setup
+- [x] Investigate optional level-up selection UX: how to present Forgejo, Himalaya, Obsidian as opt-in during setup
 
 #### Iteration 1: first-run detection + core setup
 - [x] Add first-run detection in CLAUDE.md / agent instructions: check for `.env`, running process, `data/` dir
