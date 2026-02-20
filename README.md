@@ -1,106 +1,75 @@
-# visor execution board
+# visor
 
-quickstart install guides (ubuntu 24.04, step-by-step):
+visor is a go-based execution board for a telegram-first ai agent with memory, voice, scheduling, level-ups, and self-evolution hooks.
+
+it is built to stay simple in runtime shape:
+- one webhook server
+- one active owner chat
+- optional sidecar level-ups (email, obsidian, cloudflared)
+
+## current status
+
+active roadmap and milestone tracking live in:
+- `visor.forge.md`
+
+repo cleanup and release prep are tracked as `M8a`.
+
+## first 10 minutes
+
+```bash
+# 1) clone + enter
+git clone <your-repo-url> visor
+cd visor
+
+# 2) set minimum env (required)
+export TELEGRAM_BOT_TOKEN="<bot-token>"
+export USER_PHONE_NUMBER="<telegram-chat-id>"
+
+# 3) choose agent backend (quick smoke test)
+export AGENT_BACKEND="echo"
+
+# 4) run
+go run .
+
+# 5) verify server
+curl -s http://localhost:8080/health
+```
+
+if you want full ubuntu walkthroughs:
 - english: `docs/ubuntu-24-noob-install.md`
 - deutsch: `docs/ubuntu-24-noob-install.de.md`
 
-current focus: *m5 / iteration 2* — agent scheduler integration
+## architecture (short)
 
-## status
-- iteration state: done ✅
-- reporting mode: per full iteration
+- `main.go`: startup wiring (config, observability, agent backend selection)
+- `internal/server`: telegram webhook handling + action execution (skills/scheduler/levelup/email)
+- `internal/agent`: backend adapters (`echo`, `pi`, `claude`) + queueing + failover registry
+- `internal/memory`: local memory store/search
+- `internal/voice`: stt + tts wiring
+- `internal/scheduler`: scheduled task persistence and dispatch
+- `skills/`: runtime skill scripts/manifests
+- `levelups/`: optional extensions with manifest + compose overlays
 
-## m5 iteration 2 todos
-- [x] schedule actions contract via structured output (`schedule_actions`)
-- [x] create / update / delete task wiring from agent response
-- [x] list upcoming tasks on request
-- [x] strict validation (RFC3339 `run_at`, unknown task fail fast)
-- [x] tests for create/update/delete/list + invalid payload + unknown task
+## config reference
 
-## file touch map (m5 it2)
-- `internal/scheduler/actions.go` -> schedule action envelope + json block extractor
-- `internal/scheduler/scheduler.go` -> task update API (`UpdateTaskInput`, `Update`)
-- `internal/server/server.go` -> schedule action extraction + execution flow
-- `internal/scheduler/actions_test.go` -> extractor tests
-- `internal/scheduler/scheduler_test.go` -> update validation + unknown-task tests
-- `internal/server/scheduler_actions_test.go` -> end-to-end action execution tests
-- `visor.forge.md` -> m5 iteration-2 marked done
+full variable reference (required vs optional):
+- `docs/config-reference.md`
 
-## next
-continue with *m5 iteration 2.5* (quick actions: done / snooze / reschedule).
+level-up env template:
+- `.levelup.env.example`
 
----
+## operations
 
-# M1: skeleton — webhook + echo
+runbook for local run, logs, troubleshooting, and update flow:
+- `docs/operations.md`
 
-*M1 complete* ✅
+observability-specific troubleshooting:
+- `docs/observability-troubleshooting.md`
 
-## m1 status
-- iteration 1: done (project setup)
-- iteration 2: done (telegram integration)
-- iteration 3: done (echo bot)
+## contributing
 
-## m1 iteration 3 todos
-- [x] wire webhook → parse → echo response → send
-- [x] text echo, voice acknowledgment, photo acknowledgment
+see `CONTRIBUTING.md`.
 
----
+## license
 
-# M2: agent process manager
-
-*M2 complete* ✅
-
-## m2 status
-- iteration 1: done (agent interface + queue)
-- iteration 2: done (pi adapter)
-- iteration 3: done (claude code adapter)
-
-## m2 iteration 3 todos
-- [x] claude code adapter: process-per-request `claude -p --output-format stream-json`
-- [x] parse stream-json events: `assistant` (text blocks), `result` (error check)
-- [x] 5min timeout, proper process cleanup
-- [x] AGENT_BACKEND=claude wired in main.go
-
----
-
-# M3: memory system
-
-current focus: *m3 / iteration 2* — embeddings + search
-
-## m3 status
-- iteration 1: done (parquet storage + session logger)
-- state: *iteration 2 done*
-
-## m3 iteration 2 todos
-- [x] OpenAI embeddings API client (single + batch)
-- [x] cosine similarity search in pure Go
-- [x] Search with maxResults, minResults, minSimilarity threshold
-- [x] MemoryManager: Save (embed + store) and Lookup (search + format)
-- [x] config: OPENAI_API_KEY, DATA_DIR
-- [x] tests: 12 search/embedding tests (cosine sim, ranking, threshold, minResults, response parsing)
-
----
-
-# M4: voice pipeline
-
-current focus: *m4 / iteration 2* — text-to-speech
-
-## m4 status
-- iteration 1: done (speech-to-text)
-- state: *iteration 2 done*
-
-## m4 iteration 1 todos
-- [x] Whisper STT client (multipart upload to OpenAI API)
-- [x] Voice handler: download from Telegram + transcribe
-- [x] Server wiring: voice messages auto-transcribed with [Voice message] tag
-- [x] Graceful fallback: if no OPENAI_API_KEY, passes raw file ID
-- [x] Tests: whisper response parsing (normal, empty, unicode)
-
-## m4 iteration 2 todos
-- [x] ElevenLabs TTS client (eleven_multilingual_v2, returns MP3 bytes)
-- [x] Telegram SendVoice: multipart upload of audio file
-- [x] Config: ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID
-- [x] Voice handler: SynthesizeAndSend (TTS → send voice message)
-- [x] Agent response metadata: `send_voice: true` flag via `---` separator
-- [x] Server callback: parseResponse extracts send_voice, routes to TTS with text fallback
-- [x] Tests: 3 elevenlabs tests, 6 parseResponse tests
+MIT, see `LICENSE`.

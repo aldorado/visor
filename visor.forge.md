@@ -446,11 +446,11 @@ Make the repository publication-ready: clean structure, clear docs, no accidenta
 - [x] Add/update `CONTRIBUTING.md` baseline
 
 #### Iteration 2: documentation pass
-- [ ] Tighten `README.md` for external users: what it is, quickstart, architecture, status
-- [ ] Add "first 10 minutes" setup section with copy-paste commands
-- [ ] Add config reference table (required env vars vs optional)
-- [ ] Add operational docs for local run, logs, troubleshooting, and updates
-- [ ] Add release notes/changelog policy (`CHANGELOG.md`)
+- [x] Tighten `README.md` for external users: what it is, quickstart, architecture, status
+- [x] Add "first 10 minutes" setup section with copy-paste commands
+- [x] Add config reference table (required env vars vs optional)
+- [x] Add operational docs for local run, logs, troubleshooting, and updates
+- [x] Add release notes/changelog policy (`CHANGELOG.md`)
 
 #### Iteration 3: quality + release gate
 - [ ] Add/verify formatting and lint checks (`gofmt`, `go vet`) in CI
