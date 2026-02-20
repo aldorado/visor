@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -85,5 +86,16 @@ func TestPiCommand_Marshal(t *testing.T) {
 	expected := `{"type":"prompt","message":"hello world"}`
 	if string(data) != expected {
 		t.Errorf("got %s, want %s", data, expected)
+	}
+}
+
+func TestWithExecutionGuardrail(t *testing.T) {
+	input := "check git status"
+	out := withExecutionGuardrail(input)
+	if !strings.Contains(out, "do not ask the user to run commands") {
+		t.Fatalf("guardrail missing in output: %q", out)
+	}
+	if !strings.HasSuffix(out, input) {
+		t.Fatalf("expected original prompt suffix, got: %q", out)
 	}
 }

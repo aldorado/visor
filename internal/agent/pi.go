@@ -88,7 +88,7 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 	defer cancel()
 
 	// send prompt command
-	cmd := piCommand{Type: "prompt", Message: prompt}
+	cmd := piCommand{Type: "prompt", Message: withExecutionGuardrail(prompt)}
 	data, err := json.Marshal(cmd)
 	if err != nil {
 		return "", fmt.Errorf("pi: marshal command: %w", err)
@@ -191,6 +191,15 @@ func (p *PiAgent) Close() error {
 		}
 	}
 	return nil
+}
+
+func withExecutionGuardrail(prompt string) string {
+	guardrail := "[runtime execution policy]\n" +
+		"you have direct access to tools in this runtime (read, bash, edit, write and related capabilities).\n" +
+		"do not ask the user to run commands or inspect files when you can do it yourself.\n" +
+		"for checks/status questions, run the commands yourself and return results directly.\n" +
+		"only ask the user for input that is genuinely unavailable in the runtime (e.g. missing credentials or personal preference).\n\n"
+	return guardrail + prompt
 }
 
 func truncateLine(s string, n int) string {
