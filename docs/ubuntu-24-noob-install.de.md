@@ -121,6 +121,7 @@ EOF
 
 wichtig:
 - zuerst mit `echo` testen
+- `echo` ist nur ein dummy-smoke-test backend und antwortet mit `echo: <deine nachricht>`
 - `pi` erst danach
 
 ---
@@ -148,6 +149,8 @@ soll sein:
 ```json
 {"status":"ok"}
 ```
+
+du solltest auch das visor ascii startup banner im terminal sehen. das ist normal.
 
 wenn ja: `ctrl+c` im visor terminal.
 
@@ -205,13 +208,16 @@ curl -s "https://api.telegram.org/botYOUR_BOT_TOKEN/getWebhookInfo" | jq
 
 wenn da fehler stehen: *erst fixen*, dann weiter.
 
+branding-hinweis:
+- offizieller logo-dateipfad im repo: `docs/assets/visor-logo.png`
+
 ---
 
 ## 9) echter test in telegram
 
 dem bot schreiben.
 
-mit `AGENT_BACKEND=echo` muss direkt eine antwort kommen.
+mit `AGENT_BACKEND=echo` muss direkt eine `echo: ...` antwort kommen.
 
 wenn ja: basis setup passt ✅
 
