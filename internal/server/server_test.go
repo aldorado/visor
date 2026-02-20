@@ -287,6 +287,9 @@ func TestParseResponse_CodeChangesAndCommitMessage(t *testing.T) {
 }
 
 func TestWebhook_E2E_TelegramDelivery(t *testing.T) {
+	t.Setenv("TELEGRAM_BOT_TOKEN", "test-token")
+	t.Setenv("USER_PHONE_NUMBER", "12345")
+
 	type msgReq struct {
 		ChatID int64  `json:"chat_id"`
 		Text   string `json:"text"`
