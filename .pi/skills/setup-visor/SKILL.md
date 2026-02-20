@@ -17,11 +17,12 @@ Guide the *user* through visor setup step-by-step. This skill is for onboarding/
 
 ## Setup flow (M12-aligned)
 
-0. Prerequisites check (before ingress/env)
+0. Prerequisites check + install (before ingress/env)
    - verify required tools are installed and runnable
    - minimum checks: `go version`, `git --version`, `docker --version`, `docker compose version`, `curl --version`
    - if using direct dns + caddy: also verify caddy is installed
-   - if something is missing, stop and guide install first
+   - if something is missing: install it immediately (guided + explicit commands), then re-check versions
+   - ask once before running privileged install commands (`sudo`)
 
 1. Ingress + domain routing (before env)
    - decide mode with user: `cloudflare tunnel` or `direct dns + caddy`
@@ -98,7 +99,9 @@ Setup should also ensure process-manager persistence:
 ## Rules
 
 - one step at a time, ask before applying impactful changes
-- prerequisites check comes first, then ingress decision (cloudflare tunnel vs direct dns+caddy)
+- prerequisites check/install comes first, then ingress decision (cloudflare tunnel vs direct dns+caddy)
+- for missing deps: propose exact install command and run it when user confirms
+- if sudo is unavailable, stop and give one copy/paste command block for user
 - never replace an existing `.env` with `.env.example`
 - if `.env` exists, preserve existing keys and only patch requested values
 - keep messages short and practical
