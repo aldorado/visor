@@ -388,7 +388,9 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	s.agent.Enqueue(r.Context(), agent.Message{
+	// detach from request context so agent processing isn't canceled as soon as webhook returns 200.
+	agentCtx := context.Background()
+	s.agent.Enqueue(agentCtx, agent.Message{
 		ChatID:  msg.Chat.ID,
 		Content: content,
 		Type:    msgType,
