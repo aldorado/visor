@@ -5,6 +5,11 @@ copy/paste one block at a time.
 
 if something fails, stop there and fix that step first.
 
+m12 update:
+- visor now has an interactive first-run setup mode
+- it activates when bootstrap is missing (for example no `.env` + missing base envs)
+- this guide is still the manual, stable fallback path
+
 ---
 
 ## 0) what you need
@@ -226,6 +231,10 @@ with `AGENT_BACKEND=echo`, visor should reply immediately with an `echo: ...` me
 
 if that works: base setup is correct ✅
 
+m12 note (important):
+- with `AGENT_BACKEND=echo` there is *no* real guided setup assistant (echo is smoke-test only)
+- the interactive m12 setup flow needs a real backend (`pi` or `claude`)
+
 ---
 
 ## 10) switch from echo to pi backend
@@ -248,6 +257,14 @@ AGENT_BACKENDS=pi,echo
 ```
 
 4) restart visor and test again.
+
+optional (use the m12 guided setup):
+- if you prefer conversational onboarding, start visor with a real backend (`pi`/`claude`) and follow setup prompts
+- m12 can now also:
+  - validate OpenAI key (`validate_openai`)
+  - choose level-ups in one step (`none` | `recommended` | explicit list)
+  - apply level-ups in sequence (env -> enable -> validate -> start -> health)
+  - send final test message + write setup summary
 
 fallback behavior:
 - if pi fails and registry is enabled, visor can fall back to `echo`.
