@@ -1,11 +1,11 @@
 ---
-name: setup-weiser
-description: "Use when the user wants a one-shot project kickoff in Weiser/Visor, like 'setup weiser', 'starte weiser setup', 'kickoff forge execution', or 'was soll ich nach pi eingeben'."
+name: setup-visor
+description: "Use when the user wants a one-shot project kickoff in visor, like 'setup visor', 'starte visor setup', 'kickoff forge execution', or 'was soll ich nach pi eingeben'."
 user-invocable: true
 argument-hint: "[project-folder optional]"
 ---
 
-# Setup Weiser
+# Setup Visor
 
 Kick off a project execution flow in one command so the user does not need a long manual prompt.
 
@@ -45,6 +45,6 @@ Kick off a project execution flow in one command so the user does not need a lon
 
 ## Quick invoke examples
 
-- `/setup-weiser visor`
-- `/setup-weiser`
-- "mach setup weiser im visor repo"
+- `/setup-visor visor`
+- `/setup-visor`
+- "mach setup visor im visor repo"
