@@ -107,3 +107,15 @@ func TestNewPiAgent_UsesNoSession(t *testing.T) {
 		t.Fatalf("expected --no-session in args, got: %v", a.toolsCfg.Args)
 	}
 }
+
+func TestLooksLikeDeferral(t *testing.T) {
+	if !looksLikeDeferral("kann ich von hier nicht direkt sehen") {
+		t.Fatal("expected german deferral phrase to match")
+	}
+	if !looksLikeDeferral("please run git status and send me output") {
+		t.Fatal("expected english deferral phrase to match")
+	}
+	if looksLikeDeferral("git status: clean, nothing to commit") {
+		t.Fatal("status result must not be flagged as deferral")
+	}
+}

@@ -80,6 +80,23 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 	}
 	p.log.Debug(ctx, "pi mode selected", "mode", "tools")
 
+	guarded := withExecutionGuardrail(prompt)
+	response, err := p.sendPromptOnce(ctx, pm, guarded)
+	if err != nil {
+		return response, err
+	}
+	if !looksLikeDeferral(response) {
+		return response, nil
+	}
+
+	p.log.Warn(ctx, "pi returned deferral-style response, retrying with hard guardrail")
+	hard := guarded + "\n[critical enforcement]\n" +
+		"your previous answer violated policy. do not ask the user to run commands. " +
+		"run the required checks yourself now and return concrete results only."
+	return p.sendPromptOnce(ctx, pm, hard)
+}
+
+func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt string) (string, error) {
 	timeout := pm.cfg.PromptTimeout
 	if timeout == 0 {
 		timeout = 2 * time.Minute
@@ -87,8 +104,7 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	// send prompt command
-	cmd := piCommand{Type: "prompt", Message: withExecutionGuardrail(prompt)}
+	cmd := piCommand{Type: "prompt", Message: prompt}
 	data, err := json.Marshal(cmd)
 	if err != nil {
 		return "", fmt.Errorf("pi: marshal command: %w", err)
@@ -98,12 +114,10 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 	if stdin == nil {
 		return "", fmt.Errorf("pi: process not running")
 	}
-
 	if _, err := fmt.Fprintf(stdin, "%s\n", data); err != nil {
 		return "", fmt.Errorf("pi: write stdin: %w", err)
 	}
 
-	// read events until agent_end
 	var response strings.Builder
 	scanner := pm.Scanner()
 	if scanner == nil {
@@ -200,6 +214,26 @@ func withExecutionGuardrail(prompt string) string {
 		"for checks/status questions, run the commands yourself and return results directly.\n" +
 		"only ask the user for input that is genuinely unavailable in the runtime (e.g. missing credentials or personal preference).\n\n"
 	return guardrail + prompt
+}
+
+func looksLikeDeferral(s string) bool {
+	l := strings.ToLower(strings.TrimSpace(s))
+	patterns := []string{
+		"kann ich von hier nicht direkt sehen",
+		"ich kann hier",
+		"schick mir",
+		"wenn du kurz",
+		"run this",
+		"please run",
+		"i can't access",
+		"i can’t access",
+	}
+	for _, p := range patterns {
+		if strings.Contains(l, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func truncateLine(s string, n int) string {
