@@ -331,6 +331,13 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
   - agent executes structured `setup_actions` until setup state flips false
 - **Decision:** keep first-run gate in runtime (`internal/setup/detect.go` + prompt injection in server), use `CLAUDE.md` only as policy text.
 
+### 2026-02-20 — M12 platform setup flow (M12 research #2)
+- **Telegram flow (production-ready now):**
+  1) collect `TELEGRAM_BOT_TOKEN` + owner chat id (`USER_PHONE_NUMBER`)  2) validate token with Bot API `getMe`  3) set webhook via `setWebhook` (with optional secret token)  4) verify runtime liveness with local `/health`  5) send test message back to owner chat
+- **Signal flow status:** not implemented in current runtime (only `internal/platform/telegram` exists). No Signal transport adapter, no Signal config/env contract, no Signal webhook/poller path.
+- **Signal recommendation for v1.5+ (if needed):** use `signal-cli` sidecar level-up + bridge process (receive/send + identity bootstrap + phone registration flow), then wire to same server message envelope as Telegram.
+- **Decision:** keep M12 core setup Telegram-first; model Signal as a separate milestone/iteration (not as mandatory M12-it1 gate) to avoid blocking first-run UX.
+
 ## Milestones
 
 ### M0: host-native runtime boundary + level-up foundation + native email baseline
@@ -666,7 +673,7 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 
 #### Research tasks
 - [x] Investigate how CLAUDE.md / .pi/instructions can detect first-run state (no `.env`, no `data/` dir, no running process)
-- [ ] Investigate platform-specific setup flows: what needs to happen for Telegram (bot token, webhook URL, chat ID) and potentially Signal
+- [x] Investigate platform-specific setup flows: what needs to happen for Telegram (bot token, webhook URL, chat ID) and potentially Signal
 - [ ] Investigate how to validate env vars interactively (test Telegram token, test OpenAI key, etc.)
 - [ ] Investigate optional level-up selection UX: how to present Forgejo, Himalaya, Obsidian as opt-in during setup
 
