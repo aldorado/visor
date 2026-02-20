@@ -216,18 +216,45 @@ func isLikelySmalltalk(prompt string) bool {
 	if strings.Contains(s, "\n") {
 		return false
 	}
+
 	blockers := []string{
 		"run ", "execute", "terminal", "bash", "shell", "command",
 		"read file", "open file", "edit file", "write file", "patch", "diff",
 		"grep", "find ", "ls ", "docker", "git ", "systemctl",
 		"/root/", "./", ".go", ".md", ".env", "http://", "https://",
+		"install", "check", "status", "which", "what", "where", "when", "how",
+		"welche", "welcher", "welches", "was", "wo", "wann", "wie", "warum", "kannst", "kannst du",
 	}
 	for _, b := range blockers {
 		if strings.Contains(s, b) {
 			return false
 		}
 	}
-	return true
+
+	normalized := normalizeSmalltalk(s)
+	if normalized == "" {
+		return false
+	}
+
+	smalltalk := map[string]struct{}{
+		"hi": {}, "hey": {}, "hallo": {}, "moin": {}, "servus": {}, "yo": {}, "hola": {},
+		"wie gehts": {}, "wie gehts dir": {}, "was geht": {},
+		"danke": {}, "danke dir": {}, "thx": {}, "thanks": {},
+		"ok": {}, "okay": {}, "oke": {}, "cool": {}, "nice": {},
+		"good morning": {}, "good night": {}, "guten morgen": {}, "gute nacht": {},
+		"bye": {}, "ciao": {}, "bis spaeter": {}, "bis später": {},
+	}
+	_, ok := smalltalk[normalized]
+	return ok
+}
+
+func normalizeSmalltalk(s string) string {
+	replacer := strings.NewReplacer(
+		"?", " ", "!", " ", ".", " ", ",", " ", ":", " ", ";", " ",
+		"'", "", "\"", "", "`", "", "…", " ", "-", " ", "_", " ",
+	)
+	s = replacer.Replace(s)
+	return strings.Join(strings.Fields(s), " ")
 }
 
 func truncateLine(s string, n int) string {

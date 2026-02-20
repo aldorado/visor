@@ -87,3 +87,26 @@ func TestPiCommand_Marshal(t *testing.T) {
 		t.Errorf("got %s, want %s", data, expected)
 	}
 }
+
+func TestIsLikelySmalltalk(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		want   bool
+	}{
+		{name: "simple greeting", input: "hallo", want: true},
+		{name: "greeting punctuation", input: "hey!!!", want: true},
+		{name: "question needing runtime state", input: "jap. welche levelups sind jetzt bei dir installiert?", want: false},
+		{name: "task request", input: "kannst du mal checken ob bei dir ein commit offen is", want: false},
+		{name: "command hint", input: "git status", want: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isLikelySmalltalk(tc.input)
+			if got != tc.want {
+				t.Fatalf("isLikelySmalltalk(%q) = %v, want %v", tc.input, got, tc.want)
+			}
+		})
+	}
+}
