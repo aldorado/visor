@@ -77,4 +77,4 @@ append under `handoff log`:
 - `M12 / Iteration 2` done — setup actions now support level-up selection/env/start/validate/health + forgejo remote sync hook — commit `0b31da0`
 - `M12 / Iteration 3` done — setup finish actions: personality override, telegram test message, setup summary writer, setup-hints cleanup — commit `64d409a`
 - `M12 / Research 1` done — first-run detection strategy confirmed: runtime state + /health liveness; CLAUDE/.pi stay policy-only — commit `912a104`
-- `M12 / Research 2` done — platform setup flow documented: Telegram-first path finalized, Signal scoped as future dedicated transport milestone — commit TBD
+- `M12 / Research 2` done — platform setup flow documented: Telegram-first path finalized, Signal scoped as future dedicated transport milestone — commit `2d7a51b`
