@@ -115,3 +115,35 @@ func (c *Client) sendJSON(method string, payload any) error {
 	}
 	return nil
 }
+
+func (c *Client) ValidateToken() error {
+	url := fmt.Sprintf("%s%s/getMe", c.apiBase, c.token)
+	resp, err := c.httpClient.Get(url)
+	if err != nil {
+		return fmt.Errorf("getMe request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("getMe: status %d: %s", resp.StatusCode, respBody)
+	}
+	var out struct {
+		OK bool `json:"ok"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return fmt.Errorf("getMe decode: %w", err)
+	}
+	if !out.OK {
+		return fmt.Errorf("getMe returned ok=false")
+	}
+	return nil
+}
+
+func (c *Client) SetWebhook(url, secret string) error {
+	payload := map[string]any{"url": url}
+	if secret != "" {
+		payload["secret_token"] = secret
+	}
+	return c.sendJSON("setWebhook", payload)
+}

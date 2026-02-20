@@ -20,6 +20,7 @@ import (
 	"visor/internal/platform/telegram"
 	"visor/internal/scheduler"
 	"visor/internal/selfevolve"
+	"visor/internal/setup"
 	"visor/internal/skills"
 	"visor/internal/voice"
 )
@@ -37,6 +38,7 @@ type Server struct {
 	quickActions *scheduler.QuickActionHandler
 	skills       *skills.Manager
 	selfevolver  *selfevolve.Manager
+	setupState   setup.State
 	log          *observability.Logger
 }
 
@@ -158,6 +160,17 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 			}
 		}
 
+		clean, setupActions, parseErr := setup.ExtractActions(response)
+		if parseErr != nil {
+			s.log.Error(ctx, "setup action parse failed", "chat_id", chatID, "error", parseErr.Error())
+		} else if setupActions != nil {
+			response = clean
+			note := s.executeSetupActions(ctx, setupActions)
+			if note != "" {
+				response = strings.TrimSpace(response + "\n\n" + note)
+			}
+		}
+
 		if strings.TrimSpace(response) == "" {
 			response = "ok"
 		}
@@ -221,6 +234,20 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		loc = time.UTC
 	}
 	s.quickActions = scheduler.NewQuickActionHandler(schedulerInstance, loc, s.log)
+
+	projectRoot := cfg.SelfEvolutionRepoDir
+	if strings.TrimSpace(projectRoot) == "" {
+		projectRoot = "."
+	}
+	setupState, setupErr := setup.Detect(projectRoot, cfg.DataDir)
+	if setupErr != nil {
+		s.log.Warn(context.Background(), "setup detect failed", "error", setupErr.Error())
+	} else {
+		s.setupState = setupState
+		if setupState.FirstRun {
+			s.log.Info(context.Background(), "first-run setup mode active", "missing", setupState.Missing)
+		}
+	}
 
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("POST /webhook", s.handleWebhook)
@@ -350,6 +377,11 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	// auto-trigger: run matching skills and prepend output to agent context
 	if s.skills != nil {
 		content = s.enrichWithSkills(r.Context(), content, chatID, msgType)
+	}
+	if s.setupState.FirstRun {
+		if setupCtx := setup.BuildContext(s.setupState); setupCtx != "" {
+			content = content + "\n\n" + setupCtx
+		}
 	}
 
 	s.agent.Enqueue(r.Context(), agent.Message{
@@ -595,6 +627,75 @@ func (s *Server) executeLevelupActions(ctx context.Context, actions *levelup.Act
 		} else {
 			messages = append(messages, "levelups validated ✅")
 		}
+	}
+
+	return strings.TrimSpace(strings.Join(messages, "\n"))
+}
+
+func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionEnvelope) string {
+	messages := make([]string, 0)
+	projectRoot := s.cfg.SelfEvolutionRepoDir
+	if strings.TrimSpace(projectRoot) == "" {
+		projectRoot = "."
+	}
+
+	if len(actions.EnvSet) > 0 || len(actions.EnvUnset) > 0 {
+		if err := setup.UpdateDotEnv(projectRoot, actions.EnvSet, actions.EnvUnset); err != nil {
+			messages = append(messages, "setup .env update failed: "+err.Error())
+		} else {
+			messages = append(messages, ".env updated ✅")
+		}
+	}
+
+	token := strings.TrimSpace(actions.EnvSet["TELEGRAM_BOT_TOKEN"])
+	if token == "" {
+		token = s.cfg.TelegramBotToken
+	}
+
+	if actions.ValidateTelegram {
+		if token == "" {
+			messages = append(messages, "telegram validation failed: TELEGRAM_BOT_TOKEN missing")
+		} else {
+			tg := telegram.NewClient(token)
+			if err := tg.ValidateToken(); err != nil {
+				messages = append(messages, "telegram validation failed: "+err.Error())
+			} else {
+				messages = append(messages, "telegram token valid ✅")
+			}
+		}
+	}
+
+	if strings.TrimSpace(actions.WebhookURL) != "" {
+		if token == "" {
+			messages = append(messages, "set webhook failed: TELEGRAM_BOT_TOKEN missing")
+		} else {
+			tg := telegram.NewClient(token)
+			if err := tg.SetWebhook(strings.TrimSpace(actions.WebhookURL), strings.TrimSpace(actions.WebhookSecret)); err != nil {
+				messages = append(messages, "set webhook failed: "+err.Error())
+			} else {
+				messages = append(messages, "webhook set ✅")
+			}
+		}
+	}
+
+	if actions.CheckHealth {
+		healthURL := fmt.Sprintf("http://127.0.0.1:%d/health", s.cfg.Port)
+		resp, err := http.Get(healthURL)
+		if err != nil {
+			messages = append(messages, "health check failed: "+err.Error())
+		} else {
+			_ = resp.Body.Close()
+			if resp.StatusCode != http.StatusOK {
+				messages = append(messages, fmt.Sprintf("health check failed: status %d", resp.StatusCode))
+			} else {
+				messages = append(messages, "health check ok ✅")
+			}
+		}
+	}
+
+	state, err := setup.Detect(projectRoot, s.cfg.DataDir)
+	if err == nil {
+		s.setupState = state
 	}
 
 	return strings.TrimSpace(strings.Join(messages, "\n"))

@@ -18,19 +18,22 @@ active execution tracking + handoff rules:
 note:
 - backlog.md layer was removed to keep execution lean
 
-### Current: M10 — Iteration 3: auth + access control ✅
+### Current: M12 — Iteration 1: first-run detection + core setup ✅
 
 #### Tasks
-- [x] 1. Added optional per-subdomain basic auth gate via env keys — `internal/levelup/proxy.go`, `.levelup.env.example`
-- [x] 2. Added per-subdomain IP allowlist/denylist policy — `internal/levelup/proxy.go`, `.levelup.env.example`
-- [x] 3. Added proxy admin dashboard subdomain with `/status` + `/metrics` — `internal/levelup/proxy.go`
-- [x] 4. Added/updated tests for access policy and admin route generation — `internal/levelup/proxy_test.go`
+- [x] 1. Added first-run setup detection state — `internal/setup/detect.go`, `internal/server/server.go`
+- [x] 2. Injected setup guidance context into agent prompt when first-run is active — `internal/server/server.go`
+- [x] 3. Added setup actions parser + `.env` writer for conversational onboarding — `internal/setup/actions.go`, `internal/setup/env.go`
+- [x] 4. Added Telegram credential validation + webhook setup actions — `internal/platform/telegram/client.go`, `internal/server/server.go`
+- [x] 5. Added setup health verification action (`/health`) — `internal/server/server.go`
+- [x] 6. Added tests for setup detection/action/env update — `internal/setup/*.go`
 
 #### Status
 - M1–M8a: done
 - M10 Iteration 1: done
 - M10 Iteration 2: done
 - M10 Iteration 3: done
+- M12 Iteration 1: done
 
 ## first 10 minutes
 

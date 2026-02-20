@@ -657,12 +657,12 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 - [ ] Investigate optional level-up selection UX: how to present Forgejo, Himalaya, Obsidian as opt-in during setup
 
 #### Iteration 1: first-run detection + core setup
-- [ ] Add first-run detection in CLAUDE.md / agent instructions: check for `.env`, running process, `data/` dir
-- [ ] Agent walks user through platform selection (Telegram, potentially Signal)
-- [ ] Agent collects required env vars conversationally, writes `.env`
-- [ ] Agent validates credentials (ping Telegram API, test OpenAI key, etc.)
-- [ ] Agent sets up webhook (Telegram: run setup script)
-- [ ] Agent runs `go build .` and starts visor, confirms it's responding on `/health`
+- [x] Add first-run detection in CLAUDE.md / agent instructions: check for `.env`, running process, `data/` dir
+- [x] Agent walks user through platform selection (Telegram, potentially Signal)
+- [x] Agent collects required env vars conversationally, writes `.env`
+- [x] Agent validates credentials (ping Telegram API, test OpenAI key, etc.)
+- [x] Agent sets up webhook (Telegram: run setup script)
+- [x] Agent runs `go build .` and starts visor, confirms it's responding on `/health`
 
 #### Iteration 2: optional level-ups
 - [ ] Agent presents available level-ups (Forgejo, Himalaya, Obsidian, Cloudflared) and lets user pick
