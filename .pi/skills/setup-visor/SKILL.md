@@ -18,7 +18,10 @@ Guide the *user* through visor setup step-by-step. This skill is for onboarding/
 ## Setup flow (M12-aligned)
 
 1. Core setup
-   - ensure `.env` exists (from `.env.example`)
+   - first check if `.env` already exists
+   - if `.env` exists: do *not* overwrite/replace it from template
+   - if `.env` is missing: create it from `.env.example`
+   - only patch keys via `env_set` / `env_unset` (no full-file rewrite from model output)
    - collect required values (`TELEGRAM_BOT_TOKEN`, `USER_PHONE_NUMBER`)
    - run telegram validation
    - optionally run openai validation
@@ -82,6 +85,8 @@ Setup should also ensure process-manager persistence:
 ## Rules
 
 - one step at a time, ask before applying impactful changes
+- never replace an existing `.env` with `.env.example`
+- if `.env` exists, preserve existing keys and only patch requested values
 - keep messages short and practical
 - if something fails, report exact command/output and next fix step
 - work only inside `/root/code/<project-folder>/`
