@@ -609,9 +609,9 @@ Visor can expose its docker-compose level-ups to the internet automatically. Eac
 - [x] Add tests for enable/disable/re-enable routing lifecycle
 
 #### Iteration 3: auth + access control (optional)
-- [ ] Add optional basic auth or SSO gate per level-up subdomain
-- [ ] Add allowlist/denylist per subdomain (IP or user-based)
-- [ ] Add admin dashboard subdomain for proxy status/metrics
+- [x] Add optional basic auth or SSO gate per level-up subdomain
+- [x] Add allowlist/denylist per subdomain (IP or user-based)
+- [x] Add admin dashboard subdomain for proxy status/metrics
 
 ### M11: Forgejo level-up — self-hosted git for visor-authored code
 Visor pushes code it writes (via forge-execution, self-evolution, skill creation) to its own Forgejo instance. Forgejo runs as a standard level-up, optionally enabled at first setup.

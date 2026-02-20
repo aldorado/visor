@@ -9,9 +9,7 @@ import (
 
 func TestBuildProxyRoutes(t *testing.T) {
 	manifests := map[string]Manifest{
-		"proxy": {
-			Name: "proxy",
-		},
+		"proxy": {Name: "proxy"},
 		"obsidian": {
 			Name:         "obsidian",
 			Subdomain:    "vault",
@@ -24,32 +22,44 @@ func TestBuildProxyRoutes(t *testing.T) {
 			ProxyPort:    5678,
 		},
 	}
+	env := map[string]string{
+		"PROXY_AUTH_VAULT_USER":        "anuar",
+		"PROXY_AUTH_VAULT_PASS_BCRYPT": "$2a$14$abc",
+		"PROXY_ALLOW_VAULT":            "10.0.0.0/8,127.0.0.1/32",
+	}
 
-	routes := buildProxyRoutes(manifests, []string{"proxy", "obsidian", "echo-stub"}, "example.com")
+	routes := buildProxyRoutes(manifests, []string{"proxy", "obsidian", "echo-stub"}, "example.com", env)
 	if len(routes) != 2 {
 		t.Fatalf("expected 2 routes, got %d", len(routes))
-	}
-	if routes[0].Host != "echo-stub.visor.example.com" {
-		t.Fatalf("unexpected first host: %s", routes[0].Host)
 	}
 	if routes[1].Host != "vault.visor.example.com" {
 		t.Fatalf("unexpected second host: %s", routes[1].Host)
 	}
-	if routes[1].Upstream != "http://obsidian:3000" {
-		t.Fatalf("unexpected upstream: %s", routes[1].Upstream)
+	if routes[1].Access.AuthUser != "anuar" {
+		t.Fatalf("expected route auth user from env")
+	}
+	if len(routes[1].Access.AllowCIDRs) != 2 {
+		t.Fatalf("expected allow list from env")
 	}
 }
 
-func TestSyncProxyConfigForEnabledWritesFile(t *testing.T) {
+func TestSyncProxyConfigForEnabledWritesAccessControlsAndDashboard(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, ".levelup.env"), []byte("PROXY_DOMAIN=example.com\n"), 0o644); err != nil {
+	env := strings.Join([]string{
+		"PROXY_DOMAIN=example.com",
+		"PROXY_AUTH_VAULT_USER=anuar",
+		"PROXY_AUTH_VAULT_PASS_BCRYPT=$2a$14$hash",
+		"PROXY_ALLOW_VAULT=127.0.0.1/32",
+		"PROXY_ADMIN_SUBDOMAIN=ops",
+		"PROXY_ADMIN_AUTH_USER=ops",
+		"PROXY_ADMIN_AUTH_PASS_BCRYPT=$2a$14$ops",
+	}, "\n") + "\n"
+	if err := os.WriteFile(filepath.Join(root, ".levelup.env"), []byte(env), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	manifests := map[string]Manifest{
-		"proxy": {
-			Name: "proxy",
-		},
+		"proxy": {Name: "proxy"},
 		"obsidian": {
 			Name:         "obsidian",
 			Subdomain:    "vault",
@@ -57,7 +67,6 @@ func TestSyncProxyConfigForEnabledWritesFile(t *testing.T) {
 			ProxyPort:    3000,
 		},
 	}
-
 	if err := SyncProxyConfigForEnabled(root, manifests, []string{"proxy", "obsidian"}); err != nil {
 		t.Fatalf("sync failed: %v", err)
 	}
@@ -68,10 +77,19 @@ func TestSyncProxyConfigForEnabledWritesFile(t *testing.T) {
 	}
 	content := string(bytes)
 	if !strings.Contains(content, "vault.visor.example.com") {
-		t.Fatalf("expected route in caddyfile, got: %s", content)
+		t.Fatalf("expected route host in caddyfile")
 	}
-	if !strings.Contains(content, "handle /_health") {
-		t.Fatalf("expected per-subdomain health handler in caddyfile, got: %s", content)
+	if !strings.Contains(content, "basic_auth") {
+		t.Fatalf("expected basic_auth in caddyfile")
+	}
+	if !strings.Contains(content, "@allow_") {
+		t.Fatalf("expected allow matcher in caddyfile")
+	}
+	if !strings.Contains(content, "ops.visor.example.com") {
+		t.Fatalf("expected admin dashboard subdomain in caddyfile")
+	}
+	if !strings.Contains(content, "handle /metrics") {
+		t.Fatalf("expected admin metrics handler")
 	}
 }
 

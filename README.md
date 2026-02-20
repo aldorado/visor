@@ -18,19 +18,19 @@ active execution tracking (multi-agent work queue):
 coordination backup + handoff rules:
 - `COORDINATION.md`
 
-### Current: M10 — Iteration 2: dynamic subdomain routing ✅
+### Current: M10 — Iteration 3: auth + access control ✅
 
 #### Tasks
-- [x] 1. Auto-register routes on level-up enable — `internal/levelup/admin.go`, `internal/levelup/proxy.go`
-- [x] 2. Auto-deregister routes on level-up disable — `internal/levelup/admin.go`, `internal/levelup/proxy.go`
-- [x] 3. Added `subdomain` in `levelup.toml` (default fallback to level-up name) — `internal/levelup/manifest.go`, `docs/levelup-manifest.md`
-- [x] 4. Added per-subdomain health path via proxy (`/_health`) — `internal/levelup/proxy.go`
-- [x] 5. Added lifecycle tests (enable/disable/re-enable) — `internal/levelup/admin_test.go`, `internal/levelup/proxy_test.go`
+- [x] 1. Added optional per-subdomain basic auth gate via env keys — `internal/levelup/proxy.go`, `.levelup.env.example`
+- [x] 2. Added per-subdomain IP allowlist/denylist policy — `internal/levelup/proxy.go`, `.levelup.env.example`
+- [x] 3. Added proxy admin dashboard subdomain with `/status` + `/metrics` — `internal/levelup/proxy.go`
+- [x] 4. Added/updated tests for access policy and admin route generation — `internal/levelup/proxy_test.go`
 
 #### Status
 - M1–M8a: done
 - M10 Iteration 1: done
 - M10 Iteration 2: done
+- M10 Iteration 3: done
 
 ## first 10 minutes
 
