@@ -46,29 +46,52 @@ type piMessageBlock struct {
 
 // PiAgent implements Agent using `pi --mode rpc`.
 type PiAgent struct {
-	pm  *ProcessManager
-	mu  sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
-	log *observability.Logger
+	fastPM      *ProcessManager
+	toolsPM     *ProcessManager
+	toolsCfg    ProcessConfig
+	toolsMu     sync.Mutex
+	toolsStarted bool
+	mu          sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
+	log         *observability.Logger
 }
 
 func NewPiAgent(cfg ProcessConfig) *PiAgent {
-	cfg.Command = "pi"
-	cfg.Args = []string{"--mode", "rpc", "--no-tools"}
+	fastCfg := cfg
+	fastCfg.Command = "pi"
+	fastCfg.Args = []string{"--mode", "rpc", "--no-tools"}
+
+	toolsCfg := cfg
+	toolsCfg.Command = "pi"
+	toolsCfg.Args = []string{"--mode", "rpc"}
+
 	return &PiAgent{
-		pm:  NewProcessManager(cfg),
-		log: observability.Component("agent.pi"),
+		fastPM:   NewProcessManager(fastCfg),
+		toolsCfg: toolsCfg,
+		log:      observability.Component("agent.pi"),
 	}
 }
 
 func (p *PiAgent) Start() error {
-	return p.pm.Start()
+	return p.fastPM.Start()
 }
 
 func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	timeout := p.pm.cfg.PromptTimeout
+	pm := p.fastPM
+	mode := "fast"
+	if needsToolUse(prompt) {
+		toolsPM, err := p.ensureToolsProcess()
+		if err != nil {
+			return "", err
+		}
+		pm = toolsPM
+		mode = "tools"
+	}
+	p.log.Debug(ctx, "pi mode selected", "mode", mode)
+
+	timeout := pm.cfg.PromptTimeout
 	if timeout == 0 {
 		timeout = 2 * time.Minute
 	}
@@ -82,7 +105,7 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 		return "", fmt.Errorf("pi: marshal command: %w", err)
 	}
 
-	stdin := p.pm.Stdin()
+	stdin := pm.Stdin()
 	if stdin == nil {
 		return "", fmt.Errorf("pi: process not running")
 	}
@@ -93,7 +116,7 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 
 	// read events until agent_end
 	var response strings.Builder
-	scanner := p.pm.Scanner()
+	scanner := pm.Scanner()
 	if scanner == nil {
 		return "", fmt.Errorf("pi: scanner not available")
 	}
@@ -125,11 +148,9 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 
 		switch event.Type {
 		case "response":
-			// ack/nack for our command
 			if event.Success != nil && !*event.Success {
 				return "", fmt.Errorf("pi: command rejected: %s", event.Error)
 			}
-
 		case "message_update":
 			if event.AssistantMessageEvent != nil {
 				switch event.AssistantMessageEvent.Type {
@@ -141,7 +162,6 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 					}
 				}
 			}
-
 		case "message_end", "turn_end":
 			if response.Len() == 0 && event.Message != nil && event.Message.Role == "assistant" {
 				for _, block := range event.Message.Content {
@@ -153,15 +173,54 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 					}
 				}
 			}
-
 		case "agent_end":
 			return response.String(), nil
 		}
 	}
 }
 
+func (p *PiAgent) ensureToolsProcess() (*ProcessManager, error) {
+	p.toolsMu.Lock()
+	defer p.toolsMu.Unlock()
+
+	if p.toolsPM == nil {
+		p.toolsPM = NewProcessManager(p.toolsCfg)
+	}
+	if !p.toolsStarted {
+		if err := p.toolsPM.Start(); err != nil {
+			return nil, fmt.Errorf("pi tools start: %w", err)
+		}
+		p.toolsStarted = true
+	}
+	return p.toolsPM, nil
+}
+
 func (p *PiAgent) Close() error {
-	return p.pm.Stop()
+	if err := p.fastPM.Stop(); err != nil {
+		return err
+	}
+	if p.toolsPM != nil {
+		if err := p.toolsPM.Stop(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func needsToolUse(prompt string) bool {
+	s := strings.ToLower(prompt)
+	triggers := []string{
+		"run ", "execute", "terminal", "bash", "shell", "command",
+		"read file", "open file", "edit file", "write file", "patch", "diff",
+		"grep", "find ", "ls ", "docker", "git ", "systemctl",
+		"/root/", "./", ".go", ".md", ".env",
+	}
+	for _, t := range triggers {
+		if strings.Contains(s, t) {
+			return true
+		}
+	}
+	return false
 }
 
 func truncateLine(s string, n int) string {
