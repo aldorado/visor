@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -272,8 +273,40 @@ func (s *Server) ListenAndServe() error {
 		s.log.Info(context.Background(), "scheduler started")
 	}
 
+	s.notifyStartup(context.Background())
+
 	handler := observability.RequestIDMiddleware(observability.RecoverMiddleware("http", s.mux))
 	return http.ListenAndServe(addr, handler)
+}
+
+func (s *Server) notifyStartup(ctx context.Context) {
+	if strings.TrimSpace(s.cfg.UserChatID) == "" || strings.TrimSpace(s.cfg.TelegramBotToken) == "" {
+		return
+	}
+	chatID := mustParseChatID(s.cfg.UserChatID)
+	rev := currentShortRevision(s.cfg.SelfEvolutionRepoDir)
+	msg := fmt.Sprintf("🎺 visor restarted — rev `%s`", rev)
+	if err := s.tg.SendMessage(chatID, msg); err != nil {
+		s.log.Warn(ctx, "startup notification failed", "chat_id", chatID, "error", err.Error())
+		return
+	}
+	s.log.Info(ctx, "startup notification sent", "chat_id", chatID, "rev", rev)
+}
+
+func currentShortRevision(repoDir string) string {
+	dir := strings.TrimSpace(repoDir)
+	if dir == "" {
+		dir = "."
+	}
+	out, err := exec.Command("git", "-C", dir, "rev-parse", "--short", "HEAD").Output()
+	if err != nil {
+		return "unknown"
+	}
+	rev := strings.TrimSpace(string(out))
+	if rev == "" {
+		return "unknown"
+	}
+	return rev
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
