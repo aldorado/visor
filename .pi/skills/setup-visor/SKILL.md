@@ -17,14 +17,20 @@ Guide the *user* through visor setup step-by-step. This skill is for onboarding/
 
 ## Setup flow (M12-aligned)
 
-0. Ingress + domain routing (before env)
+0. Prerequisites check (before ingress/env)
+   - verify required tools are installed and runnable
+   - minimum checks: `go version`, `git --version`, `docker --version`, `docker compose version`, `curl --version`
+   - if using direct dns + caddy: also verify caddy is installed
+   - if something is missing, stop and guide install first
+
+1. Ingress + domain routing (before env)
    - decide mode with user: `cloudflare tunnel` or `direct dns + caddy`
    - pick one base public url for webhook (e.g. `https://bot.example.com`)
    - define subdomain plan for level-ups (e.g. `forgejo.`, `obsidian.`, etc.)
    - verify dns/tunnel is pointing correctly before webhook setup
    - only then continue to env + token steps
 
-1. Core setup
+2. Core setup
    - first check if `.env` already exists
    - if `.env` exists: do *not* overwrite/replace it from template
    - if `.env` is missing: create it from `.env.example`
@@ -35,7 +41,7 @@ Guide the *user* through visor setup step-by-step. This skill is for onboarding/
    - set webhook url/secret
    - run `/health` check
 
-2. Optional level-ups
+3. Optional level-ups
    - ask user to choose: `none`, `recommended`, or explicit list
    - collect needed `.levelup.env` values
    - enable selected level-ups
@@ -43,7 +49,7 @@ Guide the *user* through visor setup step-by-step. This skill is for onboarding/
    - start level-ups
    - run level-up health check
 
-3. Finish
+4. Finish
    - ask personality choice (keep/custom)
    - optionally send a test message
    - write setup summary
@@ -92,7 +98,7 @@ Setup should also ensure process-manager persistence:
 ## Rules
 
 - one step at a time, ask before applying impactful changes
-- ingress decision comes first (cloudflare tunnel vs direct dns+caddy)
+- prerequisites check comes first, then ingress decision (cloudflare tunnel vs direct dns+caddy)
 - never replace an existing `.env` with `.env.example`
 - if `.env` exists, preserve existing keys and only patch requested values
 - keep messages short and practical

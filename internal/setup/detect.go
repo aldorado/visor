@@ -58,10 +58,11 @@ func BuildContext(state State) string {
 project is not fully initialized yet (` + missing + `).
 
 you must guide the user through setup in small steps:
-0) ingress first: choose cloudflare tunnel OR direct dns+caddy, confirm public base url + dns routing works
-1) core setup: .env (without overwriting existing), telegram validate, openai validate, webhook, /health
-2) optional level-ups: choose (none | recommended | explicit list), collect .levelup.env vars, enable, validate, start, healthcheck (with subdomain plan)
-3) finish: personality keep/custom, send test message, write setup summary, cleanup setup hints
+0) prerequisites first: verify required tools (go, git, docker, docker compose, curl; plus caddy if used)
+1) ingress: choose cloudflare tunnel OR direct dns+caddy, confirm public base url + dns routing works
+2) core setup: .env (without overwriting existing), telegram validate, openai validate, webhook, /health
+3) optional level-ups: choose (none | recommended | explicit list), collect .levelup.env vars, enable, validate, start, healthcheck (with subdomain plan)
+4) finish: personality keep/custom, send test message, write setup summary, cleanup setup hints
 
 if you need to execute setup actions, include one dedicated setup action json block only in your final response.
 `)
