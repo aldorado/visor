@@ -20,6 +20,8 @@ services:
     expose:
       - "3000"
       - "3001"
+    ports:
+      - "127.0.0.1:${OBSIDIAN_HOST_PORT:-3003}:3000"
     networks:
       - proxy
       - levelup-obsidian
