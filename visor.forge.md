@@ -643,9 +643,9 @@ Visor pushes code it writes (via forge-execution, self-evolution, skill creation
 - [x] Add fallback: if Forgejo is unreachable, log warning and continue (don't block commits)
 
 #### Iteration 3: visibility + collaboration
-- [ ] Forgejo webhook → visor notification on external push/PR (if someone else pushes)
-- [ ] Add repo listing skill: agent can list repos, recent commits, open issues on its Forgejo
-- [ ] Add README auto-generation on repo creation (project name, forge link, status)
+- [x] Forgejo webhook → visor notification on external push/PR (if someone else pushes)
+- [x] Add repo listing skill: agent can list repos, recent commits, open issues on its Forgejo
+- [x] Add README auto-generation on repo creation (project name, forge link, status)
 
 ### M12: interactive setup — zero-to-running guided onboarding
 New user clones visor, starts `pi` or `claude` in the repo folder, and gets guided through the entire setup process conversationally. No manual config editing, no reading docs. The agent walks them through everything and visor is running at the end.

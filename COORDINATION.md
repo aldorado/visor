@@ -61,7 +61,6 @@ append under `handoff log`:
 
 ## active claims
 - [claim] none
-- [claim] jarvis | M11/Iteration 2 | main | 2026-02-20T14:38 ✓ done
 
 ## handoff log
 ### 2026-02-20
@@ -72,5 +71,6 @@ append under `handoff log`:
 - owner decision: M11 assigned to friday, ubik executes M12 stream
 - `M11 / Iteration 1` done — Forgejo level-up: compose file, levelup.toml (subdomain=git), CMD-override bootstrap (admin user + visor-push token → /data/visor-push.token), proxy network wired — commit `79b926e`
 - `M11 / Iteration 2` done — auto-push integration: internal/forgejo pkg (ReadToken, SyncRemote, PushBackground), selfevolve hook, levelup enable/disable hook, git_push structured output field, FORGEJO_HOST_PORT localhost port binding — commit `954bb1b`
+- `M11 / Iteration 3` done — visibility + collaboration: POST /forgejo/webhook (push/PR → Telegram notification), EnsureReadme (API-based README creation on enable), forgejo-repos skill (list repos/commits/issues via API) — commit `370e09d`
 
 - `M12 / Iteration 1` done — first-run setup detection + setup action pipeline (.env update, telegram token validate, webhook set, health check) — commit `ffe8d38`
