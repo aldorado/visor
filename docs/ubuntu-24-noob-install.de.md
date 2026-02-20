@@ -5,6 +5,11 @@ einfach 1:1 block für block copy/pasten.
 
 wenn ein step fehlschlägt: *nicht weitermachen*, erst den fehler lösen.
 
+m12 update:
+- visor hat jetzt einen interaktiven setup-flow (first-run mode)
+- der wird aktiv, wenn bootstrap noch fehlt (z.b. keine `.env` + keine basis-envs)
+- diese anleitung bleibt der manuelle, stabile fallback
+
 ---
 
 ## 0) was du brauchst
@@ -221,6 +226,10 @@ mit `AGENT_BACKEND=echo` muss direkt eine `echo: ...` antwort kommen.
 
 wenn ja: basis setup passt ✅
 
+m12-hinweis (wichtig):
+- mit `AGENT_BACKEND=echo` gibt es *keinen* echten setup-assistenten (echo ist nur smoke-test)
+- der interaktive m12 setup-flow braucht ein echtes backend (`pi` oder `claude`)
+
 ---
 
 ## 10) von echo auf pi wechseln
@@ -243,6 +252,14 @@ AGENT_BACKENDS=pi,echo
 ```
 
 4) visor neu starten und testen.
+
+optional (m12 guided setup nutzen):
+- wenn du setup lieber im chat führen willst, starte visor mit echtem backend (`pi`/`claude`) und folge den setup-fragen
+- m12 kann jetzt zusätzlich:
+  - openai key validieren (`validate_openai`)
+  - levelups gesammelt auswählen (`none` | `recommended` | explizite liste)
+  - levelups in reihenfolge anwenden (env -> enable -> validate -> start -> health)
+  - am ende test-message + setup-summary schreiben
 
 ---
 
