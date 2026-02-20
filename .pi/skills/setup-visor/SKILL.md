@@ -17,6 +17,13 @@ Guide the *user* through visor setup step-by-step. This skill is for onboarding/
 
 ## Setup flow (M12-aligned)
 
+0. Ingress + domain routing (before env)
+   - decide mode with user: `cloudflare tunnel` or `direct dns + caddy`
+   - pick one base public url for webhook (e.g. `https://bot.example.com`)
+   - define subdomain plan for level-ups (e.g. `forgejo.`, `obsidian.`, etc.)
+   - verify dns/tunnel is pointing correctly before webhook setup
+   - only then continue to env + token steps
+
 1. Core setup
    - first check if `.env` already exists
    - if `.env` exists: do *not* overwrite/replace it from template
@@ -85,6 +92,7 @@ Setup should also ensure process-manager persistence:
 ## Rules
 
 - one step at a time, ask before applying impactful changes
+- ingress decision comes first (cloudflare tunnel vs direct dns+caddy)
 - never replace an existing `.env` with `.env.example`
 - if `.env` exists, preserve existing keys and only patch requested values
 - keep messages short and practical
