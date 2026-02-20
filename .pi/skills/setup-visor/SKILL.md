@@ -27,8 +27,11 @@ Guide the *user* through visor setup step-by-step. This skill is for onboarding/
 1. Ingress + domain routing (before env)
    - decide mode with user: `cloudflare tunnel` or `direct dns + caddy`
    - pick one base public url for webhook (e.g. `https://bot.example.com`)
+   - webhook target must be `<base-url>/webhook` (not root `/`)
    - define subdomain plan for level-ups (e.g. `forgejo.`, `obsidian.`, etc.)
    - verify dns/tunnel is pointing correctly before webhook setup
+   - for direct dns + caddy with level-up proxy: keep host caddy on `:80/:443`, run level-up proxy on localhost high ports (e.g. `127.0.0.1:18080/18443`) and route subdomains via host caddy
+   - when using routes like `<sub>.visor.<domain>`, set `PROXY_DOMAIN=<domain>` (not `visor.<domain>`)
    - only then continue to env + token steps
 
 2. Core setup
@@ -39,7 +42,7 @@ Guide the *user* through visor setup step-by-step. This skill is for onboarding/
    - collect required values (`TELEGRAM_BOT_TOKEN`, `USER_PHONE_NUMBER`)
    - run telegram validation
    - optionally run openai validation
-   - set webhook url/secret
+   - set webhook url/secret (`webhook_url` should include `/webhook`)
    - run `/health` check
 
 3. Optional level-ups
@@ -105,6 +108,7 @@ Setup should also ensure process-manager persistence:
 - never replace an existing `.env` with `.env.example`
 - if `.env` exists, preserve existing keys and only patch requested values
 - keep messages short and practical
+- never expose level-up proxy ports publicly when host ingress already exists; prefer localhost bind + host reverse-proxy
 - if something fails, report exact command/output and next fix step
 - work only inside `/root/code/<project-folder>/`
 
