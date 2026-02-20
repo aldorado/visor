@@ -438,11 +438,12 @@ Visor's agent can modify visor's own source code, commit, push, rebuild, and res
 Make the repository publication-ready: clean structure, clear docs, no accidental secrets, and a professional first impression.
 
 #### Iteration 1: repo hygiene baseline
-- [ ] Add and validate `.gitignore` for Go + env + build/runtime artifacts
+- [x] Add and validate `.gitignore` for Go + env + build/runtime artifacts
 - [ ] Remove accidental generated files and dead artifacts from git history (if any)
 - [ ] Normalize root layout (`cmd/`, `internal/`, `docs/`, `skills/`, `levelups/`) and remove clutter
 - [ ] Ensure naming consistency across files/docs (`visor`, `levelup`, command names)
-- [ ] Add/update `LICENSE` and `CONTRIBUTING.md` baseline
+- [ ] Add/update `LICENSE` baseline
+- [x] Add/update `CONTRIBUTING.md` baseline
 
 #### Iteration 2: documentation pass
 - [ ] Tighten `README.md` for external users: what it is, quickstart, architecture, status
