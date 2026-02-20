@@ -18,7 +18,7 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 - Obsidian: additional standard level-up shipped by default (knowledge workspace sidecar) via LinuxServer container.
 - Skill parity bootstrap: ship visor with the same baseline skills as current ubik by copying them into `visor/skills/` as the initial pack.
 - Reverse proxy: level-ups get exposed via subdomain under wildcard DNS (`*.visor.<domain>`), auto SSL via Let's Encrypt, no direct host port exposure. Proxy runs as a base level-up.
-- Gitea: self-hosted git as a standard level-up. Visor pushes all self-authored code (self-evolve, forge-execution, skills) to its own Gitea instance automatically.
+- Forgejo: self-hosted git (Forgejo over Gitea, for ethical/community reasons) as a standard level-up. Visor pushes all self-authored code (self-evolve, forge-execution, skills) to its own Forgejo instance automatically.
 
 ## Research tasks
 - [x] Investigate Claude Code RPC mode — does `claude --mode rpc` exist? what's the protocol? document stdin/stdout message format
@@ -186,6 +186,37 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
   - compose manages sidecars only
   - visor host process remains outside compose
   - himalaya email level-up is the first and canonical example integration.
+
+### 2026-02-20 — Git remote strategy + SSH vs HTTP (M11 research #3 + #4)
+- **No git hooks needed.** Visor controls the commit process itself — it just runs `git push forgejo main` as part of its commit flow. No post-commit hooks, no complexity.
+- **When visor pushes:**
+  - Self-evolve commit → push visor's own repo
+  - Forge-execution commit → push the project repo
+  - Skill creation → push visor's own repo
+  - Push runs in background, non-blocking. If forgejo is unreachable → log warning, continue.
+- **Remote setup on level-up enable:** visor runs `git remote add forgejo <url>` on its own repo (and any forge-execution project repos). On disable → `git remote remove forgejo`.
+- **Decision: HTTP with token auth (not SSH).** Reasons:
+  - No SSH key generation/registration needed
+  - Visor owns the forgejo instance, no 2FA → no auth issues
+  - Local docker network only (forgejo container reachable as `forgejo:3000`)
+  - URL format: `http://visor:<token>@forgejo:3000/visor/<repo>.git`
+  - Token generated at bootstrap, stored in `.levelup.env`
+  - Push-to-create handles repo creation automatically on first push
+- **SSH still available** if user wants to expose forgejo's SSH externally (via caddy-l4 TCP forwarding). Not needed for visor's internal push workflow.
+
+### 2026-02-20 — Forgejo API for repo management (M11 research #2)
+- **Core need is minimal**: push-to-create + `git push` handles 90% of visor's use case. No API calls needed for basic operation.
+- **Push-to-create**: built-in feature, disabled by default. Set `ENABLE_PUSH_CREATE_USER=true` in `app.ini`. Then just `git push` to a non-existent repo URL → repo created automatically. No API call needed. This is the primary integration point.
+- **First-run bootstrap**: `FORGEJO__security__INSTALL_LOCK=true` env var skips web installer. `forgejo admin user create --admin` via CLI creates admin user. Fully automatable in docker compose entrypoint.
+- **REST API available but optional**: full CRUD for repos, orgs, webhooks at `/api/v1/`. Auth via `Authorization: token <TOKEN>`. Swagger docs at `/api/swagger`. Only needed if visor wants to do more than push (e.g., create webhooks for notification on external pushes). Can be added incrementally later.
+
+### 2026-02-20 — Forgejo vs Gitea (M11 research #1)
+- **Decision: Forgejo** (ethical/community reasons + technical merits). Non-profit governance (Codeberg e.V.), pure Free Software, more active development (217 contributors / 3039 commits since July 2024 vs Gitea's 136 / 1228).
+- **Docker image**: `codeberg.org/forgejo/forgejo:14.0.2` (latest stable). Same lightweight Go binary as Gitea, comparable resource footprint (~256MB RAM minimal, similar to Gitea).
+- **API compatibility**: Forgejo maintains Gitea API compatibility. Version scheme `X.Y.Z+gitea-A.B.C` indicates which Gitea API version is compatible. Existing Gitea tooling (Jenkins plugin, API clients) works with Forgejo.
+- **Breaking point**: Forgejo v10+ no longer supports migration from Gitea >= v1.23. The codebases are now a hard fork. For visor this doesn't matter — fresh install, no migration needed.
+- **Forgejo Actions (built-in CI)**: GitHub Actions compatible workflows. Requires a separate runner container (`data.forgejo.org/forgejo/runner`). Two modes: Docker socket mount (simple, less secure) or Docker-in-Docker (recommended). Runner registration via shared secret (40-char hex). Could be useful for visor's `scripts/check.sh` as a post-push CI step later, but not required for M11 scope.
+- **Compose recipe**: Forgejo + runner can run as a single docker-compose stack. Runner needs Docker access (socket or DinD) to execute workflow containers.
 
 ### 2026-02-20 — Reverse proxy comparison: Caddy vs Traefik vs nginx (M10 research #1)
 - **nginx**: eliminated. No auto HTTPS, requires certbot sidecar, fully manual static config. Overkill for this use case.
@@ -608,31 +639,31 @@ Visor can expose its docker-compose level-ups to the internet automatically. Eac
 - [ ] Add allowlist/denylist per subdomain (IP or user-based)
 - [ ] Add admin dashboard subdomain for proxy status/metrics
 
-### M11: Gitea level-up — self-hosted git for visor-authored code
-Visor pushes code it writes (via forge-execution, self-evolution, skill creation) to its own Gitea instance. Gitea runs as a standard level-up, optionally enabled at first setup.
+### M11: Forgejo level-up — self-hosted git for visor-authored code
+Visor pushes code it writes (via forge-execution, self-evolution, skill creation) to its own Forgejo instance. Forgejo runs as a standard level-up, optionally enabled at first setup.
 
 #### Research tasks
-- [ ] Investigate Gitea docker image options: official `gitea/gitea` vs `codeberg/forgejo`. Resource footprint, API compatibility, built-in CI (Gitea Actions / Forgejo Runner)
-- [ ] Investigate Gitea API for repo management: create repo, push, webhooks, org/user setup — all automatable via REST?
-- [ ] Design git remote strategy: visor's local repo gets a `gitea` remote added automatically. Push on self-evolve commit, forge-execution commit, skill creation commit
-- [ ] Investigate Gitea SSH vs HTTP push: which is simpler for a local-network setup? Can visor use a token-based HTTP push without SSH key management?
+- [x] Investigate Forgejo vs Gitea: docker image, resource footprint, API compatibility, built-in CI (Forgejo Actions / Runner)
+- [x] Investigate Forgejo API for repo management: create repo, push, webhooks, org/user setup — all automatable via REST?
+- [x] Design git remote strategy: visor's local repo gets a `forgejo` remote added automatically. Push after self-evolve, forge-execution, and skill creation commits.
+- [x] Investigate SSH vs HTTP push: which is simpler for a local-network setup? Token-based HTTP push vs SSH key management.
 
 #### Iteration 1: Gitea level-up
-- [ ] Add `docker-compose.levelup.gitea.yml` with persistent storage (repos + DB)
-- [ ] Add Gitea env keys to `.levelup.env.example` (admin user, domain, SSH/HTTP ports, DB path)
-- [ ] Add first-run bootstrap: create admin user + default org via Gitea API on first enable
-- [ ] Integrate with M10 proxy: `git.visor.<domain>` subdomain auto-routed to Gitea
+- [ ] Add `docker-compose.levelup.forgejo.yml` with persistent storage (repos + SQLite)
+- [ ] Add Forgejo env keys to `.levelup.env.example` (admin user, token, domain, HTTP port)
+- [ ] Add first-run bootstrap: `INSTALL_LOCK=true` + `forgejo admin user create` + push-to-create enabled
+- [ ] Integrate with M10 proxy: `git.visor.<domain>` subdomain auto-routed to Forgejo
 
 #### Iteration 2: auto-push integration
-- [ ] On level-up enable: visor adds `gitea` remote to its own repo (and any forge-execution project repos)
-- [ ] On self-evolve commit: auto-push to Gitea remote after local commit
-- [ ] On forge-execution commit: auto-push project repo to Gitea (create repo on first push if missing)
+- [ ] On level-up enable: visor adds `forgejo` remote to its own repo (and any forge-execution project repos)
+- [ ] On self-evolve commit: auto-push to Forgejo remote after local commit
+- [ ] On forge-execution commit: auto-push project repo to Forgejo (push-to-create handles repo creation)
 - [ ] Add structured output field `git_push: true/false` so agent can control push behavior
-- [ ] Add fallback: if Gitea is unreachable, log warning and continue (don't block commits)
+- [ ] Add fallback: if Forgejo is unreachable, log warning and continue (don't block commits)
 
 #### Iteration 3: visibility + collaboration
-- [ ] Gitea webhook → visor notification on external push/PR (if someone else pushes)
-- [ ] Add repo listing skill: agent can list repos, recent commits, open issues on its Gitea
+- [ ] Forgejo webhook → visor notification on external push/PR (if someone else pushes)
+- [ ] Add repo listing skill: agent can list repos, recent commits, open issues on its Forgejo
 - [ ] Add README auto-generation on repo creation (project name, forge link, status)
 
 ## Open questions
