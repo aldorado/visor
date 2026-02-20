@@ -12,7 +12,8 @@ it is built to stay simple in runtime shape:
 active roadmap and milestone tracking live in:
 - `visor.forge.md`
 
-repo cleanup and release prep are tracked as `M8a`.
+collaboration snapshot (done/open/next + multi-agent coordination rules):
+- `BACKLOG.md`
 
 ## first 10 minutes
 

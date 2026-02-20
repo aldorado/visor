@@ -1,5 +1,9 @@
 # Visor Agents
 
+coordination note:
+- before starting work, check `BACKLOG.md` for current open items and task-claim flow.
+- detailed milestone specs remain in `visor.forge.md`.
+
 ## 1) Runtime Agent (Host Core)
 - Owns host-native visor process lifecycle (start/stop/restart/self-update)
 - Enforces boundary: visor never runs inside Docker Compose
