@@ -102,7 +102,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		}
 	}
 
-	s.agent = agent.NewQueuedAgent(a, cfg.AgentBackend, func(ctx context.Context, chatID int64, response string, err error) {
+	s.agent = agent.NewQueuedAgent(a, cfg.AgentBackend, func(ctx context.Context, chatID int64, response string, err error, duration time.Duration) {
 		if err != nil {
 			s.log.Error(ctx, "agent processing failed", "chat_id", chatID, "backend", cfg.AgentBackend, "error", err.Error())
 			response = fmt.Sprintf("error: %v", err)
@@ -182,6 +182,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		s.log.Info(ctx, "webhook message processed", "chat_id", chatID, "backend", cfg.AgentBackend)
 		text, meta := parseResponse(response)
 		text = sanitizeUserReply(text)
+		text = strings.TrimSpace(text + "\n\n⏱ " + formatDuration(duration))
 
 		if meta.SendVoice && s.voice != nil && s.voice.TTSEnabled() {
 			if err := s.voice.SynthesizeAndSend(chatID, text); err != nil {
@@ -215,6 +216,14 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 				forgejo.PushBackground(ctx, pushDir, s.log)
 			}
 		}
+	})
+	s.agent.SetLongRunningHandler(func(ctx context.Context, chatID int64, elapsed time.Duration, preview string) {
+		note := fmt.Sprintf("⏳ request läuft seit %s\n\naktueller rpc output:\n`%s`", formatDuration(elapsed), escapeTelegramCode(preview))
+		if err := s.tg.SendMessage(chatID, note); err != nil {
+			s.log.Warn(ctx, "long-running notification failed", "chat_id", chatID, "error", err.Error())
+			return
+		}
+		s.log.Info(ctx, "long-running notification sent", "chat_id", chatID, "elapsed_ms", elapsed.Milliseconds())
 	})
 
 	schedulerInstance, err := scheduler.New(cfg.DataDir+"/scheduler", func(ctx context.Context, task scheduler.Task) {
@@ -451,6 +460,28 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+func formatDuration(d time.Duration) string {
+	if d < time.Second {
+		return fmt.Sprintf("%dms", d.Milliseconds())
+	}
+	if d < time.Minute {
+		return fmt.Sprintf("%.1fs", d.Seconds())
+	}
+	mins := int(d / time.Minute)
+	secs := int((d % time.Minute) / time.Second)
+	return fmt.Sprintf("%dm%02ds", mins, secs)
+}
+
+func escapeTelegramCode(s string) string {
+	s = strings.ReplaceAll(s, "`", "'")
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return "-"
+	}
+	return truncate(s, 220)
 }
 
 // enrichWithSkills checks for auto-trigger matches and injects skill context.

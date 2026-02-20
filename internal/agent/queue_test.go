@@ -23,7 +23,7 @@ func TestQueuedAgent_SingleMessage(t *testing.T) {
 	var mu sync.Mutex
 	var got []string
 
-	qa := NewQueuedAgent(&EchoAgent{}, "echo", func(ctx context.Context, chatID int64, response string, err error) {
+	qa := NewQueuedAgent(&EchoAgent{}, "echo", func(ctx context.Context, chatID int64, response string, err error, duration time.Duration) {
 		mu.Lock()
 		got = append(got, response)
 		mu.Unlock()
@@ -45,7 +45,7 @@ func TestQueuedAgent_QueueWhileBusy(t *testing.T) {
 	var mu sync.Mutex
 	var got []string
 
-	qa := NewQueuedAgent(&slowAgent{delay: 50 * time.Millisecond}, "slow", func(ctx context.Context, chatID int64, response string, err error) {
+	qa := NewQueuedAgent(&slowAgent{delay: 50 * time.Millisecond}, "slow", func(ctx context.Context, chatID int64, response string, err error, duration time.Duration) {
 		mu.Lock()
 		got = append(got, response)
 		mu.Unlock()
@@ -82,9 +82,53 @@ func TestQueuedAgent_QueueWhileBusy(t *testing.T) {
 }
 
 func TestQueuedAgent_QueueLenEmptyWhenIdle(t *testing.T) {
-	qa := NewQueuedAgent(&EchoAgent{}, "echo", func(context.Context, int64, string, error) {})
+	qa := NewQueuedAgent(&EchoAgent{}, "echo", func(context.Context, int64, string, error, time.Duration) {})
 	if qa.QueueLen() != 0 {
 		t.Errorf("queue len = %d, want 0", qa.QueueLen())
+	}
+}
+
+type progressAgent struct {
+	delay time.Duration
+}
+
+func (p *progressAgent) SendPrompt(ctx context.Context, prompt string) (string, error) {
+	reportProgress(ctx, "step 1")
+	time.Sleep(p.delay)
+	reportProgress(ctx, " -> step 2")
+	return "done", nil
+}
+
+func (p *progressAgent) Close() error { return nil }
+
+func TestQueuedAgent_LongRunningNotification(t *testing.T) {
+	var notifiedPreview string
+	var notifyCount int
+	var mu sync.Mutex
+	finished := make(chan struct{})
+
+	qa := NewQueuedAgent(&progressAgent{delay: 80 * time.Millisecond}, "progress", func(ctx context.Context, chatID int64, response string, err error, duration time.Duration) {
+		close(finished)
+	})
+	qa.SetLongRunningThreshold(20 * time.Millisecond)
+	qa.SetLongRunningHandler(func(ctx context.Context, chatID int64, elapsed time.Duration, preview string) {
+		mu.Lock()
+		defer mu.Unlock()
+		notifyCount++
+		notifiedPreview = preview
+	})
+
+	qa.Enqueue(context.Background(), Message{ChatID: 1, Content: "x", Type: "text"})
+	<-finished
+	time.Sleep(40 * time.Millisecond)
+
+	mu.Lock()
+	defer mu.Unlock()
+	if notifyCount != 1 {
+		t.Fatalf("notifyCount=%d want 1", notifyCount)
+	}
+	if notifiedPreview == "" {
+		t.Fatal("expected non-empty progress preview")
 	}
 }
 

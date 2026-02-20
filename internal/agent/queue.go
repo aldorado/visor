@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,13 +22,15 @@ type Response struct {
 }
 
 type QueuedAgent struct {
-	agent   Agent
-	backend string
-	mu      sync.Mutex
-	busy    bool
-	queue   []pendingMsg
-	handler func(ctx context.Context, chatID int64, response string, err error)
-	log     *observability.Logger
+	agent                Agent
+	backend              string
+	mu                   sync.Mutex
+	busy                 bool
+	queue                []pendingMsg
+	handler              func(ctx context.Context, chatID int64, response string, err error, duration time.Duration)
+	longRunningHandler   func(ctx context.Context, chatID int64, elapsed time.Duration, preview string)
+	longRunningThreshold time.Duration
+	log                  *observability.Logger
 }
 
 type pendingMsg struct {
@@ -37,16 +40,29 @@ type pendingMsg struct {
 
 // NewQueuedAgent wraps an Agent with a message queue.
 // handler is called with the response for each processed message.
-func NewQueuedAgent(agent Agent, backend string, handler func(ctx context.Context, chatID int64, response string, err error)) *QueuedAgent {
+func NewQueuedAgent(agent Agent, backend string, handler func(ctx context.Context, chatID int64, response string, err error, duration time.Duration)) *QueuedAgent {
 	if backend == "" {
 		backend = "unknown"
 	}
 	return &QueuedAgent{
-		agent:   agent,
-		backend: backend,
-		handler: handler,
-		log:     observability.Component("agent.queue"),
+		agent:                agent,
+		backend:              backend,
+		handler:              handler,
+		longRunningThreshold: 3 * time.Minute,
+		log:                  observability.Component("agent.queue"),
 	}
+}
+
+func (qa *QueuedAgent) SetLongRunningHandler(handler func(ctx context.Context, chatID int64, elapsed time.Duration, preview string)) {
+	qa.mu.Lock()
+	defer qa.mu.Unlock()
+	qa.longRunningHandler = handler
+}
+
+func (qa *QueuedAgent) SetLongRunningThreshold(d time.Duration) {
+	qa.mu.Lock()
+	defer qa.mu.Unlock()
+	qa.longRunningThreshold = d
 }
 
 // Enqueue adds a message. If agent is idle, processes immediately.
@@ -68,18 +84,7 @@ func (qa *QueuedAgent) Enqueue(ctx context.Context, msg Message) {
 }
 
 func (qa *QueuedAgent) process(ctx context.Context, msg Message) {
-	ctx, span := observability.StartSpan(ctx, "agent.process", attribute.String("backend", qa.backend), attribute.String("message_type", msg.Type))
-	defer span.End()
-	qa.log.Debug(ctx, "agent prompt start", "chat_id", msg.ChatID, "message_type", msg.Type, "backend", qa.backend)
-	startedAt := nowMillis()
-	response, err := qa.agent.SendPrompt(ctx, msg.Content)
-	duration := nowMillis() - startedAt
-	if err != nil {
-		qa.log.Error(ctx, "agent prompt error", "chat_id", msg.ChatID, "backend", qa.backend, "duration_ms", duration, "error", err.Error())
-	} else {
-		qa.log.Info(ctx, "agent prompt processed", "chat_id", msg.ChatID, "backend", qa.backend, "duration_ms", duration)
-	}
-	qa.handler(ctx, msg.ChatID, response, err)
+	qa.processOne(ctx, msg)
 
 	for {
 		qa.mu.Lock()
@@ -96,17 +101,85 @@ func (qa *QueuedAgent) process(ctx context.Context, msg Message) {
 
 		nextCtx, nextSpan := observability.StartSpan(next.ctx, "agent.process", attribute.String("backend", qa.backend), attribute.String("message_type", next.msg.Type))
 		qa.log.Debug(nextCtx, "agent processing queued message", "chat_id", next.msg.ChatID, "message_type", next.msg.Type, "backend", qa.backend, "remaining_queue", remaining)
-		startedAt = nowMillis()
-		response, err := qa.agent.SendPrompt(nextCtx, next.msg.Content)
-		duration = nowMillis() - startedAt
+		qa.processOne(nextCtx, next.msg)
 		nextSpan.End()
-		if err != nil {
-			qa.log.Error(nextCtx, "agent prompt error", "chat_id", next.msg.ChatID, "backend", qa.backend, "duration_ms", duration, "error", err.Error())
-		} else {
-			qa.log.Info(nextCtx, "agent prompt processed", "chat_id", next.msg.ChatID, "backend", qa.backend, "duration_ms", duration)
-		}
-		qa.handler(nextCtx, next.msg.ChatID, response, err)
 	}
+}
+
+func (qa *QueuedAgent) processOne(ctx context.Context, msg Message) {
+	ctx, span := observability.StartSpan(ctx, "agent.process", attribute.String("backend", qa.backend), attribute.String("message_type", msg.Type))
+	defer span.End()
+
+	qa.log.Debug(ctx, "agent prompt start", "chat_id", msg.ChatID, "message_type", msg.Type, "backend", qa.backend)
+
+	startedAt := time.Now()
+	var progressMu sync.Mutex
+	progressTail := ""
+
+	reporter := func(delta string) {
+		progressMu.Lock()
+		defer progressMu.Unlock()
+		progressTail = keepTail(progressTail + delta)
+	}
+
+	reportCtx := withProgressReporter(ctx, reporter)
+
+	notifyDone := make(chan struct{})
+	go func() {
+		threshold := qa.getLongRunningThreshold()
+		if threshold <= 0 {
+			return
+		}
+		timer := time.NewTimer(threshold)
+		defer timer.Stop()
+		select {
+		case <-notifyDone:
+			return
+		case <-timer.C:
+			if qa.getLongRunningHandler() == nil {
+				return
+			}
+			progressMu.Lock()
+			preview := strings.TrimSpace(progressTail)
+			progressMu.Unlock()
+			if preview == "" {
+				preview = "(noch kein rpc output)"
+			}
+			qa.getLongRunningHandler()(ctx, msg.ChatID, time.Since(startedAt), preview)
+		}
+	}()
+
+	response, err := qa.agent.SendPrompt(reportCtx, msg.Content)
+	close(notifyDone)
+
+	duration := time.Since(startedAt)
+	durationMs := duration.Milliseconds()
+	if err != nil {
+		qa.log.Error(ctx, "agent prompt error", "chat_id", msg.ChatID, "backend", qa.backend, "duration_ms", durationMs, "error", err.Error())
+	} else {
+		qa.log.Info(ctx, "agent prompt processed", "chat_id", msg.ChatID, "backend", qa.backend, "duration_ms", durationMs)
+	}
+	qa.handler(ctx, msg.ChatID, response, err, duration)
+}
+
+func (qa *QueuedAgent) getLongRunningHandler() func(ctx context.Context, chatID int64, elapsed time.Duration, preview string) {
+	qa.mu.Lock()
+	defer qa.mu.Unlock()
+	return qa.longRunningHandler
+}
+
+func (qa *QueuedAgent) getLongRunningThreshold() time.Duration {
+	qa.mu.Lock()
+	defer qa.mu.Unlock()
+	return qa.longRunningThreshold
+}
+
+func keepTail(s string) string {
+	const max = 320
+	if len(s) <= max {
+		return s
+	}
+	return s[len(s)-max:]
 }
 
 // QueueLen returns the number of pending messages.

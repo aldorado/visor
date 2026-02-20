@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -324,8 +325,11 @@ func TestWebhook_E2E_TelegramDelivery(t *testing.T) {
 		if got.ChatID != 12345 {
 			t.Fatalf("chat_id=%d want=12345", got.ChatID)
 		}
-		if got.Text != "echo: hello from webhook" {
-			t.Fatalf("text=%q want=%q", got.Text, "echo: hello from webhook")
+		if !strings.HasPrefix(got.Text, "echo: hello from webhook") {
+			t.Fatalf("text=%q want prefix=%q", got.Text, "echo: hello from webhook")
+		}
+		if !strings.Contains(got.Text, "⏱") {
+			t.Fatalf("text=%q want duration marker", got.Text)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for telegram sendMessage call")

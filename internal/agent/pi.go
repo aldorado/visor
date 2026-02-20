@@ -160,8 +160,10 @@ func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt
 				case "text_delta", "output_text_delta":
 					if event.AssistantMessageEvent.Text != "" {
 						response.WriteString(event.AssistantMessageEvent.Text)
+						reportProgress(ctx, event.AssistantMessageEvent.Text)
 					} else if event.AssistantMessageEvent.Delta != "" {
 						response.WriteString(event.AssistantMessageEvent.Delta)
+						reportProgress(ctx, event.AssistantMessageEvent.Delta)
 					}
 				}
 			}
