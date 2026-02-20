@@ -338,6 +338,20 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 - **Signal recommendation for v1.5+ (if needed):** use `signal-cli` sidecar level-up + bridge process (receive/send + identity bootstrap + phone registration flow), then wire to same server message envelope as Telegram.
 - **Decision:** keep M12 core setup Telegram-first; model Signal as a separate milestone/iteration (not as mandatory M12-it1 gate) to avoid blocking first-run UX.
 
+### 2026-02-20 — M12 interactive env validation (M12 research #3)
+- **Validation should be action-level and immediate.** After each user-provided secret/config, run the smallest real API check and return pass/fail instantly in-chat.
+- **Current implemented checks:**
+  - Telegram token: `getMe` via `internal/platform/telegram/client.go` (`ValidateToken`)
+  - Telegram webhook set: `setWebhook`
+  - Runtime alive: local `/health`
+  - Level-up config sanity: `docker compose config` + required env checks
+- **Gap identified:** no explicit OpenAI key validation action yet (even though runtime uses OpenAI for Whisper + embeddings).
+- **Recommended OpenAI validation contract:**
+  - add `validate_openai` setup action
+  - probe `POST /v1/embeddings` with tiny input (`"ping"`) and model `text-embedding-3-small`
+  - treat non-200 as actionable failure message (invalid key / quota / org / network)
+- **Decision:** keep validation in runtime setup-actions (not prompt-only). Add OpenAI key probe as next small hardening patch if needed.
+
 ## Milestones
 
 ### M0: host-native runtime boundary + level-up foundation + native email baseline
@@ -674,7 +688,7 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 #### Research tasks
 - [x] Investigate how CLAUDE.md / .pi/instructions can detect first-run state (no `.env`, no `data/` dir, no running process)
 - [x] Investigate platform-specific setup flows: what needs to happen for Telegram (bot token, webhook URL, chat ID) and potentially Signal
-- [ ] Investigate how to validate env vars interactively (test Telegram token, test OpenAI key, etc.)
+- [x] Investigate how to validate env vars interactively (test Telegram token, test OpenAI key, etc.)
 - [ ] Investigate optional level-up selection UX: how to present Forgejo, Himalaya, Obsidian as opt-in during setup
 
 #### Iteration 1: first-run detection + core setup
