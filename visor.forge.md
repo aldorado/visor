@@ -17,6 +17,8 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 - Himalaya: official reference implementation of the level-up pattern (email as exemplar) and the *first* implemented level-up in the project.
 - Obsidian: additional standard level-up shipped by default (knowledge workspace sidecar) via LinuxServer container.
 - Skill parity bootstrap: ship visor with the same baseline skills as current ubik by copying them into `visor/skills/` as the initial pack.
+- Reverse proxy: level-ups get exposed via subdomain under wildcard DNS (`*.visor.<domain>`), auto SSL via Let's Encrypt, no direct host port exposure. Proxy runs as a base level-up.
+- Gitea: self-hosted git as a standard level-up. Visor pushes all self-authored code (self-evolve, forge-execution, skills) to its own Gitea instance automatically.
 
 ## Research tasks
 - [x] Investigate Claude Code RPC mode — does `claude --mode rpc` exist? what's the protocol? document stdin/stdout message format
@@ -495,6 +497,62 @@ Visor can spawn multiple pi subagents in parallel, coordinate them, and return o
 - Embeddings: OpenAI API
 - Config: env vars (godotenv for .env loading)
 - Skills: executable scripts in `skills/` dir, managed by agent
+
+### M10: reverse proxy level-up — automatic service exposure
+Visor can expose its docker-compose level-ups to the internet automatically. Each level-up gets its own subdomain under a wildcard DNS entry, with auto-provisioned SSL via Let's Encrypt. Level-ups run in isolated docker networks and never expose ports to the host directly.
+
+#### Research tasks
+- [ ] Compare reverse proxy options for this use case: Caddy vs Traefik vs nginx. Key criteria: auto Let's Encrypt with wildcard certs, docker-aware service discovery, config-as-code simplicity, resource footprint
+- [ ] Investigate wildcard DNS + wildcard cert flow: DNS-01 challenge requirements per provider (Cloudflare API, Route53, etc.), cert storage, renewal automation
+- [ ] Investigate docker network isolation patterns: per-level-up networks, proxy-only shared network, no host port exposure. How does the proxy discover backend containers?
+- [ ] Check if cloudflared tunnel can coexist with or replace the reverse proxy approach (tunnel per service vs. single ingress point)
+- [ ] Evaluate Caddy's on-demand TLS vs. Traefik's cert resolvers for wildcard subdomain auto-provisioning
+
+#### Iteration 1: proxy level-up + network isolation
+- [ ] Choose proxy (based on research) and add as base level-up (`docker-compose.levelup.proxy.yml`)
+- [ ] Define network topology: one shared `proxy` network + per-level-up isolated networks. Proxy container joins both.
+- [ ] Remove direct port mappings from existing level-up compose files (obsidian, himalaya, etc.)
+- [ ] Add proxy config generation: visor writes proxy routes when level-ups are enabled/disabled
+- [ ] Add wildcard DNS + Let's Encrypt config to `.levelup.env` (`DOMAIN`, `DNS_PROVIDER`, `DNS_API_TOKEN`)
+
+#### Iteration 2: dynamic subdomain routing
+- [ ] Visor auto-registers `<levelup-name>.visor.<domain>` → `<levelup-container>:<port>` on level-up enable
+- [ ] Visor auto-deregisters route on level-up disable
+- [ ] Add subdomain field to `levelup.toml` manifest (default: level-up name, overridable)
+- [ ] Health endpoint per subdomain (proxy returns 502/503 if backend is down)
+- [ ] Add tests for enable/disable/re-enable routing lifecycle
+
+#### Iteration 3: auth + access control (optional)
+- [ ] Add optional basic auth or SSO gate per level-up subdomain
+- [ ] Add allowlist/denylist per subdomain (IP or user-based)
+- [ ] Add admin dashboard subdomain for proxy status/metrics
+
+### M11: Gitea level-up — self-hosted git for visor-authored code
+Visor pushes code it writes (via forge-execution, self-evolution, skill creation) to its own Gitea instance. Gitea runs as a standard level-up, optionally enabled at first setup.
+
+#### Research tasks
+- [ ] Investigate Gitea docker image options: official `gitea/gitea` vs `codeberg/forgejo`. Resource footprint, API compatibility, built-in CI (Gitea Actions / Forgejo Runner)
+- [ ] Investigate Gitea API for repo management: create repo, push, webhooks, org/user setup — all automatable via REST?
+- [ ] Design git remote strategy: visor's local repo gets a `gitea` remote added automatically. Push on self-evolve commit, forge-execution commit, skill creation commit
+- [ ] Investigate Gitea SSH vs HTTP push: which is simpler for a local-network setup? Can visor use a token-based HTTP push without SSH key management?
+
+#### Iteration 1: Gitea level-up
+- [ ] Add `docker-compose.levelup.gitea.yml` with persistent storage (repos + DB)
+- [ ] Add Gitea env keys to `.levelup.env.example` (admin user, domain, SSH/HTTP ports, DB path)
+- [ ] Add first-run bootstrap: create admin user + default org via Gitea API on first enable
+- [ ] Integrate with M10 proxy: `git.visor.<domain>` subdomain auto-routed to Gitea
+
+#### Iteration 2: auto-push integration
+- [ ] On level-up enable: visor adds `gitea` remote to its own repo (and any forge-execution project repos)
+- [ ] On self-evolve commit: auto-push to Gitea remote after local commit
+- [ ] On forge-execution commit: auto-push project repo to Gitea (create repo on first push if missing)
+- [ ] Add structured output field `git_push: true/false` so agent can control push behavior
+- [ ] Add fallback: if Gitea is unreachable, log warning and continue (don't block commits)
+
+#### Iteration 3: visibility + collaboration
+- [ ] Gitea webhook → visor notification on external push/PR (if someone else pushes)
+- [ ] Add repo listing skill: agent can list repos, recent commits, open issues on its Gitea
+- [ ] Add README auto-generation on repo creation (project name, forge link, status)
 
 ## Open questions
 - Skill sandboxing: how strict? Docker/nsjail or just subprocess with timeout?
