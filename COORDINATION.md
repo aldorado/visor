@@ -78,4 +78,4 @@ append under `handoff log`:
 - `M12 / Iteration 3` done — setup finish actions: personality override, telegram test message, setup summary writer, setup-hints cleanup — commit `64d409a`
 - `M12 / Research 1` done — first-run detection strategy confirmed: runtime state + /health liveness; CLAUDE/.pi stay policy-only — commit `912a104`
 - `M12 / Research 2` done — platform setup flow documented: Telegram-first path finalized, Signal scoped as future dedicated transport milestone — commit `2d7a51b`
-- `M12 / Research 3` done — interactive env validation documented (telegram/webhook/health + levelup validate), identified OpenAI-key validation gap with concrete probe recommendation — commit TBD
+- `M12 / Research 3` done — interactive env validation documented (telegram/webhook/health + levelup validate), identified OpenAI-key validation gap with concrete probe recommendation — commit `38fcec9`
