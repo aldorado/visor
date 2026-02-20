@@ -13,13 +13,13 @@ import (
 type Manifest struct {
 	Name         string   `toml:"name"`
 	Description  string   `toml:"description"`
-	Triggers     []string `toml:"triggers"`      // regex patterns matched against incoming messages
-	Run          string   `toml:"run"`            // command to execute (e.g. "python3 run.py", "bash run.sh")
-	Dependencies []string `toml:"dependencies"`   // required tools/packages
-	LevelUps     []string `toml:"level_ups"`      // required level-ups (e.g. "email-himalaya")
-	Timeout      int      `toml:"timeout"`        // execution timeout in seconds (default: 30)
-	Source       string   `toml:"source"`         // git repo URL or import URL
-	Version      string   `toml:"version"`        // git hash, tag, or semver
+	Triggers     []string `toml:"triggers"`     // regex patterns matched against incoming messages
+	Run          string   `toml:"run"`          // command to execute (e.g. "python3 run.py", "bash run.sh")
+	Dependencies []string `toml:"dependencies"` // required tools/packages
+	LevelUps     []string `toml:"level_ups"`    // required level-ups (e.g. "email-himalaya")
+	Timeout      int      `toml:"timeout"`      // execution timeout in seconds (default: 30)
+	Source       string   `toml:"source"`       // git repo URL or import URL
+	Version      string   `toml:"version"`      // git hash, tag, or semver
 }
 
 // Skill is a loaded, ready-to-match skill.

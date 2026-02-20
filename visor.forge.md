@@ -453,11 +453,11 @@ Make the repository publication-ready: clean structure, clear docs, no accidenta
 - [x] Add release notes/changelog policy (`CHANGELOG.md`)
 
 #### Iteration 3: quality + release gate
-- [ ] Add/verify formatting and lint checks (`gofmt`, `go vet`) in CI
-- [ ] Add/verify test command in CI (`go test ./...`) with clear pass/fail gating
-- [ ] Add a pre-release checklist (security scan, secret check, docs check, smoke test)
-- [ ] Define semantic versioning + tagging flow (`v0.x`, `v1.0.0` criteria)
-- [ ] Create `M8a release candidate` milestone: all checks green + clean tree + tagged release
+- [x] Add/verify formatting and lint checks (`gofmt`, `go vet`) in CI
+- [x] Add/verify test command in CI (`go test ./...`) with clear pass/fail gating
+- [x] Add a pre-release checklist (security scan, secret check, docs check, smoke test)
+- [x] Define semantic versioning + tagging flow (`v0.x`, `v1.0.0` criteria)
+- [x] Create `M8a release candidate` milestone: all checks green + clean tree + tagged release
 
 ### M9: multi-pi-subagent orchestration
 Visor can spawn multiple pi subagents in parallel, coordinate them, and return one merged final answer.

@@ -24,12 +24,12 @@ type Backend struct {
 // Registry manages multiple backends with priority-based selection.
 // It implements the Agent interface by proxying to the active backend.
 type Registry struct {
-	backends    []*Backend // sorted by priority (lowest first = highest priority)
-	active      *Backend
-	mu          sync.RWMutex
-	cooldown    time.Duration // how long before unhealthy backends are retried
-	OnSwitch    func(from, to string) // called when active backend changes due to failover
-	log         *observability.Logger
+	backends []*Backend // sorted by priority (lowest first = highest priority)
+	active   *Backend
+	mu       sync.RWMutex
+	cooldown time.Duration         // how long before unhealthy backends are retried
+	OnSwitch func(from, to string) // called when active backend changes due to failover
+	log      *observability.Logger
 }
 
 const defaultCooldown = 5 * time.Minute

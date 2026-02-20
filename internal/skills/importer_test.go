@@ -35,7 +35,7 @@ func TestLooksLikeHash(t *testing.T) {
 		{"abc123456789012345678901234567890abcdef0", true},
 		{"v1.0.0", false},
 		{"main", false},
-		{"abc12", false}, // too short
+		{"abc12", false},   // too short
 		{"ABC1234", false}, // uppercase
 	}
 	for _, tc := range tests {

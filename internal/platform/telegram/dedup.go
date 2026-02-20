@@ -6,9 +6,9 @@ import (
 )
 
 type Dedup struct {
-	mu      sync.Mutex
-	seen    map[int]time.Time
-	ttl     time.Duration
+	mu   sync.Mutex
+	seen map[int]time.Time
+	ttl  time.Duration
 }
 
 func NewDedup(ttl time.Duration) *Dedup {
