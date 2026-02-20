@@ -1,0 +1,34 @@
+---
+id: TASK-29
+title: >-
+  M12 | Research tasks | Investigate platform-specific setup flows: what needs
+  to happen for Telegram (bot token, webhook URL, chat ID) and potentially
+  Signal
+status: To Do
+assignee: []
+created_date: '2026-02-20 12:47'
+labels:
+  - m12
+  - research
+dependencies: []
+references:
+  - visor.forge.md
+priority: medium
+---
+
+## Description
+
+<!-- SECTION:DESCRIPTION:BEGIN -->
+Migrated from visor.forge.md open checkbox. Keep forge.md as strategic source of truth; use this backlog task for execution state.
+
+Milestone: M12
+Iteration: Research tasks
+Original item: Investigate platform-specific setup flows: what needs to happen for Telegram (bot token, webhook URL, chat ID) and potentially Signal
+<!-- SECTION:DESCRIPTION:END -->
+
+## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [ ] #1 M12 milestone requirement is implemented
+- [ ] #2 Research tasks acceptance for this item is met
+- [ ] #3 visor.forge.md checkbox can be marked done after merge
+<!-- AC:END -->

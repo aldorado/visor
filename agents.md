@@ -1,8 +1,13 @@
 # Visor Agents
 
 coordination note:
-- before starting work, check `COORDINATION.md` for current open items and task-claim flow.
-- detailed milestone specs remain in `visor.forge.md`.
+- strategic planning lives in `visor.forge.md`.
+- execution state lives in `backlog/` (backlog.md tasks).
+- `COORDINATION.md` is backup operating context + handoff policy.
+
+reporting rule for user updates:
+- always state `milestone + iteration` first.
+- backlog task id is optional and secondary.
 
 ## 1) Runtime Agent (Host Core)
 - Owns host-native visor process lifecycle (start/stop/restart/self-update)

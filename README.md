@@ -12,11 +12,11 @@ it is built to stay simple in runtime shape:
 active roadmap and milestone tracking live in:
 - `visor.forge.md`
 
-collaboration snapshot (done/open/next + multi-agent coordination rules):
-- `COORDINATION.md`
-
-active execution tasks (backlog.md pilot):
+active execution tracking (multi-agent work queue):
 - `backlog/`
+
+coordination backup + handoff rules:
+- `COORDINATION.md`
 
 ### Current: M5 — Iteration 2.5: Reminder Ergonomics ✅
 

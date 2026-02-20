@@ -1,0 +1,34 @@
+---
+id: TASK-56
+title: >-
+  M9 | Iteration 2: reliability + observability | Add execution report block in
+  final response (which subagents ran, station/domain, model rank used,
+  success/fail, latency)
+status: To Do
+assignee: []
+created_date: '2026-02-20 12:48'
+labels:
+  - m9
+  - it-2
+dependencies: []
+references:
+  - visor.forge.md
+priority: medium
+---
+
+## Description
+
+<!-- SECTION:DESCRIPTION:BEGIN -->
+Migrated from visor.forge.md open checkbox. Keep forge.md as strategic source of truth; use this backlog task for execution state.
+
+Milestone: M9
+Iteration: Iteration 2: reliability + observability
+Original item: Add execution report block in final response (which subagents ran, station/domain, model rank used, success/fail, latency)
+<!-- SECTION:DESCRIPTION:END -->
+
+## Acceptance Criteria
+<!-- AC:BEGIN -->
+- [ ] #1 M9 milestone requirement is implemented
+- [ ] #2 Iteration 2: reliability + observability acceptance for this item is met
+- [ ] #3 visor.forge.md checkbox can be marked done after merge
+<!-- AC:END -->

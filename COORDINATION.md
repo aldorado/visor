@@ -1,17 +1,17 @@
-# visor coordination board
+# visor coordination board (backup)
 
-single coordination board for humans + multi-agents.
+backup coordination layer for humans + multi-agents.
 
-## source of truth
+## source of truth and execution flow
 
-- detailed planning and task definitions: `visor.forge.md`
-- this file is the execution snapshot for collaboration (what is open, what is next, who is working on what)
-- `backlog/` (backlog.md tool) is the active execution layer for currently claimed implementation tasks
+- strategic source of truth: `visor.forge.md` (milestones, iterations, scope intent)
+- execution source of truth: `backlog/` (backlog.md tasks and statuses)
+- this file: backup handoff + operating rules
 
-if these views diverge:
-1) `visor.forge.md` wins for milestone intent
-2) `backlog/` wins for in-flight task state
-3) update this file right after merge/iteration
+if views diverge:
+1) `visor.forge.md` decides strategy/scope
+2) `backlog/` decides task execution state
+3) this file gets updated after merges/handoffs
 
 ## status snapshot (2026-02-20)
 
@@ -35,24 +35,25 @@ if these views diverge:
 - `M11` forgejo level-up (12 open)
 - `M12` interactive first-run onboarding (18 open)
 
-## backlog.md pilot (active)
+## backlog.md is now central for execution
 
-scope rule:
-- use backlog.md only for active execution tasks (not full roadmap mirroring)
-- keep `visor.forge.md` as strategic milestone spec
+migration status:
+- all current open `visor.forge.md` checkboxes are mirrored into `backlog/tasks`
+- total open forge items mirrored: 63
 
-active pilot queue:
-- `TASK-1` — M3 sync protocol design
-- `TASK-2` — M3 incremental sync (depends on TASK-1)
+usage rule:
+- new implementation work must be created/updated in backlog.md first
+- after merge, reflect completion back into `visor.forge.md` checkboxes
 
 quick commands:
-- `npx backlog.md task list`
+- `npx backlog.md task list --plain`
 - `npx backlog.md board`
+- `npx backlog.md task view TASK-<n>`
 
 ## now / next recommendation
 
-1. execute `TASK-1` then `TASK-2` (close remaining M3 open items)
-2. then choose one major stream: `M10` (infra exposure) or `M12` (onboarding)
+1. execute M3 remaining work first (`TASK-1` then `TASK-2`)
+2. then pick one major stream (`M10` infra exposure or `M12` onboarding)
 3. keep `M9` optional until core infra/onboarding streams are stable
 
 ## multi-agent coordination rules
@@ -78,6 +79,12 @@ each agent handoff must include:
 - risks / follow-up
 - exact commit hash
 
+### user communication contract (anuar)
+when reporting progress to the user:
+- always include `milestone + iteration` first (example: `M10 / Iteration 1`)
+- backlog task id is optional and secondary (can be appended)
+- avoid reporting only `TASK-xx` without milestone/iteration context
+
 ## work log
 
 ### 2026-02-20
@@ -85,5 +92,6 @@ each agent handoff must include:
 - repo/docs polish merged (`.gitignore`, `LICENSE`, `CONTRIBUTING`, `README`, `CHANGELOG`, config/ops docs)
 - completed `M1` final e2e closure via webhook→agent→telegram delivery test harness
 - completed `M5 it2.5` quick actions (`done/snooze/reschedule`), natural time parsing, idempotency guard, and tests
-- initialized backlog.md pilot (`backlog/config.yml`) and created active M3 execution tasks (`TASK-1`, `TASK-2`)
-- latest related commits: `bbd6d1b`, `7970e20`, `5c51feb`
+- initialized backlog.md and migrated all currently open forge checkboxes into backlog tasks (63 mirrored items)
+- set communication rule: report to user with milestone/iteration first, backlog task id optional
+- latest related commits: `bbd6d1b`, `7970e20`, `5c51feb`, `7eabfde`
