@@ -58,10 +58,9 @@ func BuildContext(state State) string {
 project is not fully initialized yet (` + missing + `).
 
 you must guide the user through setup in small steps:
-1) collect required env vars (telegram token, owner chat id, agent backend) and write/update .env
-2) validate telegram token
-3) set webhook url + optional secret
-4) verify /health is reachable
+1) core setup: .env, telegram validate, webhook, /health
+2) optional level-ups: collect .levelup.env vars, enable, validate, start, healthcheck
+3) finish: personality keep/custom, send test message, write setup summary, cleanup setup hints
 
 if you need to execute setup actions, include one dedicated setup action json block only in your final response.
 `)

@@ -671,10 +671,10 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 - [x] Verify each level-up is healthy before moving on
 
 #### Iteration 3: personality + finish
-- [ ] Agent asks if user wants to customize personality (edit CLAUDE.md) or keep defaults
-- [ ] Agent sends a test message to the user's platform (Telegram) to confirm end-to-end flow
-- [ ] Agent writes a summary of what was set up and how to start/stop visor
-- [ ] Clean up setup instructions from CLAUDE.md (they're only needed once)
+- [x] Agent asks if user wants to customize personality (edit CLAUDE.md) or keep defaults
+- [x] Agent sends a test message to the user's platform (Telegram) to confirm end-to-end flow
+- [x] Agent writes a summary of what was set up and how to start/stop visor
+- [x] Clean up setup instructions from CLAUDE.md (they're only needed once)
 
 ### M9: multi-pi-subagent orchestration (optional)
 Visor can spawn multiple pi subagents in parallel, coordinate them, and return one merged final answer. Not needed for core functionality — nice-to-have for complex tasks.

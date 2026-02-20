@@ -18,14 +18,14 @@ active execution tracking + handoff rules:
 note:
 - backlog.md layer was removed to keep execution lean
 
-### Current: M12 — Iteration 2: optional level-ups ✅
+### Current: M12 — Iteration 3: personality + finish ✅
 
 #### Tasks
-- [x] 1. Extended setup actions with optional level-up controls (`enable`, `.levelup.env`, `start`, `validate`, `health`) — `internal/setup/actions.go`, `internal/server/server.go`
-- [x] 2. Added compose `up -d` runtime for currently enabled level-ups — `internal/levelup/compose_apply.go`
-- [x] 3. Added enabled-levelup HTTP health verification helper — `internal/levelup/health.go`
-- [x] 4. Added Forgejo remote sync setup action for onboarding flow — `internal/server/server.go`
-- [x] 5. Added tests for compose apply args and env-template expansion — `internal/levelup/compose_apply_test.go`, `internal/levelup/health_test.go`
+- [x] 1. Added setup action fields for personality/test/summary/cleanup — `internal/setup/actions.go`
+- [x] 2. Added personality override + setup cleanup + summary writers — `internal/setup/finalize.go`
+- [x] 3. Added setup execute hooks for Telegram test message + summary output + CLAUDE cleanup — `internal/server/server.go`
+- [x] 4. Expanded first-run setup guidance context to include finish flow — `internal/setup/detect.go`
+- [x] 5. Added tests for personality override + setup summary write — `internal/setup/finalize_test.go`
 
 #### Status
 - M1–M8a: done
@@ -34,6 +34,7 @@ note:
 - M10 Iteration 3: done
 - M12 Iteration 1: done
 - M12 Iteration 2: done
+- M12 Iteration 3: done
 
 ## first 10 minutes
 

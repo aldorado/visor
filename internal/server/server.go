@@ -759,6 +759,46 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 		}
 	}
 
+	if strings.TrimSpace(actions.PersonalityChoice) != "" {
+		if err := setup.ApplyPersonalityOverride(projectRoot, actions.PersonalityFile, actions.PersonalityChoice, actions.PersonalityText); err != nil {
+			messages = append(messages, "personality update failed: "+err.Error())
+		} else {
+			messages = append(messages, "personality updated ✅")
+		}
+	}
+
+	if strings.TrimSpace(actions.SendTestMessage) != "" {
+		chatID := mustParseChatID(s.cfg.UserChatID)
+		if err := s.tg.SendMessage(chatID, actions.SendTestMessage); err != nil {
+			messages = append(messages, "test message failed: "+err.Error())
+		} else {
+			messages = append(messages, "test message sent ✅")
+		}
+	}
+
+	if actions.WriteSummary {
+		state, _ := levelup.LoadState(projectRoot)
+		summaryPath, err := setup.WriteSetupSummary(projectRoot, setup.SummaryInput{
+			AgentBackend: s.cfg.AgentBackend,
+			Levelups:     state.Enabled,
+			WebhookURL:   strings.TrimSpace(actions.WebhookURL),
+			HealthOK:     actions.CheckHealth,
+		})
+		if err != nil {
+			messages = append(messages, "write setup summary failed: "+err.Error())
+		} else {
+			messages = append(messages, "setup summary written ✅ ("+summaryPath+")")
+		}
+	}
+
+	if actions.CleanupSetupHints {
+		if err := setup.CleanupSetupInstructions(projectRoot, actions.PersonalityFile); err != nil {
+			messages = append(messages, "cleanup setup hints failed: "+err.Error())
+		} else {
+			messages = append(messages, "setup hints cleaned ✅")
+		}
+	}
+
 	state, err := setup.Detect(projectRoot, s.cfg.DataDir)
 	if err == nil {
 		s.setupState = state

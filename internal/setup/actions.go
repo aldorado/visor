@@ -21,6 +21,12 @@ type ActionEnvelope struct {
 	StartLevelups     bool              `json:"start_levelups,omitempty"`
 	CheckLevelups     bool              `json:"check_levelups,omitempty"`
 	SyncForgejoRemote bool              `json:"sync_forgejo_remote,omitempty"`
+	PersonalityChoice string            `json:"personality_choice,omitempty"`
+	PersonalityFile   string            `json:"personality_file,omitempty"`
+	PersonalityText   string            `json:"personality_text,omitempty"`
+	SendTestMessage   string            `json:"send_test_message,omitempty"`
+	WriteSummary      bool              `json:"write_summary,omitempty"`
+	CleanupSetupHints bool              `json:"cleanup_setup_hints,omitempty"`
 }
 
 func ExtractActions(response string) (cleanText string, actions *ActionEnvelope, err error) {
