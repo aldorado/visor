@@ -1,0 +1,8 @@
+{
+  "packages": [
+    "npm:pi-extmgr",
+    "npm:@aliou/pi-guardrails",
+    "npm:@ogulcancelik/pi-web-browse",
+    "npm:pi-handoff"
+  ]
+}
