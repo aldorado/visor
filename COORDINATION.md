@@ -60,7 +60,7 @@ append under `handoff log`:
 - keep it compact
 
 ## active claims
-- [claim] none
+- [claim] ubik | M12/Iteration 1 | main | 2026-02-20T14:44
 
 ## handoff log
 ### 2026-02-20
@@ -68,3 +68,5 @@ append under `handoff log`:
 - `M10 / Iteration 2` done — dynamic subdomain routing + lifecycle tests — commit `a7cbf3b`
 - `M10 / Iteration 3` done — per-subdomain auth/allow/deny + admin dashboard route — commit `27ca2a6`
 - workflow decision: remove backlog.md layer, use `visor.forge.md` + `COORDINATION.md` only
+- owner decision: M11 assigned to friday, ubik executes M12 stream
+- `M11 / Iteration 1` done — Forgejo level-up: compose file, levelup.toml (subdomain=git), CMD-override bootstrap (admin user + visor-push token → /data/visor-push.token), proxy network wired — commit `79b926e`
