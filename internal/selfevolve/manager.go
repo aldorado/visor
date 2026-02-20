@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"visor/internal/forgejo"
 	"visor/internal/observability"
 	"visor/internal/promptsync"
 )
@@ -130,6 +131,8 @@ func (m *Manager) Apply(ctx context.Context, req Request) (Result, error) {
 		}
 		m.log.Info(ctx, "self-evolve pushed")
 	}
+	// forgejo push: non-blocking, log warning on failure
+	forgejo.PushBackground(ctx, m.cfg.RepoDir, m.log)
 
 	// step 5: backup current binary before replacing
 	currentBinary, err := os.Executable()

@@ -13,6 +13,7 @@ import (
 
 	"visor/internal/agent"
 	"visor/internal/config"
+	"visor/internal/forgejo"
 	"visor/internal/levelup"
 	emaillevelup "visor/internal/levelup/email"
 	"visor/internal/observability"
@@ -185,6 +186,16 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 
 		if meta.CodeChanges && s.selfevolver != nil && s.selfevolver.Enabled() {
 			go s.runSelfEvolution(chatID, meta.CommitMessage)
+		}
+
+		if meta.GitPush {
+			pushDir := meta.GitPushDir
+			if pushDir == "" {
+				pushDir = s.cfg.SelfEvolutionRepoDir
+			}
+			if pushDir != "" {
+				forgejo.PushBackground(ctx, pushDir, s.log)
+			}
 		}
 	})
 
@@ -593,6 +604,8 @@ type responseMeta struct {
 	SendVoice     bool
 	CodeChanges   bool
 	CommitMessage string
+	GitPush       bool
+	GitPushDir    string // repo dir to push; defaults to SelfEvolutionRepoDir
 }
 
 // parseResponse extracts metadata from agent response.
@@ -602,6 +615,8 @@ type responseMeta struct {
 //	send_voice: true
 //	code_changes: true
 //	commit_message: your message
+//	git_push: true
+//	git_push_dir: /path/to/repo
 func parseResponse(raw string) (text string, meta responseMeta) {
 	parts := strings.SplitN(raw, "\n---\n", 2)
 	text = parts[0]
@@ -615,6 +630,10 @@ func parseResponse(raw string) (text string, meta responseMeta) {
 				meta.CodeChanges = true
 			case strings.HasPrefix(line, "commit_message:"):
 				meta.CommitMessage = strings.TrimSpace(strings.TrimPrefix(line, "commit_message:"))
+			case line == "git_push: true" || line == "git_push:true":
+				meta.GitPush = true
+			case strings.HasPrefix(line, "git_push_dir:"):
+				meta.GitPushDir = strings.TrimSpace(strings.TrimPrefix(line, "git_push_dir:"))
 			}
 		}
 	}

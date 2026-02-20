@@ -61,6 +61,7 @@ append under `handoff log`:
 
 ## active claims
 - [claim] ubik | M12/Iteration 1 | main | 2026-02-20T14:44
+- [claim] jarvis | M11/Iteration 2 | main | 2026-02-20T14:38
 
 ## handoff log
 ### 2026-02-20

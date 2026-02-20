@@ -42,8 +42,9 @@ services:
           echo "Forgejo bootstrap complete — token at /data/visor-push.token"
         fi
         wait $FPID
-    expose:
-      - "3000"
+    # localhost-only port for visor host process to push via git
+    ports:
+      - "127.0.0.1:${FORGEJO_HOST_PORT:-3002}:3000"
     networks:
       - proxy
       - levelup-forgejo

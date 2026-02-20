@@ -3,8 +3,10 @@ package levelup
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sort"
 
+	"visor/internal/forgejo"
 	"visor/internal/observability"
 )
 
@@ -91,6 +93,27 @@ func Enable(projectRoot string, names []string) error {
 	if err := SyncProxyConfigForEnabled(projectRoot, manifests, updated); err != nil {
 		return err
 	}
+
+	// if forgejo was just enabled, wire up the git remote (no-op if token not yet available)
+	for _, name := range names {
+		if name == "forgejo" {
+			env, _ := LoadLayeredEnv(projectRoot)
+			adminUser := env["FORGEJO_ADMIN_USER"]
+			if adminUser == "" {
+				adminUser = "visor"
+			}
+			hostPort := env["FORGEJO_HOST_PORT"]
+			if hostPort == "" {
+				hostPort = "3002"
+			}
+			dataDir := filepath.Join(projectRoot, "data")
+			if err := forgejo.SyncRemote(ctx, projectRoot, dataDir, adminUser, hostPort, true); err != nil {
+				adminLog.Warn(ctx, "forgejo remote add failed", "error", err.Error())
+			}
+			break
+		}
+	}
+
 	adminLog.Info(ctx, "enable levelups done", "enabled", updated)
 	return nil
 }
@@ -136,6 +159,18 @@ func Disable(projectRoot string, names []string) error {
 	if err := SyncProxyConfigForEnabled(projectRoot, manifests, updated); err != nil {
 		return err
 	}
+
+	// if forgejo was just disabled, remove the git remote (best effort)
+	for _, name := range names {
+		if name == "forgejo" {
+			dataDir := filepath.Join(projectRoot, "data")
+			if err := forgejo.SyncRemote(ctx, projectRoot, dataDir, "", "", false); err != nil {
+				adminLog.Warn(ctx, "forgejo remote remove failed", "error", err.Error())
+			}
+			break
+		}
+	}
+
 	adminLog.Info(ctx, "disable levelups done", "enabled", updated)
 	return nil
 }
