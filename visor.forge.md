@@ -220,6 +220,7 @@ Lock the boundary first: visor is host-native, compose is sidecars-only. Then us
 - [x] Add roundtrip tests: receive email → agent sees it → send reply
 - [x] Add smoke test: Obsidian sidecar is reachable and persists vault/config mounts
 - [x] Ensure Obsidian bind mounts resolve to host filesystem paths accessible by visor runtime
+- [x] Add `EMAIL_ALLOWED_SENDERS` env var (comma-separated email addresses). Poller filters inbound mail before it reaches the agent: only messages from listed addresses pass through, all others are silently dropped (logged only). Empty/unset = no filter (all mail passes through).
 
 #### Iteration 3: generalization docs
 - [x] Write "how to build a level-up" guide using Himalaya as template
@@ -432,6 +433,30 @@ Visor's agent can modify visor's own source code, commit, push, rebuild, and res
 - [x] If new binary crashes within 30s of startup: auto-rollback to previous binary
 - [x] Log all self-modifications to a dedicated changelog (who changed what, when, which agent backend)
 - [x] User can disable self-evolution via config flag
+
+### M8a: release hardening + repo polish
+Make the repository publication-ready: clean structure, clear docs, no accidental secrets, and a professional first impression.
+
+#### Iteration 1: repo hygiene baseline
+- [ ] Add and validate `.gitignore` for Go + env + build/runtime artifacts
+- [ ] Remove accidental generated files and dead artifacts from git history (if any)
+- [ ] Normalize root layout (`cmd/`, `internal/`, `docs/`, `skills/`, `levelups/`) and remove clutter
+- [ ] Ensure naming consistency across files/docs (`visor`, `levelup`, command names)
+- [ ] Add/update `LICENSE` and `CONTRIBUTING.md` baseline
+
+#### Iteration 2: documentation pass
+- [ ] Tighten `README.md` for external users: what it is, quickstart, architecture, status
+- [ ] Add "first 10 minutes" setup section with copy-paste commands
+- [ ] Add config reference table (required env vars vs optional)
+- [ ] Add operational docs for local run, logs, troubleshooting, and updates
+- [ ] Add release notes/changelog policy (`CHANGELOG.md`)
+
+#### Iteration 3: quality + release gate
+- [ ] Add/verify formatting and lint checks (`gofmt`, `go vet`) in CI
+- [ ] Add/verify test command in CI (`go test ./...`) with clear pass/fail gating
+- [ ] Add a pre-release checklist (security scan, secret check, docs check, smoke test)
+- [ ] Define semantic versioning + tagging flow (`v0.x`, `v1.0.0` criteria)
+- [ ] Create `M8a release candidate` milestone: all checks green + clean tree + tagged release
 
 ### M9: multi-pi-subagent orchestration
 Visor can spawn multiple pi subagents in parallel, coordinate them, and return one merged final answer.

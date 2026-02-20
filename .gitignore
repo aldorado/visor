@@ -1,0 +1,43 @@
+# binaries
+visor
+visor-new
+visor.bak.*
+*.exe
+*.dll
+*.so
+*.dylib
+
+# go build/test artifacts
+bin/
+build/
+dist/
+*.test
+*.out
+coverage.out
+coverage-*.out
+*.coverprofile
+
+# local env/secrets
+.env
+.env.*
+!.env.example
+.levelup.env
+.levelup.env.*
+!.levelup.env.example
+*.local
+
+# runtime artifacts
+logs/
+tmp/
+*.log
+
+# editor/ide
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# os
+.DS_Store
+Thumbs.db
