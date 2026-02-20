@@ -59,13 +59,15 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 	if cfg.HimalayaEnabled {
 		himalaya := emaillevelup.NewHimalayaClient(cfg.HimalayaAccount)
 		s.emailSender = himalaya
-		s.emailPoller = emaillevelup.NewPoller(himalaya, time.Duration(cfg.HimalayaPollInterval)*time.Second, func(msg emaillevelup.IncomingMessage) {
+		poller := emaillevelup.NewPoller(himalaya, time.Duration(cfg.HimalayaPollInterval)*time.Second, func(msg emaillevelup.IncomingMessage) {
 			s.agent.Enqueue(context.Background(), agent.Message{
 				ChatID:  mustParseChatID(cfg.UserChatID),
 				Content: emaillevelup.FormatInboundForAgent(msg),
 				Type:    "email",
 			})
 		})
+		poller.SetAllowedSenders(cfg.HimalayaAllowedSenders)
+		s.emailPoller = poller
 	}
 
 	// skill manager

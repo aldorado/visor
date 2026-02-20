@@ -31,7 +31,7 @@ this project follows a keep-a-changelog style with semantic version tags.
 ## unreleased
 
 ### added
-- github actions CI workflow (`gofmt`, `go vet`, `go test -race`)
+- local pre-push gate (`scripts/check.sh` + `.githooks/pre-push`): gofmt, go vet, go test -race
 - pre-release checklist (`docs/release-checklist.md`)
 - semantic versioning policy + tagging flow in `CONTRIBUTING.md`
 - m8a documentation baseline for publication readiness (`README`, config reference, operations runbook)

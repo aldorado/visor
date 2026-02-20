@@ -30,7 +30,7 @@ run through this before tagging any release.
 
 ## release
 
-- [ ] all CI checks green on main
+- [ ] `scripts/check.sh` passes (or pre-push hook ran clean)
 - [ ] git tree is clean (`git status` shows nothing)
 - [ ] version tag follows semver (`vX.Y.Z`)
 - [ ] tag is annotated: `git tag -a vX.Y.Z -m "release vX.Y.Z"`

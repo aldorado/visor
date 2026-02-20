@@ -453,8 +453,8 @@ Make the repository publication-ready: clean structure, clear docs, no accidenta
 - [x] Add release notes/changelog policy (`CHANGELOG.md`)
 
 #### Iteration 3: quality + release gate
-- [x] Add/verify formatting and lint checks (`gofmt`, `go vet`) in CI
-- [x] Add/verify test command in CI (`go test ./...`) with clear pass/fail gating
+- [x] Add/verify formatting and lint checks (`gofmt`, `go vet`) as local pre-push gate
+- [x] Add/verify test command (`go test -race ./...`) as local pre-push gate
 - [x] Add a pre-release checklist (security scan, secret check, docs check, smoke test)
 - [x] Define semantic versioning + tagging flow (`v0.x`, `v1.0.0` criteria)
 - [x] Create `M8a release candidate` milestone: all checks green + clean tree + tagged release
