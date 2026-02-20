@@ -79,15 +79,16 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	pm := p.fastPM
-	mode := "fast"
-	if needsToolUse(prompt) {
-		toolsPM, err := p.ensureToolsProcess()
-		if err != nil {
-			return "", err
-		}
-		pm = toolsPM
-		mode = "tools"
+	// default to tools for reliability; only use fast mode for obvious smalltalk.
+	toolsPM, err := p.ensureToolsProcess()
+	if err != nil {
+		return "", err
+	}
+	pm := toolsPM
+	mode := "tools"
+	if isLikelySmalltalk(prompt) {
+		pm = p.fastPM
+		mode = "fast"
 	}
 	p.log.Debug(ctx, "pi mode selected", "mode", mode)
 
@@ -207,20 +208,26 @@ func (p *PiAgent) Close() error {
 	return nil
 }
 
-func needsToolUse(prompt string) bool {
-	s := strings.ToLower(prompt)
-	triggers := []string{
+func isLikelySmalltalk(prompt string) bool {
+	s := strings.ToLower(strings.TrimSpace(prompt))
+	if len(s) > 120 {
+		return false
+	}
+	if strings.Contains(s, "\n") {
+		return false
+	}
+	blockers := []string{
 		"run ", "execute", "terminal", "bash", "shell", "command",
 		"read file", "open file", "edit file", "write file", "patch", "diff",
 		"grep", "find ", "ls ", "docker", "git ", "systemctl",
-		"/root/", "./", ".go", ".md", ".env",
+		"/root/", "./", ".go", ".md", ".env", "http://", "https://",
 	}
-	for _, t := range triggers {
-		if strings.Contains(s, t) {
-			return true
+	for _, b := range blockers {
+		if strings.Contains(s, b) {
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func truncateLine(s string, n int) string {
