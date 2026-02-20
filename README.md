@@ -26,6 +26,7 @@ note:
 - [x] 3. Added setup execute hooks for Telegram test message + summary output + CLAUDE cleanup — `internal/server/server.go`
 - [x] 4. Expanded first-run setup guidance context to include finish flow — `internal/setup/detect.go`
 - [x] 5. Added tests for personality override + setup summary write — `internal/setup/finalize_test.go`
+- [x] 6. Research hardening: added setup `validate_openai` action and `recommended` level-up preset support — `internal/setup/actions.go`, `internal/server/server.go`
 
 #### Status
 - M1–M8a: done

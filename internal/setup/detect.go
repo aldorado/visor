@@ -58,8 +58,8 @@ func BuildContext(state State) string {
 project is not fully initialized yet (` + missing + `).
 
 you must guide the user through setup in small steps:
-1) core setup: .env, telegram validate, webhook, /health
-2) optional level-ups: collect .levelup.env vars, enable, validate, start, healthcheck
+1) core setup: .env, telegram validate, openai validate, webhook, /health
+2) optional level-ups: choose (none | recommended | explicit list), collect .levelup.env vars, enable, validate, start, healthcheck
 3) finish: personality keep/custom, send test message, write setup summary, cleanup setup hints
 
 if you need to execute setup actions, include one dedicated setup action json block only in your final response.

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"visor/internal/forgejo"
 	"visor/internal/levelup"
 	emaillevelup "visor/internal/levelup/email"
+	"visor/internal/memory"
 	"visor/internal/observability"
 	"visor/internal/platform/telegram"
 	"visor/internal/scheduler"
@@ -653,6 +655,10 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 	if token == "" {
 		token = s.cfg.TelegramBotToken
 	}
+	openAIKey := strings.TrimSpace(actions.EnvSet["OPENAI_API_KEY"])
+	if openAIKey == "" {
+		openAIKey = s.cfg.OpenAIAPIKey
+	}
 
 	if actions.ValidateTelegram {
 		if token == "" {
@@ -663,6 +669,18 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 				messages = append(messages, "telegram validation failed: "+err.Error())
 			} else {
 				messages = append(messages, "telegram token valid ✅")
+			}
+		}
+	}
+	if actions.ValidateOpenAI {
+		if openAIKey == "" {
+			messages = append(messages, "openai validation failed: OPENAI_API_KEY missing")
+		} else {
+			embedder := memory.NewEmbeddingClient(openAIKey)
+			if _, err := embedder.Embed("ping"); err != nil {
+				messages = append(messages, "openai validation failed: "+err.Error())
+			} else {
+				messages = append(messages, "openai key valid ✅")
 			}
 		}
 	}
@@ -703,8 +721,19 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 		}
 	}
 
-	if len(actions.EnableLevelups) > 0 {
-		if err := levelup.Enable(projectRoot, actions.EnableLevelups); err != nil {
+	enableLevelups := append([]string{}, actions.EnableLevelups...)
+	if strings.EqualFold(strings.TrimSpace(actions.LevelupPreset), "recommended") {
+		names, err := recommendedLevelupNames(projectRoot)
+		if err != nil {
+			messages = append(messages, "recommended levelups failed: "+err.Error())
+		} else {
+			enableLevelups = appendUnique(enableLevelups, names...)
+			messages = append(messages, "recommended levelups selected ✅")
+		}
+	}
+
+	if len(enableLevelups) > 0 {
+		if err := levelup.Enable(projectRoot, enableLevelups); err != nil {
 			messages = append(messages, "enable levelups failed: "+err.Error())
 		} else {
 			messages = append(messages, "levelups enabled ✅")
@@ -805,6 +834,36 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 	}
 
 	return strings.TrimSpace(strings.Join(messages, "\n"))
+}
+
+func recommendedLevelupNames(projectRoot string) ([]string, error) {
+	manifests, err := levelup.DiscoverManifests(projectRoot)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0)
+	for name, m := range manifests {
+		if m.EnabledByDefault {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names, nil
+}
+
+func appendUnique(base []string, items ...string) []string {
+	seen := make(map[string]struct{}, len(base))
+	for _, b := range base {
+		seen[b] = struct{}{}
+	}
+	for _, item := range items {
+		if _, ok := seen[item]; ok {
+			continue
+		}
+		seen[item] = struct{}{}
+		base = append(base, item)
+	}
+	return base
 }
 
 type responseMeta struct {

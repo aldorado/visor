@@ -10,11 +10,13 @@ type ActionEnvelope struct {
 	EnvSet            map[string]string `json:"env_set,omitempty"`
 	EnvUnset          []string          `json:"env_unset,omitempty"`
 	ValidateTelegram  bool              `json:"validate_telegram,omitempty"`
+	ValidateOpenAI    bool              `json:"validate_openai,omitempty"`
 	WebhookURL        string            `json:"webhook_url,omitempty"`
 	WebhookSecret     string            `json:"webhook_secret,omitempty"`
 	CheckHealth       bool              `json:"check_health,omitempty"`
 	LevelupEnvSet     map[string]string `json:"levelup_env_set,omitempty"`
 	LevelupEnvUnset   []string          `json:"levelup_env_unset,omitempty"`
+	LevelupPreset     string            `json:"levelup_preset,omitempty"`
 	EnableLevelups    []string          `json:"enable_levelups,omitempty"`
 	DisableLevelups   []string          `json:"disable_levelups,omitempty"`
 	ValidateLevelups  bool              `json:"validate_levelups,omitempty"`

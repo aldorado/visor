@@ -80,3 +80,4 @@ append under `handoff log`:
 - `M12 / Research 2` done — platform setup flow documented: Telegram-first path finalized, Signal scoped as future dedicated transport milestone — commit `2d7a51b`
 - `M12 / Research 3` done — interactive env validation documented (telegram/webhook/health + levelup validate), identified OpenAI-key validation gap with concrete probe recommendation — commit `38fcec9`
 - `M12 / Research 4` done — optional level-up selection UX documented (staged chooser + recommended shortcut + deterministic apply order) — commit `4142a28`
+- `M12 / extension` done — applied research hardening in runtime: validate_openai action + recommended level-up preset in setup flow — commit TBD
