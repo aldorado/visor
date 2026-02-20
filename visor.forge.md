@@ -187,6 +187,87 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
   - visor host process remains outside compose
   - himalaya email level-up is the first and canonical example integration.
 
+### 2026-02-20 — Reverse proxy comparison: Caddy vs Traefik vs nginx (M10 research #1)
+- **nginx**: eliminated. No auto HTTPS, requires certbot sidecar, fully manual static config. Overkill for this use case.
+- **Traefik**: native Docker label-based service discovery (no plugin), wildcard certs via DNS challenge (`certificatesResolvers`), 50–200MB RAM. Config is complex (YAML/TOML static config + Docker labels + routers/services/middlewares concept). Best for large-scale Docker/K8s orchestration.
+- **Caddy**: simplest config (Caddyfile, ~3 lines per route), built-in auto HTTPS zero-config, 30–100MB RAM. Wildcard certs require custom Docker image with DNS provider plugin (`caddy-dns/cloudflare` etc.) + `tls { dns cloudflare {env.CLOUDFLARE_API_TOKEN} }` in Caddyfile. Docker service discovery via `caddy-docker-proxy` plugin (label-based, auto-generates Caddyfile, zero-downtime reload). Admin API for runtime config updates without restart.
+- **Layer 4 (TCP/UDP)**: Caddy supports non-HTTP protocol forwarding via `caddy-l4` plugin (by mholt, Caddy's author). Enables raw TCP proxy for PostgreSQL, SSH, custom protocols. Supports protocol multiplexing on same port (SSH + HTTPS on 443, like GitHub). Plugin is experimental but actively maintained. Must be included in custom Docker image build.
+- **Decision**: Caddy. Caddyfile is trivial to template/generate from Go code (visor needs to write routes programmatically). Lightest footprint. caddy-docker-proxy gives Traefik-style label discovery. caddy-l4 covers TCP/UDP forwarding for Gitea SSH, PostgreSQL, etc.
+- Custom Docker image recipe (minimal): `xcaddy build --with github.com/mholt/caddy-l4` (DNS plugin only needed if choosing wildcard cert approach over on-demand TLS)
+
+### 2026-02-20 — Cloudflared tunnel coexistence with Caddy (M10 research #4)
+- **Two deployment modes for visor, Caddy is useful in both:**
+  - *Direct mode* (ports 80/443 open): `client → Caddy (HTTPS, on-demand TLS) → service`. Caddy handles SSL via LE, full control, no external dependency.
+  - *Tunnel mode* (no ports open): `client → Cloudflare edge (SSL) → cloudflared → Caddy (HTTP) → service`. Cloudflare terminates TLS at the edge. Caddy runs as internal HTTP-only reverse proxy, routing by Host header. No LE certs needed.
+- **Caddy config difference between modes**: same routing logic (host-based reverse proxy), but in tunnel mode Caddy listens on `:80` (HTTP), in direct mode on `:443` with `tls { on_demand }`. Visor generates the Caddyfile accordingly based on `PROXY_MODE=direct|tunnel`.
+- **On-demand TLS does NOT work behind cloudflared**: HTTP-01 challenge requires LE to reach port 80 directly — the tunnel intercepts this. If behind tunnel, either skip LE entirely (CF handles SSL at edge) or fall back to DNS-01 for internal HTTPS.
+- **Sub-subdomain limitation on free Cloudflare plan**: `*.visor.example.com` is a sub-subdomain wildcard — free CF Universal SSL only covers `*.example.com`, not `*.sub.example.com`. Options:
+  - (a) Purchase Advanced Certificate Manager (~$10/month) for multi-level wildcard SSL
+  - (b) Use flat subdomains: `visor-obsidian.example.com` instead of `obsidian.visor.example.com`
+  - (c) Dedicate a whole domain: `*.visor.dev` (first-level wildcard, works on free plan)
+  - Direct mode has no such limitation — Caddy on-demand TLS works with any subdomain depth.
+- **Cloudflared tunnel routing**: set wildcard CNAME (`*` or `*.visor`) → `TUNNEL_ID.cfargotunnel.com`. Add matching public hostname in CF dashboard pointing to `caddy:80`. Host header is preserved through tunnel, so Caddy routes correctly.
+- **Is cloudflared still needed?** Depends on user's setup:
+  - User has ports open + static IP/domain → direct mode, no cloudflared needed for level-ups
+  - User is behind NAT / no open ports → tunnel mode, cloudflared required
+  - Hybrid: cloudflared for main webhook (Telegram), direct for level-ups → possible but awkward
+- **Decision**: visor supports both modes via `PROXY_MODE` env var. Default to `direct` (simpler, no CF dependency). Cloudflared level-up from M0-I5 remains available as opt-in for tunnel mode.
+
+### 2026-02-20 — On-demand TLS vs wildcard cert (M10 research #5)
+- **Decision: on-demand TLS**. Eliminates DNS provider API dependency entirely. User only needs one wildcard DNS A record (`*.visor.example.com → server IP`), set once manually. No further DNS interaction needed.
+- **How on-demand TLS works**: when a new subdomain is first requested (e.g. `obsidian.visor.example.com`), Caddy issues an individual cert via HTTP-01 challenge on the spot. First request has ~2-3s delay, all subsequent requests are instant. Renewal is automatic in the background.
+- **Security: `ask` endpoint required**. Caddy sends `GET http://localhost:<port>/check?domain=obsidian.visor.example.com` before issuing any cert. Visor provides this endpoint — trivial: check if the requested subdomain matches an enabled level-up. Returns 200 = issue cert, anything else = reject. Prevents abuse (random domains pointing to server won't get certs).
+- **Caddyfile config** (minimal):
+  ```
+  {
+      on_demand_tls {
+          ask http://localhost:9123/check
+      }
+  }
+  https:// {
+      tls {
+          on_demand
+      }
+      reverse_proxy {upstream}
+  }
+  ```
+- **Rate limit**: LE allows 50 certs/domain/week. Visor won't have 50 level-ups, so not a concern.
+- **No custom Docker image needed for TLS** — standard `caddy:2-alpine` works. Custom image only needed if using `caddy-l4` for TCP/UDP forwarding (SSH, PostgreSQL).
+- **Visor env contract simplified**: only `PROXY_DOMAIN` (e.g. `visor.example.com`) needed. No `DNS_PROVIDER`, no `DNS_API_TOKEN`.
+- **Wildcard cert still available as fallback**: if user has many subdomains or wants to avoid per-subdomain issuance, they can opt into DNS-01 by providing DNS provider credentials. But on-demand TLS is the default.
+
+### 2026-02-20 — Docker network isolation patterns (M10 research #3)
+- **Network topology for visor**: one shared `proxy` network + per-level-up isolated networks. Caddy container joins `proxy` + all level-up networks it needs to reach. Level-up containers join their own internal network + `proxy` network (only for the service that caddy needs to reach).
+- **No host port exposure**: level-up compose files must NOT have `ports:` mappings. Services are only reachable through Caddy via the shared docker network. Container-to-container communication uses internal docker DNS (service name resolution).
+- **`internal: true` option**: marking a level-up network as `internal: true` prevents outbound internet access from those containers. Useful for databases, but NOT for services that need internet (e.g., himalaya for SMTP/IMAP, gitea for git clone). Decision: default to normal (not internal), let level-up manifest opt-in to `internal: true` if desired.
+- **Caddy discovery — two approaches**:
+  - (a) `caddy-docker-proxy` with labels: automatic discovery via `CADDY_INGRESS_NETWORKS` env var. Caddy watches docker events, auto-generates Caddyfile from container labels. Zero-config per service.
+  - (b) visor generates Caddyfile directly: visor writes/updates Caddyfile when level-ups are enabled/disabled, then triggers `caddy reload`. More explicit control, no label dependency.
+  - **Decision: option (b) — visor generates Caddyfile**. Visor already manages the level-up lifecycle and knows which services are enabled/disabled. Generating the Caddyfile directly is simpler than maintaining docker labels across compose overlays. Also works cleanly with on-demand TLS (visor provides the `ask` endpoint AND the routing config).
+- **External network pattern**: the `proxy` network is created as an `external: true` network in each level-up compose file. Caddy's compose creates it, level-ups reference it. This allows cross-compose-file communication without being in the same compose project.
+- **Practical compose structure per level-up**:
+  ```yaml
+  services:
+    obsidian:
+      image: lscr.io/linuxserver/obsidian
+      # NO ports: section
+      networks:
+        - proxy
+        - obsidian_internal
+  networks:
+    proxy:
+      external: true
+    obsidian_internal:
+      driver: bridge
+  ```
+
+### 2026-02-20 — Wildcard DNS + cert flow (M10 research #2)
+- **Two approaches available**: (a) wildcard cert via DNS-01 challenge (requires DNS provider API), or (b) on-demand TLS via HTTP-01 (no DNS API needed). See research #5 for the decision.
+- **Wildcard DNS setup**: user sets one `*.visor.example.com` A record pointing to the server. This is a one-time manual DNS change. After that, ALL subdomains (`obsidian.visor.example.com`, `git.visor.example.com`, etc.) automatically resolve to the server. No further DNS entries needed per level-up.
+- **Wildcard cert (DNS-01)**: requires DNS provider API access because LE creates a TXT record at `_acme-challenge.<domain>` on every renewal. 30+ providers supported via `caddy-dns` GitHub org (Cloudflare, Route53, Hetzner, IONOS, etc.). Requires custom Caddy Docker image with DNS plugin.
+- **On-demand TLS (HTTP-01)**: no DNS provider API needed at all. Caddy issues individual certs per subdomain when first requested. Requires only that the wildcard DNS points to the server (which it does). See research #5.
+- **Cert storage in Docker**: Caddy stores certs in `/data`, config in `/config`. Both MUST be mounted as persistent volumes — losing them means re-issuance, and LE has rate limits (50 certs/domain/week). Renewal is fully automatic (~30 days before expiry), zero-downtime.
+
 ### 2026-02-19 — Obsidian standard level-up added
 - Added an additional default level-up overlay for Obsidian based on LinuxServer `docker-obsidian`.
 - Compose file target: `docker-compose.levelup.obsidian.yml`.
@@ -502,18 +583,18 @@ Visor can spawn multiple pi subagents in parallel, coordinate them, and return o
 Visor can expose its docker-compose level-ups to the internet automatically. Each level-up gets its own subdomain under a wildcard DNS entry, with auto-provisioned SSL via Let's Encrypt. Level-ups run in isolated docker networks and never expose ports to the host directly.
 
 #### Research tasks
-- [ ] Compare reverse proxy options for this use case: Caddy vs Traefik vs nginx. Key criteria: auto Let's Encrypt with wildcard certs, docker-aware service discovery, config-as-code simplicity, resource footprint
-- [ ] Investigate wildcard DNS + wildcard cert flow: DNS-01 challenge requirements per provider (Cloudflare API, Route53, etc.), cert storage, renewal automation
-- [ ] Investigate docker network isolation patterns: per-level-up networks, proxy-only shared network, no host port exposure. How does the proxy discover backend containers?
-- [ ] Check if cloudflared tunnel can coexist with or replace the reverse proxy approach (tunnel per service vs. single ingress point)
-- [ ] Evaluate Caddy's on-demand TLS vs. Traefik's cert resolvers for wildcard subdomain auto-provisioning
+- [x] Compare reverse proxy options for this use case: Caddy vs Traefik vs nginx. Key criteria: auto Let's Encrypt with wildcard certs, docker-aware service discovery, config-as-code simplicity, resource footprint
+- [x] Investigate wildcard DNS + wildcard cert flow: DNS-01 challenge requirements per provider (Cloudflare API, Route53, etc.), cert storage, renewal automation
+- [x] Investigate docker network isolation patterns: per-level-up networks, proxy-only shared network, no host port exposure. How does the proxy discover backend containers?
+- [x] Check if cloudflared tunnel can coexist with or replace the reverse proxy approach (tunnel per service vs. single ingress point)
+- [x] Evaluate Caddy's on-demand TLS vs. wildcard cert via DNS-01 for subdomain auto-provisioning
 
 #### Iteration 1: proxy level-up + network isolation
 - [ ] Choose proxy (based on research) and add as base level-up (`docker-compose.levelup.proxy.yml`)
 - [ ] Define network topology: one shared `proxy` network + per-level-up isolated networks. Proxy container joins both.
 - [ ] Remove direct port mappings from existing level-up compose files (obsidian, himalaya, etc.)
 - [ ] Add proxy config generation: visor writes proxy routes when level-ups are enabled/disabled
-- [ ] Add wildcard DNS + Let's Encrypt config to `.levelup.env` (`DOMAIN`, `DNS_PROVIDER`, `DNS_API_TOKEN`)
+- [ ] Add proxy config to `.levelup.env` (`PROXY_DOMAIN`; optional `DNS_PROVIDER` + `DNS_API_TOKEN` for wildcard cert fallback)
 
 #### Iteration 2: dynamic subdomain routing
 - [ ] Visor auto-registers `<levelup-name>.visor.<domain>` → `<levelup-container>:<port>` on level-up enable
