@@ -8,7 +8,9 @@ this is the practical runbook for day-to-day operation.
 export TELEGRAM_BOT_TOKEN="<bot-token>"
 export USER_PHONE_NUMBER="<chat-id>"
 export AGENT_BACKEND="echo"
-go run .
+mkdir -p bin
+go build -o bin/visor .
+./bin/visor
 ```
 
 health check:
@@ -20,7 +22,7 @@ curl -s http://localhost:8080/health
 ## logs
 
 local:
-- stdout/stderr from `go run .`
+- stdout/stderr from `./bin/visor`
 
 recommended for production:
 - run under systemd and inspect via `journalctl -u visor -f`

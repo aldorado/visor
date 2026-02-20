@@ -82,7 +82,7 @@ func WriteSetupSummary(projectRoot string, in SummaryInput) (string, error) {
 	if in.HealthOK {
 		content += "health: `ok`\n"
 	}
-	content += "\nstart: `go run .`\n"
+	content += "\nstart: `go build -o bin/visor . && ./bin/visor`\n"
 	content += "stop: `ctrl+c` (or stop your service manager)\n"
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		return "", fmt.Errorf("write %s: %w", path, err)

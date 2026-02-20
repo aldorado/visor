@@ -53,8 +53,10 @@ export USER_PHONE_NUMBER="<telegram-chat-id>"
 # 3) choose agent backend (quick smoke test)
 export AGENT_BACKEND="echo"
 
-# 4) run
-go run .
+# 4) build + run
+mkdir -p bin
+go build -o bin/visor .
+./bin/visor
 
 # 5) verify server
 curl -s http://localhost:8080/health
@@ -67,7 +69,7 @@ if you want full ubuntu walkthroughs:
 ## runtime notes (current defaults)
 
 - telegram webhook target is `https://<your-domain>/webhook` (not root `/`)
-- `pi` backend runs as persistent rpc with `--no-tools` for faster chat response times
+- `pi` backend runs in rpc tools mode (tool-first behavior)
 - level-up proxy binds localhost only (`127.0.0.1:${PROXY_HTTP_PORT}`, `127.0.0.1:${PROXY_HTTPS_PORT}`), so public ingress should stay at host caddy/nginx
 
 ## architecture (short)

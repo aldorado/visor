@@ -138,7 +138,9 @@ cd /root/code/visor
 set -a
 source .env
 set +a
-go run .
+mkdir -p bin
+go build -o bin/visor .
+./bin/visor
 ```
 
 terminal offen lassen.
@@ -181,7 +183,9 @@ cd /root/code/visor
 set -a
 source .env
 set +a
-go run .
+mkdir -p bin
+go build -o bin/visor .
+./bin/visor
 ```
 
 tunnel starten (terminal 2):
@@ -277,7 +281,7 @@ After=network.target
 Type=simple
 WorkingDirectory=/root/code/visor
 EnvironmentFile=/root/code/visor/.env
-ExecStart=/usr/bin/env bash -lc 'set -a; source /root/code/visor/.env; set +a; /usr/bin/go run .'
+ExecStart=/usr/bin/env bash -lc 'set -a; source /root/code/visor/.env; set +a; exec /root/code/visor/bin/visor'
 Restart=always
 RestartSec=3
 User=root
@@ -287,9 +291,12 @@ WantedBy=multi-user.target
 EOF
 ```
 
-start + enable:
+build + start + enable:
 
 ```bash
+cd /root/code/visor
+mkdir -p bin
+go build -o bin/visor .
 sudo systemctl daemon-reload
 sudo systemctl enable --now visor
 sudo systemctl status visor --no-pager
