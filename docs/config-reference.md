@@ -18,6 +18,7 @@ this file documents runtime environment variables for visor.
 | `AGENT_BACKENDS` | no | derived from `AGENT_BACKEND` | comma-separated priority list for auto-failover |
 | `TELEGRAM_WEBHOOK_SECRET` | no | empty | optional webhook secret validation |
 | `DATA_DIR` | no | `data` | runtime storage base path |
+| `TZ` | no | `UTC` | timezone for natural-time scheduling/quick actions (e.g. `Europe/Vienna`) |
 
 ## ai + voice
 

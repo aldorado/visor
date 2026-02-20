@@ -24,18 +24,19 @@ import (
 )
 
 type Server struct {
-	cfg         *config.Config
-	mux         *http.ServeMux
-	tg          *telegram.Client
-	dedup       *telegram.Dedup
-	agent       *agent.QueuedAgent
-	voice       *voice.Handler
-	emailSender emaillevelup.Sender
-	emailPoller *emaillevelup.Poller
-	scheduler   *scheduler.Scheduler
-	skills      *skills.Manager
-	selfevolver *selfevolve.Manager
-	log         *observability.Logger
+	cfg          *config.Config
+	mux          *http.ServeMux
+	tg           *telegram.Client
+	dedup        *telegram.Dedup
+	agent        *agent.QueuedAgent
+	voice        *voice.Handler
+	emailSender  emaillevelup.Sender
+	emailPoller  *emaillevelup.Poller
+	scheduler    *scheduler.Scheduler
+	quickActions *scheduler.QuickActionHandler
+	skills       *skills.Manager
+	selfevolver  *selfevolve.Manager
+	log          *observability.Logger
 }
 
 func New(cfg *config.Config, a agent.Agent) *Server {
@@ -188,6 +189,9 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 	})
 
 	schedulerInstance, err := scheduler.New(cfg.DataDir+"/scheduler", func(ctx context.Context, task scheduler.Task) {
+		if s.quickActions != nil {
+			s.quickActions.RecordTrigger(task)
+		}
 		content := fmt.Sprintf("[scheduled task]\nid: %s\nrecurring: %t\nprompt: %s", task.ID, task.Recurring, task.Prompt)
 		s.agent.Enqueue(ctx, agent.Message{
 			ChatID:  mustParseChatID(cfg.UserChatID),
@@ -199,6 +203,13 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		panic(fmt.Sprintf("scheduler init failed: %v", err))
 	}
 	s.scheduler = schedulerInstance
+
+	loc, locErr := time.LoadLocation(cfg.Timezone)
+	if locErr != nil {
+		s.log.Warn(context.Background(), "invalid timezone, defaulting to UTC", "tz", cfg.Timezone, "error", locErr.Error())
+		loc = time.UTC
+	}
+	s.quickActions = scheduler.NewQuickActionHandler(schedulerInstance, loc, s.log)
 
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("POST /webhook", s.handleWebhook)
@@ -312,6 +323,18 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.log.Info(r.Context(), "webhook message accepted", "message_type", msgType, "chat_id", chatID, "preview", truncate(content, 80))
+
+	// quick action intercept: check if this is a reply to a recently triggered reminder
+	if msgType == "text" && s.quickActions != nil {
+		if reply, handled := s.quickActions.TryHandle(r.Context(), content); handled {
+			s.log.Info(r.Context(), "quick action handled", "chat_id", chatID, "reply", reply)
+			if sendErr := s.tg.SendMessage(msg.Chat.ID, reply); sendErr != nil {
+				s.log.Error(r.Context(), "quick action reply failed", "chat_id", chatID, "error", sendErr.Error())
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
 
 	// auto-trigger: run matching skills and prepend output to agent context
 	if s.skills != nil {

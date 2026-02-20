@@ -1,4 +1,4 @@
-# visor backlog
+# visor coordination board
 
 single coordination board for humans + multi-agents.
 
@@ -24,19 +24,18 @@ if this file and `visor.forge.md` diverge, update this file immediately after ea
 
 ### partially open milestones
 - `M3` memory: 2 open items (remote sync protocol + incremental sync)
-- `M5` scheduling: 5 open items (it2.5 quick actions + tests)
 
 ### not started / mostly open
-- `M9` optional multi-subagent orchestration
-- `M10` reverse proxy level-up
-- `M11` forgejo level-up
-- `M12` interactive first-run onboarding
+- `M9` optional multi-subagent orchestration (18 open)
+- `M10` reverse proxy level-up (13 open)
+- `M11` forgejo level-up (12 open)
+- `M12` interactive first-run onboarding (18 open)
 
 ## now / next recommendation
 
-1. finish `M1` final deploy/e2e check (close old debt)
-2. finish `M5` it2.5 quick reminder actions
-3. then choose one major stream: `M10` (infra exposure) or `M12` (onboarding)
+1. finish `M3` remote sync design + incremental sync contract
+2. then choose one major stream: `M10` (infra exposure) or `M12` (onboarding)
+3. keep `M9` optional until core infra/onboarding streams are stable
 
 ## multi-agent coordination rules
 
@@ -67,4 +66,5 @@ each agent handoff must include:
 - completed `M8a it1` + `M8a it2`
 - repo/docs polish merged (`.gitignore`, `LICENSE`, `CONTRIBUTING`, `README`, `CHANGELOG`, config/ops docs)
 - completed `M1` final e2e closure via webhook→agent→telegram delivery test harness
+- completed `M5 it2.5` quick actions (`done/snooze/reschedule`), natural time parsing, idempotency guard, and tests
 - latest related commits: `bbd6d1b`, `7970e20`

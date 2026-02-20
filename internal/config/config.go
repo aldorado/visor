@@ -32,6 +32,7 @@ type Config struct {
 	SelfEvolutionEnabled   bool
 	SelfEvolutionRepoDir   string
 	SelfEvolutionPush      bool
+	Timezone               string
 }
 
 func Load() (*Config, error) {
@@ -123,6 +124,11 @@ func Load() (*Config, error) {
 	}
 	selfEvolutionPush := os.Getenv("SELF_EVOLUTION_PUSH") == "1" || os.Getenv("SELF_EVOLUTION_PUSH") == "true"
 
+	tz := os.Getenv("TZ")
+	if tz == "" {
+		tz = "UTC"
+	}
+
 	return &Config{
 		TelegramBotToken:       token,
 		TelegramWebhookSecret:  os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
@@ -148,5 +154,6 @@ func Load() (*Config, error) {
 		SelfEvolutionEnabled:   selfEvolutionEnabled,
 		SelfEvolutionRepoDir:   selfEvolutionRepoDir,
 		SelfEvolutionPush:      selfEvolutionPush,
+		Timezone:               tz,
 	}, nil
 }

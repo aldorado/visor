@@ -14,6 +14,7 @@ func clearEnv() {
 	os.Unsetenv("SELF_EVOLUTION_ENABLED")
 	os.Unsetenv("SELF_EVOLUTION_REPO_DIR")
 	os.Unsetenv("SELF_EVOLUTION_PUSH")
+	os.Unsetenv("TZ")
 }
 
 func TestLoad_MinimalValid(t *testing.T) {
@@ -40,6 +41,9 @@ func TestLoad_MinimalValid(t *testing.T) {
 	if cfg.TelegramWebhookSecret != "" {
 		t.Errorf("webhook secret = %q, want empty", cfg.TelegramWebhookSecret)
 	}
+	if cfg.Timezone != "UTC" {
+		t.Errorf("timezone = %q, want %q", cfg.Timezone, "UTC")
+	}
 }
 
 func TestLoad_AllFields(t *testing.T) {
@@ -49,6 +53,7 @@ func TestLoad_AllFields(t *testing.T) {
 	os.Setenv("PORT", "3000")
 	os.Setenv("TELEGRAM_WEBHOOK_SECRET", "secret123")
 	os.Setenv("AGENT_BACKEND", "pi")
+	os.Setenv("TZ", "Europe/Vienna")
 
 	cfg, err := Load()
 	if err != nil {
@@ -62,6 +67,9 @@ func TestLoad_AllFields(t *testing.T) {
 	}
 	if cfg.AgentBackend != "pi" {
 		t.Errorf("backend = %q, want %q", cfg.AgentBackend, "pi")
+	}
+	if cfg.Timezone != "Europe/Vienna" {
+		t.Errorf("timezone = %q, want %q", cfg.Timezone, "Europe/Vienna")
 	}
 }
 
