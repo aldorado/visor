@@ -1,5 +1,7 @@
 # visor
 
+![visor logo](docs/assets/visor-logo.png)
+
 visor is a go-based execution board for a telegram-first ai agent with memory, voice, scheduling, level-ups, and self-evolution hooks.
 
 it is built to stay simple in runtime shape:

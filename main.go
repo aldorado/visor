@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"visor/internal/agent"
+	"visor/internal/branding"
 	"visor/internal/config"
 	"visor/internal/observability"
 	"visor/internal/server"
@@ -21,6 +22,8 @@ func main() {
 
 	observability.Init(observability.LogConfig{Level: cfg.LogLevel, Verbose: cfg.LogVerbose})
 	log := observability.Component("main")
+	fmt.Print(branding.StartupASCII)
+	fmt.Println("visor startup sequence engaged 🛸")
 
 	shutdownOTel, err := observability.InitOTel(context.Background(), observability.OTelConfig{
 		Enabled:     cfg.OTELEnabled,
