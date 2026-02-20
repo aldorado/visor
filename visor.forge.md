@@ -19,6 +19,7 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 - Skill parity bootstrap: ship visor with the same baseline skills as current ubik by copying them into `visor/skills/` as the initial pack.
 - Reverse proxy: level-ups get exposed via subdomain under wildcard DNS (`*.visor.<domain>`), auto SSL via Let's Encrypt, no direct host port exposure. Proxy runs as a base level-up.
 - Forgejo: self-hosted git (Forgejo over Gitea, for ethical/community reasons) as a standard level-up. Visor pushes all self-authored code (self-evolve, forge-execution, skills) to its own Forgejo instance automatically.
+- Zero-to-running onboarding: new user clones repo, starts pi/claude, gets guided through setup conversationally. No manual config editing. Optional level-ups (Forgejo, Himalaya, Obsidian) presented during setup.
 
 ## Research tasks
 - [x] Investigate Claude Code RPC mode — does `claude --mode rpc` exist? what's the protocol? document stdin/stdout message format
@@ -648,7 +649,7 @@ Visor pushes code it writes (via forge-execution, self-evolution, skill creation
 - [x] Design git remote strategy: visor's local repo gets a `forgejo` remote added automatically. Push after self-evolve, forge-execution, and skill creation commits.
 - [x] Investigate SSH vs HTTP push: which is simpler for a local-network setup? Token-based HTTP push vs SSH key management.
 
-#### Iteration 1: Gitea level-up
+#### Iteration 1: Forgejo level-up
 - [ ] Add `docker-compose.levelup.forgejo.yml` with persistent storage (repos + SQLite)
 - [ ] Add Forgejo env keys to `.levelup.env.example` (admin user, token, domain, HTTP port)
 - [ ] Add first-run bootstrap: `INSTALL_LOCK=true` + `forgejo admin user create` + push-to-create enabled
@@ -665,6 +666,35 @@ Visor pushes code it writes (via forge-execution, self-evolution, skill creation
 - [ ] Forgejo webhook → visor notification on external push/PR (if someone else pushes)
 - [ ] Add repo listing skill: agent can list repos, recent commits, open issues on its Forgejo
 - [ ] Add README auto-generation on repo creation (project name, forge link, status)
+
+### M12: interactive setup — zero-to-running guided onboarding
+New user clones visor, starts `pi` or `claude` in the repo folder, and gets guided through the entire setup process conversationally. No manual config editing, no reading docs. The agent walks them through everything and visor is running at the end.
+
+#### Research tasks
+- [ ] Investigate how CLAUDE.md / .pi/instructions can detect first-run state (no `.env`, no `data/` dir, no running process)
+- [ ] Investigate platform-specific setup flows: what needs to happen for WhatsApp vs Telegram (bot token, webhook URL, chat ID)
+- [ ] Investigate how to validate env vars interactively (test Telegram token, test OpenAI key, etc.)
+- [ ] Investigate optional level-up selection UX: how to present Forgejo, Himalaya, Obsidian as opt-in during setup
+
+#### Iteration 1: first-run detection + core setup
+- [ ] Add first-run detection in CLAUDE.md / agent instructions: check for `.env`, running process, `data/` dir
+- [ ] Agent walks user through platform selection (WhatsApp vs Telegram)
+- [ ] Agent collects required env vars conversationally, writes `.env`
+- [ ] Agent validates credentials (ping Telegram API, test OpenAI key, etc.)
+- [ ] Agent sets up webhook (Telegram: run setup script, WhatsApp: guide through Meta dashboard)
+- [ ] Agent runs `go build .` and starts visor, confirms it's responding on `/health`
+
+#### Iteration 2: optional level-ups
+- [ ] Agent presents available level-ups (Forgejo, Himalaya, Obsidian, Cloudflared) and lets user pick
+- [ ] For each selected level-up: collect required env vars, write `.levelup.env`, start compose
+- [ ] Forgejo: run bootstrap (admin user, push-to-create config), add git remote
+- [ ] Verify each level-up is healthy before moving on
+
+#### Iteration 3: personality + finish
+- [ ] Agent asks if user wants to customize personality (edit CLAUDE.md) or keep defaults
+- [ ] Agent sends a test message to the user's platform (Telegram/WhatsApp) to confirm end-to-end flow
+- [ ] Agent writes a summary of what was set up and how to start/stop visor
+- [ ] Clean up setup instructions from CLAUDE.md (they're only needed once)
 
 ## Open questions
 - Skill sandboxing: how strict? Docker/nsjail or just subprocess with timeout?
