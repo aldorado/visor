@@ -1,0 +1,17 @@
+name = "forgejo"
+display_name = "Forgejo Git"
+version = "0.1.0"
+description = "Self-hosted git for visor-authored code — push target for self-evolve, forge-execution, and skill creation"
+kind = "infra"
+enabled_by_default = false
+compose_file = "docker-compose.levelup.forgejo.yml"
+healthcheck = "http://forgejo:3000/api/v1/version"
+tags = ["git", "forgejo", "vcs"]
+required_env = [
+  "FORGEJO_ADMIN_USER",
+  "FORGEJO_ADMIN_PASSWORD",
+  "FORGEJO_ADMIN_EMAIL",
+]
+proxy_service = "forgejo"
+proxy_port = 3000
+subdomain = "git"

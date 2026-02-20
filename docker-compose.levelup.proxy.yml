@@ -15,6 +15,7 @@ services:
       - proxy
       - levelup-cloudflared
       - levelup-echo-stub
+      - levelup-forgejo
       - levelup-himalaya
       - levelup-obsidian
     restart: unless-stopped
@@ -26,6 +27,8 @@ networks:
     name: visor-levelup-cloudflared
   levelup-echo-stub:
     name: visor-levelup-echo-stub
+  levelup-forgejo:
+    name: visor-levelup-forgejo
   levelup-himalaya:
     name: visor-levelup-himalaya
   levelup-obsidian:

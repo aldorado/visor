@@ -188,6 +188,13 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
   - visor host process remains outside compose
   - himalaya email level-up is the first and canonical example integration.
 
+### 2026-02-20 — M11 iteration 1 complete
+- `docker-compose.levelup.forgejo.yml` added with Forgejo 14.0.2, persistent `/data` volume (repos + SQLite), push-to-create enabled, INSTALL_LOCK=true to skip web installer
+- Bootstrap via CMD override (dumb-init entrypoint stays intact): waits for Forgejo to be ready, creates admin user, generates `visor-push` access token, writes to `/data/visor-push.token`, sets `.bootstrap-done` marker so it only runs once
+- `levelups/forgejo/levelup.toml` with `subdomain = "git"` — proxy auto-routes `git.visor.<PROXY_DOMAIN>` to Forgejo port 3000
+- `docker-compose.levelup.proxy.yml` updated to include `levelup-forgejo` network (Caddy joins it)
+- `.levelup.env.example` updated with Forgejo admin credentials block
+
 ### 2026-02-20 — Git remote strategy + SSH vs HTTP (M11 research #3 + #4)
 - **No git hooks needed.** Visor controls the commit process itself — it just runs `git push forgejo main` as part of its commit flow. No post-commit hooks, no complexity.
 - **When visor pushes:**
@@ -623,10 +630,10 @@ Visor pushes code it writes (via forge-execution, self-evolution, skill creation
 - [x] Investigate SSH vs HTTP push: which is simpler for a local-network setup? Token-based HTTP push vs SSH key management.
 
 #### Iteration 1: Forgejo level-up
-- [ ] Add `docker-compose.levelup.forgejo.yml` with persistent storage (repos + SQLite)
-- [ ] Add Forgejo env keys to `.levelup.env.example` (admin user, token, domain, HTTP port)
-- [ ] Add first-run bootstrap: `INSTALL_LOCK=true` + `forgejo admin user create` + push-to-create enabled
-- [ ] Integrate with M10 proxy: `git.visor.<domain>` subdomain auto-routed to Forgejo
+- [x] Add `docker-compose.levelup.forgejo.yml` with persistent storage (repos + SQLite)
+- [x] Add Forgejo env keys to `.levelup.env.example` (admin user, token, domain, HTTP port)
+- [x] Add first-run bootstrap: `INSTALL_LOCK=true` + `forgejo admin user create` + push-to-create enabled
+- [x] Integrate with M10 proxy: `git.visor.<domain>` subdomain auto-routed to Forgejo
 
 #### Iteration 2: auto-push integration
 - [ ] On level-up enable: visor adds `forgejo` remote to its own repo (and any forge-execution project repos)
