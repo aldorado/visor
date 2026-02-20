@@ -317,6 +317,20 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 - Copied the full current ubik skill pack from `/root/code/ubik/.pi/skills/` to `/root/code/visor/skills/` as visor bootstrap parity.
 - Obsidian level-up explicitly uses host bind mounts for `/config` and `/vault` so host-native visor can directly read/write vault files.
 
+
+### 2026-02-20 — M12 first-run detection strategy (M12 research #1)
+- **Best detection source is runtime state, not prompt heuristics alone.** `CLAUDE.md` / `.pi` should only describe behavior; actual first-run detection should be computed in code and injected into agent context.
+- **Reliable first-run signals:**
+  - missing `.env`
+  - missing `data/` dir
+  - missing bootstrap env vars (`TELEGRAM_BOT_TOKEN`, `USER_PHONE_NUMBER`)
+- **Running-process check should be health-based, not `pgrep`.** Use local `GET /health` (port from config) as canonical liveness signal. PID/pgrep is brittle with dev runs, tests, and containerized helpers.
+- **Recommended contract:**
+  - server computes setup state once on startup + after setup actions
+  - when first-run=true, server injects `[first-run setup mode]` system context into the user prompt
+  - agent executes structured `setup_actions` until setup state flips false
+- **Decision:** keep first-run gate in runtime (`internal/setup/detect.go` + prompt injection in server), use `CLAUDE.md` only as policy text.
+
 ## Milestones
 
 ### M0: host-native runtime boundary + level-up foundation + native email baseline
@@ -651,7 +665,7 @@ Visor pushes code it writes (via forge-execution, self-evolution, skill creation
 New user clones visor, starts `pi` or `claude` in the repo folder, and gets guided through the entire setup process conversationally. No manual config editing, no reading docs. The agent walks them through everything and visor is running at the end.
 
 #### Research tasks
-- [ ] Investigate how CLAUDE.md / .pi/instructions can detect first-run state (no `.env`, no `data/` dir, no running process)
+- [x] Investigate how CLAUDE.md / .pi/instructions can detect first-run state (no `.env`, no `data/` dir, no running process)
 - [ ] Investigate platform-specific setup flows: what needs to happen for Telegram (bot token, webhook URL, chat ID) and potentially Signal
 - [ ] Investigate how to validate env vars interactively (test Telegram token, test OpenAI key, etc.)
 - [ ] Investigate optional level-up selection UX: how to present Forgejo, Himalaya, Obsidian as opt-in during setup
