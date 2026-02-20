@@ -11,7 +11,7 @@
 - Applies fallback policy on rate-limit/quota/auth errors
 - Tracks runtime quota signals (`rate_limit_event`, provider errors)
 
-## 3) Messaging Agent (Telegram/WhatsApp)
+## 3) Messaging Agent (Telegram)
 - Implements raw HTTP webhook ingestion and outbound sends
 - Performs auth checks, dedup, and update normalization
 - Maintains platform formatting compatibility

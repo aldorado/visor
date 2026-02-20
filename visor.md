@@ -25,7 +25,7 @@ Rewrite ubik from scratch in a compiled language (Rust or Go) for a faster, lean
 
 ## Architecture
 - Single binary as core runtime
-- Webhook server (Telegram + WhatsApp)
+- Webhook server (Telegram)
 - Agent process manager (persistent child process, RPC over stdin/stdout)
 - Voice pipeline (HTTP calls to OpenAI + ElevenLabs)
 - Memory system (embeddings + vector search, parquet-first)

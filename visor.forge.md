@@ -672,16 +672,16 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 
 #### Research tasks
 - [ ] Investigate how CLAUDE.md / .pi/instructions can detect first-run state (no `.env`, no `data/` dir, no running process)
-- [ ] Investigate platform-specific setup flows: what needs to happen for WhatsApp vs Telegram (bot token, webhook URL, chat ID)
+- [ ] Investigate platform-specific setup flows: what needs to happen for Telegram (bot token, webhook URL, chat ID) and potentially Signal
 - [ ] Investigate how to validate env vars interactively (test Telegram token, test OpenAI key, etc.)
 - [ ] Investigate optional level-up selection UX: how to present Forgejo, Himalaya, Obsidian as opt-in during setup
 
 #### Iteration 1: first-run detection + core setup
 - [ ] Add first-run detection in CLAUDE.md / agent instructions: check for `.env`, running process, `data/` dir
-- [ ] Agent walks user through platform selection (WhatsApp vs Telegram)
+- [ ] Agent walks user through platform selection (Telegram, potentially Signal)
 - [ ] Agent collects required env vars conversationally, writes `.env`
 - [ ] Agent validates credentials (ping Telegram API, test OpenAI key, etc.)
-- [ ] Agent sets up webhook (Telegram: run setup script, WhatsApp: guide through Meta dashboard)
+- [ ] Agent sets up webhook (Telegram: run setup script)
 - [ ] Agent runs `go build .` and starts visor, confirms it's responding on `/health`
 
 #### Iteration 2: optional level-ups
@@ -692,7 +692,7 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 
 #### Iteration 3: personality + finish
 - [ ] Agent asks if user wants to customize personality (edit CLAUDE.md) or keep defaults
-- [ ] Agent sends a test message to the user's platform (Telegram/WhatsApp) to confirm end-to-end flow
+- [ ] Agent sends a test message to the user's platform (Telegram) to confirm end-to-end flow
 - [ ] Agent writes a summary of what was set up and how to start/stop visor
 - [ ] Clean up setup instructions from CLAUDE.md (they're only needed once)
 
