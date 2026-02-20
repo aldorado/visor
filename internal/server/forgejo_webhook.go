@@ -13,9 +13,9 @@ import (
 const forgejoEventHeader = "X-Forgejo-Event"
 
 type forgejoPushPayload struct {
-	Ref    string `json:"ref"`
-	Before string `json:"before"`
-	After  string `json:"after"`
+	Ref     string `json:"ref"`
+	Before  string `json:"before"`
+	After   string `json:"after"`
 	Commits []struct {
 		Message string `json:"message"`
 		ID      string `json:"id"`
@@ -32,7 +32,7 @@ type forgejoPRPayload struct {
 	Action      string `json:"action"`
 	Number      int    `json:"number"`
 	PullRequest struct {
-		Title  string `json:"title"`
+		Title   string `json:"title"`
 		HTMLURL string `json:"html_url"`
 	} `json:"pull_request"`
 	Repository struct {
