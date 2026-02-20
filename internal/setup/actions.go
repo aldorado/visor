@@ -7,12 +7,20 @@ import (
 )
 
 type ActionEnvelope struct {
-	EnvSet           map[string]string `json:"env_set,omitempty"`
-	EnvUnset         []string          `json:"env_unset,omitempty"`
-	ValidateTelegram bool              `json:"validate_telegram,omitempty"`
-	WebhookURL       string            `json:"webhook_url,omitempty"`
-	WebhookSecret    string            `json:"webhook_secret,omitempty"`
-	CheckHealth      bool              `json:"check_health,omitempty"`
+	EnvSet            map[string]string `json:"env_set,omitempty"`
+	EnvUnset          []string          `json:"env_unset,omitempty"`
+	ValidateTelegram  bool              `json:"validate_telegram,omitempty"`
+	WebhookURL        string            `json:"webhook_url,omitempty"`
+	WebhookSecret     string            `json:"webhook_secret,omitempty"`
+	CheckHealth       bool              `json:"check_health,omitempty"`
+	LevelupEnvSet     map[string]string `json:"levelup_env_set,omitempty"`
+	LevelupEnvUnset   []string          `json:"levelup_env_unset,omitempty"`
+	EnableLevelups    []string          `json:"enable_levelups,omitempty"`
+	DisableLevelups   []string          `json:"disable_levelups,omitempty"`
+	ValidateLevelups  bool              `json:"validate_levelups,omitempty"`
+	StartLevelups     bool              `json:"start_levelups,omitempty"`
+	CheckLevelups     bool              `json:"check_levelups,omitempty"`
+	SyncForgejoRemote bool              `json:"sync_forgejo_remote,omitempty"`
 }
 
 func ExtractActions(response string) (cleanText string, actions *ActionEnvelope, err error) {

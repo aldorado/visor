@@ -74,3 +74,4 @@ append under `handoff log`:
 - `M11 / Iteration 3` done — visibility + collaboration: POST /forgejo/webhook (push/PR → Telegram notification), EnsureReadme (API-based README creation on enable), forgejo-repos skill (list repos/commits/issues via API) — commit `370e09d`
 
 - `M12 / Iteration 1` done — first-run setup detection + setup action pipeline (.env update, telegram token validate, webhook set, health check) — commit `ffe8d38`
+- `M12 / Iteration 2` done — setup actions now support level-up selection/env/start/validate/health + forgejo remote sync hook — commit TBD

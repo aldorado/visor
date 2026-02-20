@@ -18,15 +18,14 @@ active execution tracking + handoff rules:
 note:
 - backlog.md layer was removed to keep execution lean
 
-### Current: M12 — Iteration 1: first-run detection + core setup ✅
+### Current: M12 — Iteration 2: optional level-ups ✅
 
 #### Tasks
-- [x] 1. Added first-run setup detection state — `internal/setup/detect.go`, `internal/server/server.go`
-- [x] 2. Injected setup guidance context into agent prompt when first-run is active — `internal/server/server.go`
-- [x] 3. Added setup actions parser + `.env` writer for conversational onboarding — `internal/setup/actions.go`, `internal/setup/env.go`
-- [x] 4. Added Telegram credential validation + webhook setup actions — `internal/platform/telegram/client.go`, `internal/server/server.go`
-- [x] 5. Added setup health verification action (`/health`) — `internal/server/server.go`
-- [x] 6. Added tests for setup detection/action/env update — `internal/setup/*.go`
+- [x] 1. Extended setup actions with optional level-up controls (`enable`, `.levelup.env`, `start`, `validate`, `health`) — `internal/setup/actions.go`, `internal/server/server.go`
+- [x] 2. Added compose `up -d` runtime for currently enabled level-ups — `internal/levelup/compose_apply.go`
+- [x] 3. Added enabled-levelup HTTP health verification helper — `internal/levelup/health.go`
+- [x] 4. Added Forgejo remote sync setup action for onboarding flow — `internal/server/server.go`
+- [x] 5. Added tests for compose apply args and env-template expansion — `internal/levelup/compose_apply_test.go`, `internal/levelup/health_test.go`
 
 #### Status
 - M1–M8a: done
@@ -34,6 +33,7 @@ note:
 - M10 Iteration 2: done
 - M10 Iteration 3: done
 - M12 Iteration 1: done
+- M12 Iteration 2: done
 
 ## first 10 minutes
 

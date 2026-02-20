@@ -665,10 +665,10 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 - [x] Agent runs `go build .` and starts visor, confirms it's responding on `/health`
 
 #### Iteration 2: optional level-ups
-- [ ] Agent presents available level-ups (Forgejo, Himalaya, Obsidian, Cloudflared) and lets user pick
-- [ ] For each selected level-up: collect required env vars, write `.levelup.env`, start compose
-- [ ] Forgejo: run bootstrap (admin user, push-to-create config), add git remote
-- [ ] Verify each level-up is healthy before moving on
+- [x] Agent presents available level-ups (Forgejo, Himalaya, Obsidian, Cloudflared) and lets user pick
+- [x] For each selected level-up: collect required env vars, write `.levelup.env`, start compose
+- [x] Forgejo: run bootstrap (admin user, push-to-create config), add git remote
+- [x] Verify each level-up is healthy before moving on
 
 #### Iteration 3: personality + finish
 - [ ] Agent asks if user wants to customize personality (edit CLAUDE.md) or keep defaults

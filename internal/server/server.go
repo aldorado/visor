@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -691,6 +692,70 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 			} else {
 				messages = append(messages, "health check ok ✅")
 			}
+		}
+	}
+
+	if len(actions.LevelupEnvSet) > 0 || len(actions.LevelupEnvUnset) > 0 {
+		if err := levelup.UpdateLevelupEnv(projectRoot, actions.LevelupEnvSet, actions.LevelupEnvUnset); err != nil {
+			messages = append(messages, "setup .levelup.env update failed: "+err.Error())
+		} else {
+			messages = append(messages, ".levelup.env updated ✅")
+		}
+	}
+
+	if len(actions.EnableLevelups) > 0 {
+		if err := levelup.Enable(projectRoot, actions.EnableLevelups); err != nil {
+			messages = append(messages, "enable levelups failed: "+err.Error())
+		} else {
+			messages = append(messages, "levelups enabled ✅")
+		}
+	}
+	if len(actions.DisableLevelups) > 0 {
+		if err := levelup.Disable(projectRoot, actions.DisableLevelups); err != nil {
+			messages = append(messages, "disable levelups failed: "+err.Error())
+		} else {
+			messages = append(messages, "levelups disabled ✅")
+		}
+	}
+	if actions.ValidateLevelups {
+		if err := levelup.ValidateEnabled(ctx, projectRoot, "docker-compose.yml"); err != nil {
+			messages = append(messages, "levelups validate failed: "+err.Error())
+		} else {
+			messages = append(messages, "levelups validated ✅")
+		}
+	}
+	if actions.StartLevelups {
+		if err := levelup.UpEnabled(ctx, projectRoot, "docker-compose.yml"); err != nil {
+			messages = append(messages, "levelups start failed: "+err.Error())
+		} else {
+			messages = append(messages, "levelups started ✅")
+		}
+	}
+	if actions.CheckLevelups {
+		failed, err := levelup.CheckEnabledHTTPHealth(ctx, projectRoot)
+		if err != nil {
+			messages = append(messages, "levelups healthcheck failed: "+err.Error())
+		} else if len(failed) > 0 {
+			messages = append(messages, "levelups healthcheck issues: "+strings.Join(failed, "; "))
+		} else {
+			messages = append(messages, "levelups healthchecks ok ✅")
+		}
+	}
+	if actions.SyncForgejoRemote {
+		env, _ := levelup.LoadLayeredEnv(projectRoot)
+		adminUser := env["FORGEJO_ADMIN_USER"]
+		if adminUser == "" {
+			adminUser = "visor"
+		}
+		hostPort := env["FORGEJO_HOST_PORT"]
+		if hostPort == "" {
+			hostPort = "3002"
+		}
+		dataDir := filepath.Join(projectRoot, "data")
+		if err := forgejo.SyncRemote(ctx, projectRoot, dataDir, adminUser, hostPort, true); err != nil {
+			messages = append(messages, "forgejo remote sync failed: "+err.Error())
+		} else {
+			messages = append(messages, "forgejo remote synced ✅")
 		}
 	}
 
