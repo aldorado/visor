@@ -53,7 +53,7 @@ type PiAgent struct {
 
 func NewPiAgent(cfg ProcessConfig) *PiAgent {
 	cfg.Command = "pi"
-	cfg.Args = []string{"--mode", "rpc"}
+	cfg.Args = []string{"--mode", "rpc", "--thinking", "minimal"}
 	return &PiAgent{
 		pm:  NewProcessManager(cfg),
 		log: observability.Component("agent.pi"),
