@@ -30,6 +30,7 @@ coverage-*.out
 logs/
 tmp/
 *.log
+data/
 
 # editor/ide
 .vscode/

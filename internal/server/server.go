@@ -180,6 +180,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 
 		s.log.Info(ctx, "webhook message processed", "chat_id", chatID, "backend", cfg.AgentBackend)
 		text, meta := parseResponse(response)
+		text = sanitizeUserReply(text)
 
 		if meta.SendVoice && s.voice != nil && s.voice.TTSEnabled() {
 			if err := s.voice.SynthesizeAndSend(chatID, text); err != nil {
@@ -906,6 +907,31 @@ func parseResponse(raw string) (text string, meta responseMeta) {
 		}
 	}
 	return
+}
+
+func sanitizeUserReply(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return s
+	}
+
+	// hide raw internal/tool event dumps if model leaks them
+	internalMarkers := []string{
+		"assistantMessageEvent",
+		"tool_execution_start",
+		"tool_execution_update",
+		"tool_execution_end",
+		"\"type\":\"toolcall",
+		"\"role\":\"toolResult\"",
+		"[system context]",
+	}
+	for _, marker := range internalMarkers {
+		if strings.Contains(s, marker) {
+			return "sorry — internal debug text leaked. try that once more 🙈"
+		}
+	}
+
+	return s
 }
 
 func (s *Server) runSelfEvolution(chatID int64, commitMessage string) {
