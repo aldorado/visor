@@ -636,11 +636,11 @@ Visor pushes code it writes (via forge-execution, self-evolution, skill creation
 - [x] Integrate with M10 proxy: `git.visor.<domain>` subdomain auto-routed to Forgejo
 
 #### Iteration 2: auto-push integration
-- [ ] On level-up enable: visor adds `forgejo` remote to its own repo (and any forge-execution project repos)
-- [ ] On self-evolve commit: auto-push to Forgejo remote after local commit
-- [ ] On forge-execution commit: auto-push project repo to Forgejo (push-to-create handles repo creation)
-- [ ] Add structured output field `git_push: true/false` so agent can control push behavior
-- [ ] Add fallback: if Forgejo is unreachable, log warning and continue (don't block commits)
+- [x] On level-up enable: visor adds `forgejo` remote to its own repo (and any forge-execution project repos)
+- [x] On self-evolve commit: auto-push to Forgejo remote after local commit
+- [x] On forge-execution commit: auto-push project repo to Forgejo (push-to-create handles repo creation)
+- [x] Add structured output field `git_push: true/false` so agent can control push behavior
+- [x] Add fallback: if Forgejo is unreachable, log warning and continue (don't block commits)
 
 #### Iteration 3: visibility + collaboration
 - [ ] Forgejo webhook → visor notification on external push/PR (if someone else pushes)
