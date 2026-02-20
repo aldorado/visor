@@ -15,6 +15,9 @@ active roadmap and milestone tracking live in:
 collaboration snapshot (done/open/next + multi-agent coordination rules):
 - `COORDINATION.md`
 
+active execution tasks (backlog.md pilot):
+- `backlog/`
+
 ### Current: M5 — Iteration 2.5: Reminder Ergonomics ✅
 
 #### Tasks

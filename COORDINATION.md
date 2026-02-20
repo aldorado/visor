@@ -6,8 +6,12 @@ single coordination board for humans + multi-agents.
 
 - detailed planning and task definitions: `visor.forge.md`
 - this file is the execution snapshot for collaboration (what is open, what is next, who is working on what)
+- `backlog/` (backlog.md tool) is the active execution layer for currently claimed implementation tasks
 
-if this file and `visor.forge.md` diverge, update this file immediately after each merge/iteration.
+if these views diverge:
+1) `visor.forge.md` wins for milestone intent
+2) `backlog/` wins for in-flight task state
+3) update this file right after merge/iteration
 
 ## status snapshot (2026-02-20)
 
@@ -31,9 +35,23 @@ if this file and `visor.forge.md` diverge, update this file immediately after ea
 - `M11` forgejo level-up (12 open)
 - `M12` interactive first-run onboarding (18 open)
 
+## backlog.md pilot (active)
+
+scope rule:
+- use backlog.md only for active execution tasks (not full roadmap mirroring)
+- keep `visor.forge.md` as strategic milestone spec
+
+active pilot queue:
+- `TASK-1` — M3 sync protocol design
+- `TASK-2` — M3 incremental sync (depends on TASK-1)
+
+quick commands:
+- `npx backlog.md task list`
+- `npx backlog.md board`
+
 ## now / next recommendation
 
-1. finish `M3` remote sync design + incremental sync contract
+1. execute `TASK-1` then `TASK-2` (close remaining M3 open items)
 2. then choose one major stream: `M10` (infra exposure) or `M12` (onboarding)
 3. keep `M9` optional until core infra/onboarding streams are stable
 
@@ -67,4 +85,5 @@ each agent handoff must include:
 - repo/docs polish merged (`.gitignore`, `LICENSE`, `CONTRIBUTING`, `README`, `CHANGELOG`, config/ops docs)
 - completed `M1` final e2e closure via webhook→agent→telegram delivery test harness
 - completed `M5 it2.5` quick actions (`done/snooze/reschedule`), natural time parsing, idempotency guard, and tests
-- latest related commits: `bbd6d1b`, `7970e20`
+- initialized backlog.md pilot (`backlog/config.yml`) and created active M3 execution tasks (`TASK-1`, `TASK-2`)
+- latest related commits: `bbd6d1b`, `7970e20`, `5c51feb`
