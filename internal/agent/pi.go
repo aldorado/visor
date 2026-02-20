@@ -74,11 +74,11 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	pm, err := p.ensureToolsProcess()
+	pm, err := p.freshToolsProcess()
 	if err != nil {
 		return "", err
 	}
-	p.log.Debug(ctx, "pi mode selected", "mode", "tools")
+	p.log.Debug(ctx, "pi mode selected", "mode", "tools", "session", "fresh")
 
 	guarded := withExecutionGuardrail(prompt)
 	response, err := p.sendPromptOnce(ctx, pm, guarded)
@@ -196,6 +196,25 @@ func (p *PiAgent) ensureToolsProcess() (*ProcessManager, error) {
 		p.toolsStarted = true
 	}
 	return p.toolsPM, nil
+}
+
+func (p *PiAgent) freshToolsProcess() (*ProcessManager, error) {
+	p.toolsMu.Lock()
+	defer p.toolsMu.Unlock()
+
+	if p.toolsPM != nil {
+		_ = p.toolsPM.Stop()
+		p.toolsPM = nil
+		p.toolsStarted = false
+	}
+
+	pm := NewProcessManager(p.toolsCfg)
+	if err := pm.Start(); err != nil {
+		return nil, fmt.Errorf("pi tools fresh start: %w", err)
+	}
+	p.toolsPM = pm
+	p.toolsStarted = true
+	return pm, nil
 }
 
 func (p *PiAgent) Close() error {
