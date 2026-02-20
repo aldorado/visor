@@ -19,6 +19,7 @@ type Manifest struct {
 	Healthcheck      string   `toml:"healthcheck"`
 	Tags             []string `toml:"tags"`
 	RequiredEnv      []string `toml:"required_env"`
+	Subdomain        string   `toml:"subdomain"`
 	ProxyService     string   `toml:"proxy_service"`
 	ProxyPort        int      `toml:"proxy_port"`
 	Path             string   `toml:"-"`

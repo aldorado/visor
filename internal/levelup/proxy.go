@@ -66,7 +66,11 @@ func buildProxyRoutes(manifests map[string]Manifest, enabled []string, domain st
 		if service == "" {
 			service = name
 		}
-		host := fmt.Sprintf("%s.visor.%s", name, domain)
+		subdomain := strings.TrimSpace(m.Subdomain)
+		if subdomain == "" {
+			subdomain = name
+		}
+		host := fmt.Sprintf("%s.visor.%s", subdomain, domain)
 		routes = append(routes, proxyRoute{
 			Host:     host,
 			Upstream: fmt.Sprintf("http://%s:%d", service, m.ProxyPort),
@@ -93,6 +97,9 @@ func renderCaddyfile(routes []proxyRoute) string {
 		lines = append(lines,
 			"",
 			route.Host+" {",
+			"\thandle /_health {",
+			"\t\treverse_proxy "+route.Upstream,
+			"\t}",
 			"\treverse_proxy "+route.Upstream,
 			"}",
 		)

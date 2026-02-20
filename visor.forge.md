@@ -602,11 +602,11 @@ Visor can expose its docker-compose level-ups to the internet automatically. Eac
 - [x] Add proxy config to `.levelup.env` (`PROXY_DOMAIN`; optional `DNS_PROVIDER` + `DNS_API_TOKEN` for wildcard cert fallback)
 
 #### Iteration 2: dynamic subdomain routing
-- [ ] Visor auto-registers `<levelup-name>.visor.<domain>` → `<levelup-container>:<port>` on level-up enable
-- [ ] Visor auto-deregisters route on level-up disable
-- [ ] Add subdomain field to `levelup.toml` manifest (default: level-up name, overridable)
-- [ ] Health endpoint per subdomain (proxy returns 502/503 if backend is down)
-- [ ] Add tests for enable/disable/re-enable routing lifecycle
+- [x] Visor auto-registers `<levelup-name>.visor.<domain>` → `<levelup-container>:<port>` on level-up enable
+- [x] Visor auto-deregisters route on level-up disable
+- [x] Add subdomain field to `levelup.toml` manifest (default: level-up name, overridable)
+- [x] Health endpoint per subdomain (proxy returns 502/503 if backend is down)
+- [x] Add tests for enable/disable/re-enable routing lifecycle
 
 #### Iteration 3: auth + access control (optional)
 - [ ] Add optional basic auth or SSO gate per level-up subdomain

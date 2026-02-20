@@ -3,7 +3,7 @@ id: TASK-10
 title: >-
   M10 | Iteration 2: dynamic subdomain routing | Add subdomain field to
   `levelup.toml` manifest (default: level-up name, overridable)
-status: To Do
+status: Done
 assignee: []
 created_date: '2026-02-20 12:47'
 labels:
@@ -27,7 +27,7 @@ Original item: Add subdomain field to `levelup.toml` manifest (default: level-up
 
 ## Acceptance Criteria
 <!-- AC:BEGIN -->
-- [ ] #1 M10 milestone requirement is implemented
-- [ ] #2 Iteration 2: dynamic subdomain routing acceptance for this item is met
-- [ ] #3 visor.forge.md checkbox can be marked done after merge
+- [x] #1 M10 milestone requirement is implemented
+- [x] #2 Iteration 2: dynamic subdomain routing acceptance for this item is met
+- [x] #3 visor.forge.md checkbox can be marked done after merge
 <!-- AC:END -->

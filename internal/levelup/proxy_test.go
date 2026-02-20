@@ -14,6 +14,7 @@ func TestBuildProxyRoutes(t *testing.T) {
 		},
 		"obsidian": {
 			Name:         "obsidian",
+			Subdomain:    "vault",
 			ProxyService: "obsidian",
 			ProxyPort:    3000,
 		},
@@ -30,6 +31,9 @@ func TestBuildProxyRoutes(t *testing.T) {
 	}
 	if routes[0].Host != "echo-stub.visor.example.com" {
 		t.Fatalf("unexpected first host: %s", routes[0].Host)
+	}
+	if routes[1].Host != "vault.visor.example.com" {
+		t.Fatalf("unexpected second host: %s", routes[1].Host)
 	}
 	if routes[1].Upstream != "http://obsidian:3000" {
 		t.Fatalf("unexpected upstream: %s", routes[1].Upstream)
@@ -48,6 +52,7 @@ func TestSyncProxyConfigForEnabledWritesFile(t *testing.T) {
 		},
 		"obsidian": {
 			Name:         "obsidian",
+			Subdomain:    "vault",
 			ProxyService: "obsidian",
 			ProxyPort:    3000,
 		},
@@ -62,8 +67,11 @@ func TestSyncProxyConfigForEnabledWritesFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	content := string(bytes)
-	if !strings.Contains(content, "obsidian.visor.example.com") {
+	if !strings.Contains(content, "vault.visor.example.com") {
 		t.Fatalf("expected route in caddyfile, got: %s", content)
+	}
+	if !strings.Contains(content, "handle /_health") {
+		t.Fatalf("expected per-subdomain health handler in caddyfile, got: %s", content)
 	}
 }
 

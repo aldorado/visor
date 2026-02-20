@@ -18,18 +18,19 @@ active execution tracking (multi-agent work queue):
 coordination backup + handoff rules:
 - `COORDINATION.md`
 
-### Current: M10 — Iteration 1: proxy level-up + network isolation ✅
+### Current: M10 — Iteration 2: dynamic subdomain routing ✅
 
 #### Tasks
-- [x] 1. Added `proxy` base level-up with Caddy — `docker-compose.levelup.proxy.yml`, `levelups/proxy/levelup.toml`
-- [x] 2. Network topology: shared `visor-proxy` + per-level-up isolated networks — all `docker-compose.levelup.*.yml`
-- [x] 3. Removed direct host port mappings from existing level-ups (obsidian, echo-stub)
-- [x] 4. Added proxy route config generation on level-up enable/disable — `internal/levelup/proxy.go`, `internal/levelup/admin.go`
-- [x] 5. Added proxy env keys (`PROXY_DOMAIN`, optional DNS fallback keys) — `.levelup.env.example`
+- [x] 1. Auto-register routes on level-up enable — `internal/levelup/admin.go`, `internal/levelup/proxy.go`
+- [x] 2. Auto-deregister routes on level-up disable — `internal/levelup/admin.go`, `internal/levelup/proxy.go`
+- [x] 3. Added `subdomain` in `levelup.toml` (default fallback to level-up name) — `internal/levelup/manifest.go`, `docs/levelup-manifest.md`
+- [x] 4. Added per-subdomain health path via proxy (`/_health`) — `internal/levelup/proxy.go`
+- [x] 5. Added lifecycle tests (enable/disable/re-enable) — `internal/levelup/admin_test.go`, `internal/levelup/proxy_test.go`
 
 #### Status
 - M1–M8a: done
 - M10 Iteration 1: done
+- M10 Iteration 2: done
 
 ## first 10 minutes
 
