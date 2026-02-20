@@ -57,7 +57,7 @@ type PiAgent struct {
 func NewPiAgent(cfg ProcessConfig) *PiAgent {
 	toolsCfg := cfg
 	toolsCfg.Command = "pi"
-	toolsCfg.Args = []string{"--mode", "rpc"}
+	toolsCfg.Args = []string{"--mode", "rpc", "--no-session"}
 
 	return &PiAgent{
 		toolsCfg: toolsCfg,

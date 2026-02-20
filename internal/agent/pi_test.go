@@ -99,3 +99,11 @@ func TestWithExecutionGuardrail(t *testing.T) {
 		t.Fatalf("expected original prompt suffix, got: %q", out)
 	}
 }
+
+func TestNewPiAgent_UsesNoSession(t *testing.T) {
+	a := NewPiAgent(ProcessConfig{})
+	joined := strings.Join(a.toolsCfg.Args, " ")
+	if !strings.Contains(joined, "--no-session") {
+		t.Fatalf("expected --no-session in args, got: %v", a.toolsCfg.Args)
+	}
+}
