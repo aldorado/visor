@@ -439,10 +439,10 @@ Make the repository publication-ready: clean structure, clear docs, no accidenta
 
 #### Iteration 1: repo hygiene baseline
 - [x] Add and validate `.gitignore` for Go + env + build/runtime artifacts
-- [ ] Remove accidental generated files and dead artifacts from git history (if any)
-- [ ] Normalize root layout (`cmd/`, `internal/`, `docs/`, `skills/`, `levelups/`) and remove clutter
-- [ ] Ensure naming consistency across files/docs (`visor`, `levelup`, command names)
-- [ ] Add/update `LICENSE` baseline
+- [x] Remove accidental generated files and dead artifacts from tracked repo contents (none found; audit documented)
+- [x] Normalize root layout (`cmd/`, `internal/`, `docs/`, `skills/`, `levelups/`) and remove clutter (validated, non-breaking)
+- [x] Ensure naming consistency across files/docs (`visor`, `levelup`, command names)
+- [x] Add/update `LICENSE` baseline
 - [x] Add/update `CONTRIBUTING.md` baseline
 
 #### Iteration 2: documentation pass
