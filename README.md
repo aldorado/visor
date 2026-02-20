@@ -64,6 +64,12 @@ if you want full ubuntu walkthroughs:
 - english: `docs/ubuntu-24-noob-install.md`
 - deutsch: `docs/ubuntu-24-noob-install.de.md`
 
+## runtime notes (current defaults)
+
+- telegram webhook target is `https://<your-domain>/webhook` (not root `/`)
+- `pi` backend runs as persistent rpc with `--no-tools` for faster chat response times
+- level-up proxy binds localhost only (`127.0.0.1:${PROXY_HTTP_PORT}`, `127.0.0.1:${PROXY_HTTPS_PORT}`), so public ingress should stay at host caddy/nginx
+
 ## architecture (short)
 
 - `main.go`: startup wiring (config, observability, agent backend selection)
