@@ -89,7 +89,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 			note := fmt.Sprintf("⚡ backend switched: %s → %s (rate limit / quota)", from, to)
 			s.log.Info(context.Background(), "backend failover", "from", from, "to", to)
 			if cfg.UserChatID != "" {
-				_ = tg.SendMessage(mustParseChatID(cfg.UserChatID), note)
+				_ = s.tg.SendMessage(mustParseChatID(cfg.UserChatID), note)
 			}
 		}
 	}
@@ -166,7 +166,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		if meta.SendVoice && s.voice != nil && s.voice.TTSEnabled() {
 			if err := s.voice.SynthesizeAndSend(chatID, text); err != nil {
 				s.log.Error(ctx, "voice synth failed, fallback to text", "chat_id", chatID, "error", err.Error())
-				if sendErr := tg.SendMessage(chatID, text); sendErr != nil {
+				if sendErr := s.tg.SendMessage(chatID, text); sendErr != nil {
 					s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
 				} else {
 					s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "text-fallback")
@@ -175,7 +175,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 				s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "voice")
 			}
 		} else {
-			if sendErr := tg.SendMessage(chatID, text); sendErr != nil {
+			if sendErr := s.tg.SendMessage(chatID, text); sendErr != nil {
 				s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
 			} else {
 				s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "text")

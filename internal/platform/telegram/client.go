@@ -10,17 +10,29 @@ import (
 	"strconv"
 )
 
-const apiBase = "https://api.telegram.org/bot"
+const defaultAPIBase = "https://api.telegram.org/bot"
 
 type Client struct {
 	token      string
+	apiBase    string
 	httpClient *http.Client
 }
 
 func NewClient(token string) *Client {
+	return NewClientWithOptions(token, defaultAPIBase, &http.Client{})
+}
+
+func NewClientWithOptions(token, apiBase string, httpClient *http.Client) *Client {
+	if apiBase == "" {
+		apiBase = defaultAPIBase
+	}
+	if httpClient == nil {
+		httpClient = &http.Client{}
+	}
 	return &Client{
 		token:      token,
-		httpClient: &http.Client{},
+		apiBase:    apiBase,
+		httpClient: httpClient,
 	}
 }
 
@@ -47,7 +59,7 @@ func (c *Client) SendVoice(chatID int64, audio io.Reader, filename string) error
 	}
 	w.Close()
 
-	url := fmt.Sprintf("%s%s/sendVoice", apiBase, c.token)
+	url := fmt.Sprintf("%s%s/sendVoice", c.apiBase, c.token)
 	resp, err := c.httpClient.Post(url, w.FormDataContentType(), &buf)
 	if err != nil {
 		return fmt.Errorf("sendVoice: request: %w", err)
@@ -62,7 +74,7 @@ func (c *Client) SendVoice(chatID int64, audio io.Reader, filename string) error
 }
 
 func (c *Client) GetFileURL(fileID string) (string, error) {
-	url := fmt.Sprintf("%s%s/getFile?file_id=%s", apiBase, c.token, fileID)
+	url := fmt.Sprintf("%s%s/getFile?file_id=%s", c.apiBase, c.token, fileID)
 	resp, err := c.httpClient.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("getFile request: %w", err)
@@ -90,7 +102,7 @@ func (c *Client) sendJSON(method string, payload any) error {
 		return fmt.Errorf("marshal %s: %w", method, err)
 	}
 
-	url := fmt.Sprintf("%s%s/%s", apiBase, c.token, method)
+	url := fmt.Sprintf("%s%s/%s", c.apiBase, c.token, method)
 	resp, err := c.httpClient.Post(url, "application/json", bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("%s request: %w", method, err)

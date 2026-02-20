@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"visor/internal/agent"
 	"visor/internal/config"
@@ -282,5 +283,48 @@ func TestParseResponse_CodeChangesAndCommitMessage(t *testing.T) {
 	}
 	if meta.CommitMessage != "self update" {
 		t.Fatalf("commitMessage=%q", meta.CommitMessage)
+	}
+}
+
+func TestWebhook_E2E_TelegramDelivery(t *testing.T) {
+	type msgReq struct {
+		ChatID int64  `json:"chat_id"`
+		Text   string `json:"text"`
+	}
+
+	delivered := make(chan msgReq, 1)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/bottest-token/sendMessage" {
+			t.Fatalf("path=%q want=/bottest-token/sendMessage", r.URL.Path)
+		}
+		var payload msgReq
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		delivered <- payload
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer ts.Close()
+
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	srv.tg = telegram.NewClientWithOptions("test-token", ts.URL+"/bot", ts.Client())
+
+	update := makeUpdate(1001, 12345, "hello from webhook")
+	w := postWebhook(srv, update, nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d want=200", w.Code)
+	}
+
+	select {
+	case got := <-delivered:
+		if got.ChatID != 12345 {
+			t.Fatalf("chat_id=%d want=12345", got.ChatID)
+		}
+		if got.Text != "echo: hello from webhook" {
+			t.Fatalf("text=%q want=%q", got.Text, "echo: hello from webhook")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timeout waiting for telegram sendMessage call")
 	}
 }

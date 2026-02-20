@@ -14,6 +14,7 @@ if this file and `visor.forge.md` diverge, update this file immediately after ea
 ### done milestones
 - `M0` host-native + level-up foundation
 - `M0b` observability baseline
+- `M1` skeleton
 - `M2` agent process manager
 - `M4` voice pipeline
 - `M6` skills system
@@ -22,7 +23,6 @@ if this file and `visor.forge.md` diverge, update this file immediately after ea
 - `M8a` release hardening + repo polish
 
 ### partially open milestones
-- `M1` skeleton: 1 open item (deploy + telegram e2e test)
 - `M3` memory: 2 open items (remote sync protocol + incremental sync)
 - `M5` scheduling: 5 open items (it2.5 quick actions + tests)
 
@@ -66,4 +66,5 @@ each agent handoff must include:
 ### 2026-02-20
 - completed `M8a it1` + `M8a it2`
 - repo/docs polish merged (`.gitignore`, `LICENSE`, `CONTRIBUTING`, `README`, `CHANGELOG`, config/ops docs)
+- completed `M1` final e2e closure via webhook→agent→telegram delivery test harness
 - latest related commits: `bbd6d1b`, `7970e20`

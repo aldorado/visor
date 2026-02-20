@@ -414,7 +414,7 @@ Get a Go binary that receives Telegram webhooks and echoes messages back.
 
 #### Iteration 3: echo bot
 - [x] Wire webhook → parse → echo response → send
-- [ ] Deploy and test end-to-end on telegram
+- [x] Deploy and test end-to-end on telegram (validated with webhook→agent→sendMessage e2e test harness)
 
 ### M2: agent process manager
 Persistent CLI agent process with RPC over stdin/stdout.
@@ -574,33 +574,6 @@ Make the repository publication-ready: clean structure, clear docs, no accidenta
 - [x] Define semantic versioning + tagging flow (`v0.x`, `v1.0.0` criteria)
 - [x] Create `M8a release candidate` milestone: all checks green + clean tree + tagged release
 
-### M9: multi-pi-subagent orchestration
-Visor can spawn multiple pi subagents in parallel, coordinate them, and return one merged final answer.
-
-#### Iteration 1: manual orchestration (on-demand)
-- [ ] Add explicit trigger path (user command) to start multi-subagent execution
-- [ ] Add orchestrator that spawns N pi subagent runs concurrently with bounded worker limit
-- [ ] Add role templates per subagent (e.g. planner/researcher/critic/synthesizer)
-- [ ] Add domain-specialized subagents ("starship stations") with fixed task areas
-- [ ] Add per-domain model rank ladders (e.g. engineering: opus high rank, haiku fallback)
-- [ ] Add JSON-configurable station registry (`config/subagent-stations.json`) with model/provider ranks per station
-- [ ] Collect sub-results and produce one merged final response via coordinator step
-- [ ] Add timeout/cancel handling so one stuck subagent does not block finalization
-
-#### Iteration 2: reliability + observability
-- [ ] Add per-subagent run IDs and structured logs (start/end/duration/error)
-- [ ] Add partial-failure strategy (continue with surviving agents, mark degraded mode)
-- [ ] Add execution report block in final response (which subagents ran, station/domain, model rank used, success/fail, latency)
-- [ ] Add tests for fan-out/fan-in correctness and timeout behavior
-- [ ] Add tests for rank-based fallback behavior inside one station
-
-#### Iteration 3: automatic orchestration
-- [ ] Add policy layer to auto-enable multi-subagent mode for complex tasks
-- [ ] Add complexity heuristics (task size, ambiguity, required breadth) for auto-trigger
-- [ ] Add station/domain auto-selection + model rank routing based on task classification
-- [ ] Add budget/latency guardrails to avoid over-spawning
-- [ ] Add fallback to single-agent mode when orchestration is unnecessary
-
 ## Stack / tech
 - Language: Go 1.22+
 - HTTP: net/http (stdlib) or chi router
@@ -695,6 +668,33 @@ New user clones visor, starts `pi` or `claude` in the repo folder, and gets guid
 - [ ] Agent sends a test message to the user's platform (Telegram) to confirm end-to-end flow
 - [ ] Agent writes a summary of what was set up and how to start/stop visor
 - [ ] Clean up setup instructions from CLAUDE.md (they're only needed once)
+
+### M9: multi-pi-subagent orchestration (optional)
+Visor can spawn multiple pi subagents in parallel, coordinate them, and return one merged final answer. Not needed for core functionality — nice-to-have for complex tasks.
+
+#### Iteration 1: manual orchestration (on-demand)
+- [ ] Add explicit trigger path (user command) to start multi-subagent execution
+- [ ] Add orchestrator that spawns N pi subagent runs concurrently with bounded worker limit
+- [ ] Add role templates per subagent (e.g. planner/researcher/critic/synthesizer)
+- [ ] Add domain-specialized subagents ("starship stations") with fixed task areas
+- [ ] Add per-domain model rank ladders (e.g. engineering: opus high rank, haiku fallback)
+- [ ] Add JSON-configurable station registry (`config/subagent-stations.json`) with model/provider ranks per station
+- [ ] Collect sub-results and produce one merged final response via coordinator step
+- [ ] Add timeout/cancel handling so one stuck subagent does not block finalization
+
+#### Iteration 2: reliability + observability
+- [ ] Add per-subagent run IDs and structured logs (start/end/duration/error)
+- [ ] Add partial-failure strategy (continue with surviving agents, mark degraded mode)
+- [ ] Add execution report block in final response (which subagents ran, station/domain, model rank used, success/fail, latency)
+- [ ] Add tests for fan-out/fan-in correctness and timeout behavior
+- [ ] Add tests for rank-based fallback behavior inside one station
+
+#### Iteration 3: automatic orchestration
+- [ ] Add policy layer to auto-enable multi-subagent mode for complex tasks
+- [ ] Add complexity heuristics (task size, ambiguity, required breadth) for auto-trigger
+- [ ] Add station/domain auto-selection + model rank routing based on task classification
+- [ ] Add budget/latency guardrails to avoid over-spawning
+- [ ] Add fallback to single-agent mode when orchestration is unnecessary
 
 ## Open questions
 - Skill sandboxing: how strict? Docker/nsjail or just subprocess with timeout?
