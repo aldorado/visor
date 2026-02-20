@@ -25,9 +25,21 @@ type piEvent struct {
 
 	// for message_update events
 	AssistantMessageEvent *piAssistantEvent `json:"assistantMessageEvent,omitempty"`
+	Message               *piMessage        `json:"message,omitempty"`
 }
 
 type piAssistantEvent struct {
+	Type  string `json:"type"`
+	Text  string `json:"text,omitempty"`
+	Delta string `json:"delta,omitempty"`
+}
+
+type piMessage struct {
+	Role    string           `json:"role"`
+	Content []piMessageBlock `json:"content,omitempty"`
+}
+
+type piMessageBlock struct {
 	Type string `json:"type"`
 	Text string `json:"text,omitempty"`
 }
@@ -119,8 +131,27 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 			}
 
 		case "message_update":
-			if event.AssistantMessageEvent != nil && event.AssistantMessageEvent.Type == "text_delta" {
-				response.WriteString(event.AssistantMessageEvent.Text)
+			if event.AssistantMessageEvent != nil {
+				switch event.AssistantMessageEvent.Type {
+				case "text_delta", "output_text_delta":
+					if event.AssistantMessageEvent.Text != "" {
+						response.WriteString(event.AssistantMessageEvent.Text)
+					} else if event.AssistantMessageEvent.Delta != "" {
+						response.WriteString(event.AssistantMessageEvent.Delta)
+					}
+				}
+			}
+
+		case "message_end", "turn_end":
+			if response.Len() == 0 && event.Message != nil && event.Message.Role == "assistant" {
+				for _, block := range event.Message.Content {
+					if block.Type == "text" && block.Text != "" {
+						if response.Len() > 0 {
+							response.WriteString("\n")
+						}
+						response.WriteString(block.Text)
+					}
+				}
 			}
 
 		case "agent_end":
