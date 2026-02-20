@@ -1,59 +1,93 @@
 ---
 name: setup-visor
-description: "Use when the user wants a one-shot project kickoff in visor, like 'setup visor', 'starte visor setup', 'kickoff forge execution', or 'was soll ich nach pi eingeben'."
+description: "Use when the user wants guided first-run setup for visor, like 'setup visor', 'starte visor setup', 'führ mich durchs setup', or 'ich hab pi gestartet, was jetzt'."
 user-invocable: true
 argument-hint: "[project-folder optional]"
 ---
 
 # Setup Visor
 
-Kick off a project execution flow in one command so the user does not need a long manual prompt.
+Guide the *user* through visor setup step-by-step. This skill is for onboarding/setup, not forge execution.
 
-## What this skill does
+## Intent
 
-1. Resolve project folder.
-   - If user gave one, use it.
-   - Else default to current folder.
-   - If unclear, ask one short question.
+- do not switch into project implementation mode
+- do not create execution boards or iteration commits
+- keep the flow user-guided and checkpointed
 
-2. Read context files before coding:
-   - `README.md` (if present)
-   - `COORDINATION.md` (if present)
-   - `*.forge.md` (required)
-   - matching idea file `*.md` (if present)
+## Setup flow (M12-aligned)
 
-3. Initialize execution board in `README.md`:
-   - current milestone + iteration focus
-   - granular executable TODOs
-   - parallel worksplit
-   - file-touch map to avoid merge collisions
+1. Core setup
+   - ensure `.env` exists (from `.env.example`)
+   - collect required values (`TELEGRAM_BOT_TOKEN`, `USER_PHONE_NUMBER`)
+   - run telegram validation
+   - optionally run openai validation
+   - set webhook url/secret
+   - run `/health` check
 
-4. Ensure process supervisor setup (systemd):
-   - check whether `visor.service` exists and is enabled
-   - if missing, create/update unit using repo docs (`docs/ubuntu-24-noob-install*.md`)
-   - service must load `.env`, use project root as `WorkingDirectory`, and set `Restart=always`
-   - run `sudo systemctl daemon-reload`
-   - run `sudo systemctl enable --now visor`
-   - verify with `systemctl status visor --no-pager` and `curl -s http://localhost:8080/health`
+2. Optional level-ups
+   - ask user to choose: `none`, `recommended`, or explicit list
+   - collect needed `.levelup.env` values
+   - enable selected level-ups
+   - validate level-ups
+   - start level-ups
+   - run level-up health check
 
-5. Start execution mode:
-   - execute exactly one iteration chunk
-   - run tests/lint for touched scope
-   - update `README.md` + forge progress
-   - commit iteration changes with clear message
-   - send short report + ask: "nächste iteration?"
+3. Finish
+   - ask personality choice (keep/custom)
+   - optionally send a test message
+   - write setup summary
+   - cleanup setup hints
+
+## How to execute changes
+
+When applying setup changes, use exactly one setup action json block in final response:
+
+```json
+{
+  "setup_actions": {
+    "env_set": {},
+    "env_unset": [],
+    "validate_telegram": false,
+    "validate_openai": false,
+    "webhook_url": "",
+    "webhook_secret": "",
+    "check_health": false,
+    "levelup_env_set": {},
+    "levelup_env_unset": [],
+    "levelup_preset": "",
+    "enable_levelups": [],
+    "disable_levelups": [],
+    "validate_levelups": false,
+    "start_levelups": false,
+    "check_levelups": false,
+    "sync_forgejo_remote": false,
+    "personality_choice": "",
+    "personality_file": "",
+    "personality_text": "",
+    "send_test_message": "",
+    "write_summary": false,
+    "cleanup_setup_hints": false
+  }
+}
+```
+
+## systemd / reboot persistence
+
+Setup should also ensure process-manager persistence:
+- verify `visor.service` exists and has `Restart=always`
+- ensure service is enabled (`systemctl enable visor`)
+- if not possible due to permissions, ask the user for one exact sudo command
 
 ## Rules
 
-- no multi-iteration silent batching
-- stop on ambiguity and ask one precise question
-- fail fast on missing required files with exact path
-- if systemd permissions are missing, stop and ask user to run the exact `sudo` command
+- one step at a time, ask before applying impactful changes
+- keep messages short and practical
+- if something fails, report exact command/output and next fix step
 - work only inside `/root/code/<project-folder>/`
-- keep output short and checkpoint-driven
 
 ## Quick invoke examples
 
 - `/setup-visor visor`
 - `/setup-visor`
-- "mach setup visor im visor repo"
+- "führ mich durchs visor setup"
