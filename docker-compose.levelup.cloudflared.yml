@@ -12,4 +12,13 @@ services:
       - run
       - --token
       - ${CLOUDFLARED_TUNNEL_TOKEN}
+    networks:
+      - proxy
+      - levelup-cloudflared
     restart: unless-stopped
+
+networks:
+  proxy:
+    name: visor-proxy
+  levelup-cloudflared:
+    name: visor-levelup-cloudflared

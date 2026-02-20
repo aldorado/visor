@@ -595,11 +595,11 @@ Visor can expose its docker-compose level-ups to the internet automatically. Eac
 - [x] Evaluate Caddy's on-demand TLS vs. wildcard cert via DNS-01 for subdomain auto-provisioning
 
 #### Iteration 1: proxy level-up + network isolation
-- [ ] Choose proxy (based on research) and add as base level-up (`docker-compose.levelup.proxy.yml`)
-- [ ] Define network topology: one shared `proxy` network + per-level-up isolated networks. Proxy container joins both.
-- [ ] Remove direct port mappings from existing level-up compose files (obsidian, himalaya, etc.)
-- [ ] Add proxy config generation: visor writes proxy routes when level-ups are enabled/disabled
-- [ ] Add proxy config to `.levelup.env` (`PROXY_DOMAIN`; optional `DNS_PROVIDER` + `DNS_API_TOKEN` for wildcard cert fallback)
+- [x] Choose proxy (based on research) and add as base level-up (`docker-compose.levelup.proxy.yml`)
+- [x] Define network topology: one shared `proxy` network + per-level-up isolated networks. Proxy container joins both.
+- [x] Remove direct port mappings from existing level-up compose files (obsidian, himalaya, etc.)
+- [x] Add proxy config generation: visor writes proxy routes when level-ups are enabled/disabled
+- [x] Add proxy config to `.levelup.env` (`PROXY_DOMAIN`; optional `DNS_PROVIDER` + `DNS_API_TOKEN` for wildcard cert fallback)
 
 #### Iteration 2: dynamic subdomain routing
 - [ ] Visor auto-registers `<levelup-name>.visor.<domain>` → `<levelup-container>:<port>` on level-up enable

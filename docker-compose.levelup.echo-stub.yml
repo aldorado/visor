@@ -5,6 +5,15 @@ services:
     env_file:
       - .levelup.env
     command: ["-text=visor echo levelup ok"]
-    ports:
-      - ${ECHO_STUB_PORT:-5678}:5678
+    expose:
+      - "5678"
+    networks:
+      - proxy
+      - levelup-echo-stub
     restart: unless-stopped
+
+networks:
+  proxy:
+    name: visor-proxy
+  levelup-echo-stub:
+    name: visor-levelup-echo-stub

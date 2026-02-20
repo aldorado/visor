@@ -28,6 +28,8 @@ required_env = [
 kind = "infra"            # default: "infra"
 enabled_by_default = false # default: false
 tags = ["email", "imap", "smtp"]
+proxy_service = "obsidian" # optional: service name for proxy route generation
+proxy_port = 3000           # optional: container port for proxy route generation
 ```
 
 ## Runtime rules

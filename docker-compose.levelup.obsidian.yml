@@ -17,7 +17,16 @@ services:
     volumes:
       - ${OBSIDIAN_CONFIG_PATH:-/root/code/visor/data/levelups/obsidian/config}:/config
       - ${OBSIDIAN_VAULT_PATH:-/root/code/visor/data/levelups/obsidian/vault}:/vault
-    ports:
-      - ${OBSIDIAN_HTTP_PORT:-3010}:3000
-      - ${OBSIDIAN_HTTPS_PORT:-3011}:3001
+    expose:
+      - "3000"
+      - "3001"
+    networks:
+      - proxy
+      - levelup-obsidian
     restart: unless-stopped
+
+networks:
+  proxy:
+    name: visor-proxy
+  levelup-obsidian:
+    name: visor-levelup-obsidian

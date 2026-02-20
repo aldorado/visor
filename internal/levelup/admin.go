@@ -88,6 +88,9 @@ func Enable(projectRoot string, names []string) error {
 	if err := SaveState(projectRoot, State{Enabled: updated}); err != nil {
 		return err
 	}
+	if err := SyncProxyConfigForEnabled(projectRoot, manifests, updated); err != nil {
+		return err
+	}
 	adminLog.Info(ctx, "enable levelups done", "enabled", updated)
 	return nil
 }
@@ -128,6 +131,9 @@ func Disable(projectRoot string, names []string) error {
 	}
 
 	if err := SaveState(projectRoot, State{Enabled: updated}); err != nil {
+		return err
+	}
+	if err := SyncProxyConfigForEnabled(projectRoot, manifests, updated); err != nil {
 		return err
 	}
 	adminLog.Info(ctx, "disable levelups done", "enabled", updated)

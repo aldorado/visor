@@ -18,17 +18,18 @@ active execution tracking (multi-agent work queue):
 coordination backup + handoff rules:
 - `COORDINATION.md`
 
-### Current: M5 — Iteration 2.5: Reminder Ergonomics ✅
+### Current: M10 — Iteration 1: proxy level-up + network isolation ✅
 
 #### Tasks
-- [x] 1. Natural time parser — `internal/scheduler/timeparse.go`
-- [x] 2. Quick action parsing + types — `internal/scheduler/quickaction.go`
-- [x] 3. Last-trigger tracking in scheduler — `internal/scheduler/quickaction.go`
-- [x] 4. Quick action handling + idempotency — `internal/scheduler/quickaction.go`, `internal/server/server.go`
-- [x] 5. Tests — `internal/scheduler/timeparse_test.go`, `internal/scheduler/quickaction_test.go`
+- [x] 1. Added `proxy` base level-up with Caddy — `docker-compose.levelup.proxy.yml`, `levelups/proxy/levelup.toml`
+- [x] 2. Network topology: shared `visor-proxy` + per-level-up isolated networks — all `docker-compose.levelup.*.yml`
+- [x] 3. Removed direct host port mappings from existing level-ups (obsidian, echo-stub)
+- [x] 4. Added proxy route config generation on level-up enable/disable — `internal/levelup/proxy.go`, `internal/levelup/admin.go`
+- [x] 5. Added proxy env keys (`PROXY_DOMAIN`, optional DNS fallback keys) — `.levelup.env.example`
 
 #### Status
-- M1–M5: done
+- M1–M8a: done
+- M10 Iteration 1: done
 
 ## first 10 minutes
 

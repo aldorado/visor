@@ -5,7 +5,7 @@ description = "LinuxServer Obsidian sidecar with host bind mounts"
 kind = "infra"
 enabled_by_default = true
 compose_file = "docker-compose.levelup.obsidian.yml"
-healthcheck = "http://127.0.0.1:${OBSIDIAN_PORT:-3000}/"
+healthcheck = "http://obsidian:3000/"
 tags = ["obsidian", "knowledge", "standard"]
 required_env = [
   "TZ",
@@ -13,6 +13,6 @@ required_env = [
   "OBSIDIAN_PGID",
   "OBSIDIAN_CONFIG_PATH",
   "OBSIDIAN_VAULT_PATH",
-  "OBSIDIAN_HTTP_PORT",
-  "OBSIDIAN_HTTPS_PORT",
 ]
+proxy_service = "obsidian"
+proxy_port = 3000

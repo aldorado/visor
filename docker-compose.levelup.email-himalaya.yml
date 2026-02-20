@@ -15,4 +15,13 @@ services:
       - HIMALAYA_USE_TLS=${HIMALAYA_USE_TLS:-true}
     volumes:
       - /root/code/visor/data/levelups/himalaya:/data
+    networks:
+      - proxy
+      - levelup-himalaya
     restart: unless-stopped
+
+networks:
+  proxy:
+    name: visor-proxy
+  levelup-himalaya:
+    name: visor-levelup-himalaya
