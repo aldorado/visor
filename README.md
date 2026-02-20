@@ -13,7 +13,30 @@ active roadmap and milestone tracking live in:
 - `visor.forge.md`
 
 collaboration snapshot (done/open/next + multi-agent coordination rules):
-- `BACKLOG.md`
+- `COORDINATION.md`
+
+### Current: M5 — Iteration 2.5: Reminder Ergonomics
+
+#### Tasks
+- [ ] 1. Natural time parser — `internal/scheduler/timeparse.go`
+- [ ] 2. Quick action parsing + types — `internal/scheduler/quickaction.go`
+- [ ] 3. Last-trigger tracking in scheduler — `internal/scheduler/scheduler.go`
+- [ ] 4. Quick action handling + idempotency — `internal/scheduler/quickaction.go`, `internal/server/server.go`
+- [ ] 5. Tests — `internal/scheduler/timeparse_test.go`, `internal/scheduler/quickaction_test.go`
+
+#### File-Touch-Map
+| Task | Files |
+|------|-------|
+| 1 | internal/scheduler/timeparse.go |
+| 2 | internal/scheduler/quickaction.go |
+| 3 | internal/scheduler/scheduler.go |
+| 4 | internal/scheduler/quickaction.go, internal/server/server.go |
+| 5 | internal/scheduler/timeparse_test.go, internal/scheduler/quickaction_test.go |
+
+#### Status
+- M1–M4: done
+- *M5 I2.5: in progress*
+- M5 I1–I2: done
 
 ## first 10 minutes
 

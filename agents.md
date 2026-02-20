@@ -1,7 +1,7 @@
 # Visor Agents
 
 coordination note:
-- before starting work, check `BACKLOG.md` for current open items and task-claim flow.
+- before starting work, check `COORDINATION.md` for current open items and task-claim flow.
 - detailed milestone specs remain in `visor.forge.md`.
 
 ## 1) Runtime Agent (Host Core)
