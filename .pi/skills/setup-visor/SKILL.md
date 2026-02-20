@@ -28,7 +28,15 @@ Kick off a project execution flow in one command so the user does not need a lon
    - parallel worksplit
    - file-touch map to avoid merge collisions
 
-4. Start execution mode:
+4. Ensure process supervisor setup (systemd):
+   - check whether `visor.service` exists and is enabled
+   - if missing, create/update unit using repo docs (`docs/ubuntu-24-noob-install*.md`)
+   - service must load `.env`, use project root as `WorkingDirectory`, and set `Restart=always`
+   - run `sudo systemctl daemon-reload`
+   - run `sudo systemctl enable --now visor`
+   - verify with `systemctl status visor --no-pager` and `curl -s http://localhost:8080/health`
+
+5. Start execution mode:
    - execute exactly one iteration chunk
    - run tests/lint for touched scope
    - update `README.md` + forge progress
@@ -40,6 +48,7 @@ Kick off a project execution flow in one command so the user does not need a lon
 - no multi-iteration silent batching
 - stop on ambiguity and ask one precise question
 - fail fast on missing required files with exact path
+- if systemd permissions are missing, stop and ask user to run the exact `sudo` command
 - work only inside `/root/code/<project-folder>/`
 - keep output short and checkpoint-driven
 
