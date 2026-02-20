@@ -12,11 +12,11 @@ it is built to stay simple in runtime shape:
 active roadmap and milestone tracking live in:
 - `visor.forge.md`
 
-active execution tracking (multi-agent work queue):
-- `backlog/`
-
-coordination backup + handoff rules:
+active execution tracking + handoff rules:
 - `COORDINATION.md`
+
+note:
+- backlog.md layer was removed to keep execution lean
 
 ### Current: M10 — Iteration 3: auth + access control ✅
 
