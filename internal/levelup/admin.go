@@ -110,6 +110,12 @@ func Enable(projectRoot string, names []string) error {
 			if err := forgejo.SyncRemote(ctx, projectRoot, dataDir, adminUser, hostPort, true); err != nil {
 				adminLog.Warn(ctx, "forgejo remote add failed", "error", err.Error())
 			}
+			// best-effort: create README in forgejo if repo exists but has none
+			go func() {
+				if err := forgejo.EnsureReadme(ctx, projectRoot, dataDir, adminUser, hostPort); err != nil {
+					adminLog.Warn(ctx, "forgejo ensure readme failed", "error", err.Error())
+				}
+			}()
 			break
 		}
 	}

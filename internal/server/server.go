@@ -251,6 +251,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("POST /webhook", s.handleWebhook)
+	s.mux.HandleFunc("POST /forgejo/webhook", s.handleForgejoWebhook)
 	return s
 }
 
