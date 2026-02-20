@@ -57,6 +57,12 @@ this file documents runtime environment variables for visor.
 | `SELF_EVOLUTION_REPO_DIR` | no | `.` | repo root used by self-evolution commands |
 | `SELF_EVOLUTION_PUSH` | no | `false` | allows push after commits |
 
-## level-up env file
+## env templates
 
-`levelups` usually rely on `.levelup.env` values (template: `.levelup.env.example`) for sidecar-specific settings like imap/smtp credentials, cloudflared token, and obsidian container paths.
+core runtime template:
+- `.env.example`
+
+level-up template:
+- `.levelup.env.example`
+
+`levelups` usually rely on `.levelup.env` values for sidecar-specific settings like imap/smtp credentials, cloudflared token, and obsidian container paths.

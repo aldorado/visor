@@ -80,7 +80,8 @@ if you want full ubuntu walkthroughs:
 full variable reference (required vs optional):
 - `docs/config-reference.md`
 
-level-up env template:
+env templates:
+- `.env.example`
 - `.levelup.env.example`
 
 ## operations
