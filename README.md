@@ -78,7 +78,7 @@ if you want full ubuntu walkthroughs:
 
 - `main.go`: startup wiring (config, observability, agent backend selection)
 - `internal/server`: telegram webhook handling + action execution (skills/scheduler/levelup/email)
-- `internal/agent`: backend adapters (`echo`, `pi`, `claude`) + queueing + failover registry
+- `internal/agent`: backend adapters (`echo`, `pi`, `claude`, `gemini`) + queueing + failover registry
 - `internal/memory`: local memory store/search
 - `internal/voice`: stt + tts wiring
 - `internal/scheduler`: scheduled task persistence and dispatch

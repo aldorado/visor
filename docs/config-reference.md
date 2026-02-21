@@ -14,7 +14,7 @@ this file documents runtime environment variables for visor.
 | variable | required | default | purpose |
 |---|---|---|---|
 | `PORT` | no | `8080` | http listen port |
-| `AGENT_BACKEND` | no | `echo` | single-backend mode (`echo`, `pi`, `claude`) |
+| `AGENT_BACKEND` | no | `echo` | single-backend mode (`echo`, `pi`, `claude`, `gemini`) |
 | `AGENT_BACKENDS` | no | derived from `AGENT_BACKEND` | comma-separated priority list for auto-failover |
 | `TELEGRAM_WEBHOOK_SECRET` | no | empty | optional webhook secret validation |
 | `DATA_DIR` | no | `data` | runtime storage base path |

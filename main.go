@@ -83,6 +83,8 @@ func createSingleAgent(name string) (agent.Agent, error) {
 		return pi, nil
 	case "claude":
 		return agent.NewClaudeAgent(5 * time.Minute), nil
+	case "gemini":
+		return agent.NewGeminiAgent(5 * time.Minute), nil
 	case "echo":
 		return &agent.EchoAgent{}, nil
 	default:

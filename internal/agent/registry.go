@@ -300,12 +300,24 @@ func checkHealth(ctx context.Context, name string) (healthy bool, reason string)
 		return checkCLI("pi")
 	case "claude":
 		return checkCLI("claude")
+	case "gemini":
+		return checkGeminiCLI()
 	case "echo":
 		return true, ""
 	default:
 		// unknown backends — assume healthy, let runtime errors handle it
 		return true, ""
 	}
+}
+
+func checkGeminiCLI() (bool, string) {
+	if _, err := exec.LookPath("gemini"); err == nil {
+		return checkCLI("gemini")
+	}
+	if _, err := exec.LookPath("npx"); err == nil {
+		return true, ""
+	}
+	return false, "gemini CLI not found (need `gemini` or `npx`)"
 }
 
 func checkCLI(binary string) (bool, string) {
