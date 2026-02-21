@@ -93,7 +93,7 @@ you can:
 - retrieve chat history across all sessions (stored permanently in data/sessions/)
 
 ## auto-restart on code changes
-you can edit your own source code in /root/code/visor/. when you make code changes:
+you can edit your own source code in the current project repository (e.g. `/root/code/<project-folder>/`). when you make code changes:
 1. edit the files you need to change
 2. commit your changes with git (always commit before restart!)
 3. set `code_changes: true` in your structured output
