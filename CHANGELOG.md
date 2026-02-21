@@ -1,15 +1,24 @@
 # changelog
 
-all notable changes to this project should be documented in this file.
+all notable project changes are documented here.
 
-this project follows a keep-a-changelog style with semantic version tags.
+## unreleased
 
-## policy
+### added
+- local pre-push quality gate (`scripts/check.sh` + `.githooks/pre-push`) running `gofmt`, `go vet`, and `go test -race`.
+- pre-release checklist in `docs/release-checklist.md`.
+- semver/tagging policy documented in `CONTRIBUTING.md`.
+- m8a documentation baseline for publication readiness (`README`, config reference, operations runbook).
+- docs-sync marker in `visor.forge.md` to track roadmap/docs alignment.
+- process reminder: implementation change -> forge log update + README status note + changelog entry (if user-visible).
 
-- add entries for user-visible behavior changes, api changes, and operational changes
-- group entries under: `added`, `changed`, `fixed`, `removed`
-- do not mix unrelated changes into one release section
-- every release gets a date and git tag
+### changed
+- repository presentation moved from execution-board style to public project README style.
+- `README.md` now explicitly notes M12 iteration 3 post-research hardening (`validate_openai`, `levelup_preset = "recommended"`).
+- `visor.forge.md` now includes a 2026-02-21 sync note connecting setup hardening changes to timeline updates.
+
+### fixed
+- `gofmt` formatting cleanup in 6 source files.
 
 ## format
 
@@ -27,21 +36,3 @@ this project follows a keep-a-changelog style with semantic version tags.
 ### removed
 - ...
 ```
-
-## unreleased
-
-### added
-- local pre-push gate (`scripts/check.sh` + `.githooks/pre-push`): gofmt, go vet, go test -race
-- pre-release checklist (`docs/release-checklist.md`)
-- semantic versioning policy + tagging flow in `CONTRIBUTING.md`
-- m8a documentation baseline for publication readiness (`README`, config reference, operations runbook)
-- docs sync marker in `visor.forge.md` to explicitly track when implementation changes are mirrored into roadmap-facing docs
-- process reminder in forge notes: implementation change -> forge log update + README status note + changelog entry for user-visible impact
-
-### changed
-- repository presentation shifted from execution-board style to public project README
-- `README.md` now explicitly notes that M12 iteration 3 included post-research hardening (`validate_openai` setup action + `levelup_preset = "recommended"`)
-- `visor.forge.md` now includes a 2026-02-21 sync note tying recent setup hardening changes back to the project timeline
-
-### fixed
-- `gofmt` formatting in 6 source files
