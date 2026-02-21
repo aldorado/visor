@@ -140,7 +140,8 @@ func renderCaddyfile(routes []proxyRoute, domain string, env map[string]string) 
 		"}",
 	}
 	for i, route := range routes {
-		lines = append(lines, "", route.Host+" {")
+		site := "http://" + route.Host + ", https://" + route.Host
+		lines = append(lines, "", site+" {")
 		lines = appendRoutePolicy(lines, route, i)
 		lines = append(lines, "}")
 	}
@@ -150,13 +151,14 @@ func renderCaddyfile(routes []proxyRoute, domain string, env map[string]string) 
 		adminSubdomain = "admin"
 	}
 	adminHost := fmt.Sprintf("%s.visor.%s", adminSubdomain, domain)
+	adminSite := "http://" + adminHost + ", https://" + adminHost
 	adminAccess := proxyAccess{
 		AuthUser:       strings.TrimSpace(env["PROXY_ADMIN_AUTH_USER"]),
 		AuthPassBcrypt: strings.TrimSpace(env["PROXY_ADMIN_AUTH_PASS_BCRYPT"]),
 		AllowCIDRs:     splitCSV(env["PROXY_ADMIN_ALLOW"]),
 		DenyCIDRs:      splitCSV(env["PROXY_ADMIN_DENY"]),
 	}
-	lines = append(lines, "", adminHost+" {")
+	lines = append(lines, "", adminSite+" {")
 	lines = appendAdminPolicy(lines, routes, adminAccess)
 	lines = append(lines, "}")
 
