@@ -95,12 +95,35 @@ func buildProxyRoutes(manifests map[string]Manifest, enabled []string, domain st
 
 func routeAccessForSubdomain(subdomain string, env map[string]string) proxyAccess {
 	key := envKeySegment(subdomain)
+	authUser := strings.TrimSpace(env["PROXY_AUTH_"+key+"_USER"])
+	authPass := strings.TrimSpace(env["PROXY_AUTH_"+key+"_PASS_BCRYPT"])
+	if authUser == "" || authPass == "" {
+		if useSharedAuthForSubdomain(key, env) {
+			authUser = strings.TrimSpace(env["PROXY_AUTH_SHARED_USER"])
+			authPass = strings.TrimSpace(env["PROXY_AUTH_SHARED_PASS_BCRYPT"])
+		}
+	}
 	return proxyAccess{
-		AuthUser:       strings.TrimSpace(env["PROXY_AUTH_"+key+"_USER"]),
-		AuthPassBcrypt: strings.TrimSpace(env["PROXY_AUTH_"+key+"_PASS_BCRYPT"]),
+		AuthUser:       authUser,
+		AuthPassBcrypt: authPass,
 		AllowCIDRs:     splitCSV(env["PROXY_ALLOW_"+key]),
 		DenyCIDRs:      splitCSV(env["PROXY_DENY_"+key]),
 	}
+}
+
+func useSharedAuthForSubdomain(key string, env map[string]string) bool {
+	if key == "" {
+		return false
+	}
+	if !isTrue(env["PROXY_AUTH_"+key+"_USE_SHARED"]) {
+		return false
+	}
+	return strings.TrimSpace(env["PROXY_AUTH_SHARED_USER"]) != "" && strings.TrimSpace(env["PROXY_AUTH_SHARED_PASS_BCRYPT"]) != ""
+}
+
+func isTrue(raw string) bool {
+	v, err := strconv.ParseBool(strings.TrimSpace(raw))
+	return err == nil && v
 }
 
 func renderCaddyfile(routes []proxyRoute, domain string, env map[string]string) string {

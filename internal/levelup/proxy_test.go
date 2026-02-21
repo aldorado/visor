@@ -93,6 +93,41 @@ func TestSyncProxyConfigForEnabledWritesAccessControlsAndDashboard(t *testing.T)
 	}
 }
 
+func TestRouteAccessForSubdomainSharedAuth(t *testing.T) {
+	env := map[string]string{
+		"PROXY_AUTH_SHARED_USER":          "shared",
+		"PROXY_AUTH_SHARED_PASS_BCRYPT":   "$2a$14$shared",
+		"PROXY_AUTH_OBSIDIAN_USE_SHARED":  "true",
+		"PROXY_AUTH_FORGEJO_USE_SHARED":   "false",
+		"PROXY_AUTH_OBSIDIAN_PASS_BCRYPT": "",
+	}
+
+	obsidian := routeAccessForSubdomain("obsidian", env)
+	if obsidian.AuthUser != "shared" || obsidian.AuthPassBcrypt != "$2a$14$shared" {
+		t.Fatalf("expected shared auth credentials for obsidian route")
+	}
+
+	forgejo := routeAccessForSubdomain("forgejo", env)
+	if forgejo.AuthUser != "" || forgejo.AuthPassBcrypt != "" {
+		t.Fatalf("expected forgejo auth to stay empty when shared auth not enabled")
+	}
+}
+
+func TestRouteAccessForSubdomainExplicitAuthOverridesShared(t *testing.T) {
+	env := map[string]string{
+		"PROXY_AUTH_SHARED_USER":          "shared",
+		"PROXY_AUTH_SHARED_PASS_BCRYPT":   "$2a$14$shared",
+		"PROXY_AUTH_OBSIDIAN_USE_SHARED":  "true",
+		"PROXY_AUTH_OBSIDIAN_USER":        "obsidian",
+		"PROXY_AUTH_OBSIDIAN_PASS_BCRYPT": "$2a$14$obsidian",
+	}
+
+	access := routeAccessForSubdomain("obsidian", env)
+	if access.AuthUser != "obsidian" || access.AuthPassBcrypt != "$2a$14$obsidian" {
+		t.Fatalf("expected explicit route auth credentials to override shared")
+	}
+}
+
 func TestSyncProxyConfigForEnabledRequiresDomain(t *testing.T) {
 	root := t.TempDir()
 	manifests := map[string]Manifest{"proxy": {Name: "proxy"}}

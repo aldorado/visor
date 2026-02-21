@@ -41,6 +41,6 @@ proxy_port = 3000           # optional: container port for proxy route generatio
 - before any apply/up/down operation, merged config must pass `docker compose ... config` validation.
 - `healthcheck` is a simple probe target for status reporting.
 - manifests are discovered under `levelups/*/levelup.toml`.
-- proxy access control is env-driven per subdomain (`PROXY_AUTH_<SUBDOMAIN>_*`, `PROXY_ALLOW_<SUBDOMAIN>`, `PROXY_DENY_<SUBDOMAIN>`).
+- proxy access control is env-driven per subdomain (`PROXY_AUTH_<SUBDOMAIN>_*`, `PROXY_ALLOW_<SUBDOMAIN>`, `PROXY_DENY_<SUBDOMAIN>`), with optional shared basic auth fallback via `PROXY_AUTH_SHARED_*` + `PROXY_AUTH_<SUBDOMAIN>_USE_SHARED=true`.
 - proxy admin dashboard route is generated at `<PROXY_ADMIN_SUBDOMAIN>.visor.<PROXY_DOMAIN>` with `/status` and `/metrics` handlers.
 - visor itself is never declared in these compose files (sidecars only).
