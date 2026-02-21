@@ -76,7 +76,7 @@ func createSingleAgent(name string) (agent.Agent, error) {
 	case "pi":
 		pi := agent.NewPiAgent(agent.ProcessConfig{
 			RestartDelay:  3 * time.Second,
-			PromptTimeout: 2 * time.Minute,
+			PromptTimeout: 6 * time.Minute,
 		})
 		if err := pi.Start(); err != nil {
 			return nil, err

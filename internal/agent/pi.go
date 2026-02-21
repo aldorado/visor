@@ -99,7 +99,7 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt string) (string, error) {
 	timeout := pm.cfg.PromptTimeout
 	if timeout == 0 {
-		timeout = 2 * time.Minute
+		timeout = 6 * time.Minute
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
