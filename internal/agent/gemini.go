@@ -180,7 +180,10 @@ func extractJSONText(raw json.RawMessage) string {
 			if s, ok := t["message"].(string); ok && s != "" {
 				chunks = append(chunks, s)
 			}
-			for _, child := range t {
+			for k, child := range t {
+				if k == "text" || k == "content" || k == "message" {
+					continue // already extracted above, don't recurse into same key
+				}
 				walk(child)
 			}
 		case []any:
