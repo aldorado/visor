@@ -1,40 +1,46 @@
 ---
 name: forge-blueprint-start
-description: Use when the user says the forge blueprint for a project is finished, like "forge blueprint ist fertig" or "blueprint ist fertig" and wants project kickoff scaffolding.
+description: Use when the user says the forge blueprint for a project is finished and wants kickoff scaffolding.
 user-invocable: false
 ---
 
 # Forge Blueprint Kickoff
 
-When the user says a forge blueprint is finished, execute this exact flow.
+When user says blueprint is done, run this flow.
 
 ## Required flow
 
-1. Ask first for:
+1. Ask for:
    - project name
-   - folder name under `/root/code/`
+   - target folder name under the projects root
+   - source idea/forge slug (if unclear)
+   Suggest 2-4 clean folder-name options.
 
-   Also suggest 2-4 clean folder-name options.
+2. Resolve projects root:
+   - use `PROJECTS_ROOT` env if set
+   - otherwise ask user for absolute path
 
-2. Create project folder under `/root/code/<folder-name>`.
+3. Create `<projects-root>/<folder-name>`.
 
-3. *Mandatory:* copy both docs into the new folder (never forge-only):
-   - source idea file from `~/obsidian/sibwax/ideas/`
-   - source forge file from `~/obsidian/sibwax/forge/`
+4. *Mandatory:* copy both source docs into the new folder (never forge-only):
+   - idea source: `<obsidian-vault>/ideas/<slug>.md`
+   - forge source: `<obsidian-vault>/forge/<slug>.md`
 
-4. In the new folder, name files like:
-   - `project-name.md` (idea file)
-   - `project-name.forge.md` (forge file)
+5. Name files in target folder:
+   - `project-name.md`
+   - `project-name.forge.md`
 
-   Rule: forge document must include `.forge.` before `.md`.
+6. Initialize git in target folder (`git init`).
 
-5. Initialize git in the new folder:
-   - `git init`
+7. Send short done signal.
 
-6. Send a short completion signal to the user when done.
+## Obsidian source path
+
+Read `OBSIDIAN_VAULT_PATH` from `.levelup.env`.
+If missing or path does not exist, stop and tell the user Obsidian level-up is not configured/enabled.
 
 ## Notes
 
-- If project/folder naming is ambiguous, stop and ask before creating files.
-- If source docs are missing, fail fast and tell the user exactly which path is missing.
-- Keep it simple: no extra setup unless user asks.
+- if naming is ambiguous, stop and ask.
+- fail fast on missing source files with exact path.
+- no extra setup unless user asks.

@@ -1,16 +1,21 @@
 ---
 name: obsidian-todo
-description: Internal skill for adding todos to obsidian. Triggers when a voice or text message starts with "todo" or "to do" or "to-do".
+description: Internal skill for adding todos to Obsidian. Triggers when a voice or text message starts with "todo", "to do", or "to-do".
 user-invocable: false
 ---
 
 # Obsidian Todo
 
-When a voice or text message starts with "todo", "to do", or "to-do" (case-insensitive), strip that prefix and add a cleaned-up todo item to today's todo file.
+When a message starts with todo/to do/to-do, strip that prefix and append a cleaned task to today's todo file.
+
+## Preconditions
+
+1. Read `OBSIDIAN_VAULT_PATH` from `.levelup.env`.
+2. If missing or path does not exist, stop and tell the user Obsidian level-up is not configured/enabled.
 
 ## Location
 
-`~/obsidian/sibwax/todos/YYYY-MM-DD.md` (Vienna timezone for date)
+`$OBSIDIAN_VAULT_PATH/todos/YYYY-MM-DD.md` (Vienna timezone)
 
 ## Format
 
@@ -23,8 +28,8 @@ When a voice or text message starts with "todo", "to do", or "to-do" (case-insen
 
 ## Rules
 
-- Create the file if it doesn't exist yet, with the `# Todos YYYY-MM-DD` header
-- Append a new `- [ ] ` line with the todo
-- IMPORTANT: Summarize and clean up the dictated text — the user may stutter, repeat themselves, or ramble. Extract the actual actionable task and write it concisely
-- Keep the language the user used (German stays German, English stays English)
-- Don't confirm with a long message, just a short "added" or similar
+- Create the file if it doesn't exist, with header `# Todos YYYY-MM-DD`.
+- Append a new `- [ ] ` line.
+- Summarize/clean up dictated text into a clear actionable task.
+- Keep language as spoken (de/en).
+- Confirm shortly ("added").

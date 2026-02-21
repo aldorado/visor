@@ -1,7 +1,5 @@
 # visor
 
-official logo path: `docs/assets/visor-logo.png`
-
 a fast, compiled agent runtime in Go. handles webhooks, memory, voice, scheduling, sessions — the AI brain (pi, claude, gemini) plugs in via stdin/stdout RPC.
 
 ### repo structure

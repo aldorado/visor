@@ -1,6 +1,6 @@
 ---
 name: levelup-creator
-description: "Use when asked to create OR operate visor level-ups: add sidecars, set/update .levelup.env values, enable/disable level-ups, and validate level-up state."
+description: Use when asked to create OR operate visor level-ups: add sidecars, set/update .levelup.env values, enable/disable level-ups, and validate level-up state.
 user-invocable: false
 ---
 

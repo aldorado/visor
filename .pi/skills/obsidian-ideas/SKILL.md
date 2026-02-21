@@ -1,22 +1,25 @@
 ---
 name: obsidian-ideas
-description: Internal skill for saving ideas to obsidian. Triggers when user dictates an idea or asks to save something to ideas.
+description: Internal skill for saving ideas to Obsidian. Triggers when user dictates an idea or asks to save something to ideas.
 user-invocable: false
 ---
 
 # Obsidian Ideas
 
-When the user shares an idea (voice or text) and wants it saved, structure it and write it to the ideas folder.
+Save user ideas into the Obsidian vault used by the Obsidian level-up.
+
+## Preconditions
+
+1. Read `OBSIDIAN_VAULT_PATH` from `.levelup.env`.
+2. If missing or path does not exist, stop and tell the user Obsidian level-up is not configured/enabled.
 
 ## Location
 
-`~/obsidian/sibwax/ideas/`
+`$OBSIDIAN_VAULT_PATH/ideas/`
 
-One markdown file per idea, named with a short slug: `idea-name.md`
+One markdown file per idea, named with a short slug: `idea-name.md`.
 
 ## Format
-
-Don't just copy the user's raw text. Structure it:
 
 ```markdown
 # Idea Title
@@ -34,7 +37,7 @@ Brief summary of what the idea is about.
 
 ## Rules
 
-- Structure and clean up — don't just dump raw transcription
-- Use obsidian tags at the bottom where relevant (#friday #feature #project etc)
-- If the idea relates to an existing file, update it instead of creating a new one
-- Confirm briefly when saved
+- Structure and clean up — don't just dump raw transcription.
+- Use Obsidian tags at the bottom where relevant.
+- If the idea relates to an existing file, update it instead of creating a new one.
+- Confirm briefly when saved.
