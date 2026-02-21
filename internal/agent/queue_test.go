@@ -124,8 +124,8 @@ func TestQueuedAgent_LongRunningNotification(t *testing.T) {
 
 	mu.Lock()
 	defer mu.Unlock()
-	if notifyCount != 1 {
-		t.Fatalf("notifyCount=%d want 1", notifyCount)
+	if notifyCount < 1 {
+		t.Fatalf("notifyCount=%d want >=1", notifyCount)
 	}
 	if notifiedPreview == "" {
 		t.Fatal("expected non-empty progress preview")

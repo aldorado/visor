@@ -132,20 +132,23 @@ func (qa *QueuedAgent) processOne(ctx context.Context, msg Message) {
 		}
 		timer := time.NewTimer(threshold)
 		defer timer.Stop()
-		select {
-		case <-notifyDone:
-			return
-		case <-timer.C:
-			if qa.getLongRunningHandler() == nil {
+		for {
+			select {
+			case <-notifyDone:
 				return
+			case <-timer.C:
+				handler := qa.getLongRunningHandler()
+				if handler != nil {
+					progressMu.Lock()
+					preview := strings.TrimSpace(progressTail)
+					progressMu.Unlock()
+					if preview == "" {
+						preview = "(noch kein rpc output)"
+					}
+					handler(ctx, msg.ChatID, time.Since(startedAt), preview)
+				}
+				timer.Reset(threshold)
 			}
-			progressMu.Lock()
-			preview := strings.TrimSpace(progressTail)
-			progressMu.Unlock()
-			if preview == "" {
-				preview = "(noch kein rpc output)"
-			}
-			qa.getLongRunningHandler()(ctx, msg.ChatID, time.Since(startedAt), preview)
 		}
 	}()
 

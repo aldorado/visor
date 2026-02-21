@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"time"
 
 	"visor/internal/observability"
 )
@@ -98,11 +97,11 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 
 func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt string) (string, error) {
 	timeout := pm.cfg.PromptTimeout
-	if timeout == 0 {
-		timeout = 6 * time.Minute
+	if timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, timeout)
+		defer cancel()
 	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
 
 	cmd := piCommand{Type: "prompt", Message: prompt}
 	data, err := json.Marshal(cmd)
