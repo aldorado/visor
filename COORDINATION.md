@@ -1,83 +1,45 @@
-# visor coordination board
+# visor coordination
 
-single execution board for humans + agents.
+lightweight handoff board for humans + agents.
 
 ## source of truth
-- strategy/source of truth: `visor.forge.md`
-- execution/source of truth: this file (`COORDINATION.md`)
-- backlog.md is removed (was overhead)
 
-if in conflict:
-1) `visor.forge.md` decides scope/plan
-2) `COORDINATION.md` decides active ownership + latest execution state
+- scope/roadmap: `visor.forge.md`
+- execution ownership + handoff: this file
 
-## current status snapshot (2026-02-20)
+if they conflict: `visor.forge.md` wins.
 
-### done milestones
-- `M0` host-native + level-up foundation
-- `M0b` observability baseline
-- `M1` skeleton
-- `M2` agent process manager
-- `M4` voice pipeline
-- `M6` skills system
-- `M7` multi-backend + auto-switch
-- `M8` self-evolution
-- `M8a` release hardening + repo polish
-- `M10` reverse proxy level-up (it1-it3)
+## status snapshot
 
-### open milestones
-- `M3` memory sync tail (2 items, low prio)
+done milestones:
+`M0, M0b, M1, M2, M4, M5, M6, M7, M8, M8a, M10, M11, M12`
+
+open milestones:
+- `M3` remote memory sync tail
 - `M9` multi-subagent orchestration
-- `M11` forgejo level-up
-- `M12` interactive first-run onboarding
 
-## agent workflow (mandatory)
+## workflow (mandatory)
 
-### 1) preflight
-before coding, read:
-- `visor.forge.md` (target milestone/iteration)
-- this file (active claims + latest handoff)
-
-### 2) claim
-append one claim line under `active claims`:
-`[claim] <agent> | <milestone/iteration> | <branch> | <time>`
-
-### 3) execute
-- work one iteration at a time
-- avoid mixing milestones in one branch
-
-### 4) handoff
-append under `handoff log`:
-- milestone + iteration
-- files changed
-- tests run
-- risks/follow-up
-- commit hash
-
-### 5) user reporting contract (anuar)
-- always start with `milestone + iteration`
-- include short outcome + commit hash
-- keep it compact
+1) read `visor.forge.md` + this file before coding
+2) add claim under *active claims*
+3) execute one iteration/chunk at a time
+4) add handoff note (what changed, tests, commit)
+5) user report format: `milestone/iteration -> short outcome -> commit`
 
 ## active claims
+
 - [claim] none
 
 ## handoff log
-### 2026-02-20
-- `M10 / Iteration 1` done — proxy base level-up + isolated networks + route autogen — commit `bfd4ee7`
-- `M10 / Iteration 2` done — dynamic subdomain routing + lifecycle tests — commit `a7cbf3b`
-- `M10 / Iteration 3` done — per-subdomain auth/allow/deny + admin dashboard route — commit `27ca2a6`
-- workflow decision: remove backlog.md layer, use `visor.forge.md` + `COORDINATION.md` only
-- owner decision: M11 assigned to friday, ubik executes M12 stream
-- `M11 / Iteration 1` done — Forgejo level-up: compose file, levelup.toml (subdomain=git), CMD-override bootstrap (admin user + visor-push token → /data/visor-push.token), proxy network wired — commit `79b926e`
-- `M11 / Iteration 2` done — auto-push integration: internal/forgejo pkg (ReadToken, SyncRemote, PushBackground), selfevolve hook, levelup enable/disable hook, git_push structured output field, FORGEJO_HOST_PORT localhost port binding — commit `954bb1b`
-- `M11 / Iteration 3` done — visibility + collaboration: POST /forgejo/webhook (push/PR → Telegram notification), EnsureReadme (API-based README creation on enable), forgejo-repos skill (list repos/commits/issues via API) — commit `370e09d`
 
-- `M12 / Iteration 1` done — first-run setup detection + setup action pipeline (.env update, telegram token validate, webhook set, health check) — commit `ffe8d38`
-- `M12 / Iteration 2` done — setup actions now support level-up selection/env/start/validate/health + forgejo remote sync hook — commit `0b31da0`
-- `M12 / Iteration 3` done — setup finish actions: personality override, telegram test message, setup summary writer, setup-hints cleanup — commit `64d409a`
-- `M12 / Research 1` done — first-run detection strategy confirmed: runtime state + /health liveness; CLAUDE/.pi stay policy-only — commit `912a104`
-- `M12 / Research 2` done — platform setup flow documented: Telegram-first path finalized, Signal scoped as future dedicated transport milestone — commit `2d7a51b`
-- `M12 / Research 3` done — interactive env validation documented (telegram/webhook/health + levelup validate), identified OpenAI-key validation gap with concrete probe recommendation — commit `38fcec9`
-- `M12 / Research 4` done — optional level-up selection UX documented (staged chooser + recommended shortcut + deterministic apply order) — commit `4142a28`
-- `M12 / extension` done — applied research hardening in runtime: validate_openai action + recommended level-up preset in setup flow — commit `71e1781`
+### 2026-02-20
+- `M10 / it1` proxy base level-up + isolated networks — `bfd4ee7`
+- `M10 / it2` dynamic subdomain routing + lifecycle tests — `a7cbf3b`
+- `M10 / it3` auth/allow/deny + admin dashboard route — `27ca2a6`
+- `M11 / it1` forgejo level-up + bootstrap + proxy wiring — `79b926e`
+- `M11 / it2` auto-push integration + git_push control — `954bb1b`
+- `M11 / it3` forgejo webhook + repo skill + readme auto-gen — `370e09d`
+- `M12 / it1` first-run detection + setup actions core — `ffe8d38`
+- `M12 / it2` level-up setup actions + forgejo remote sync hook — `0b31da0`
+- `M12 / it3` setup finish flow (personality/test/summary/cleanup) — `64d409a`
+- `M12 / research+hardening` setup strategy + validate_openai + recommended preset — `912a104`, `2d7a51b`, `38fcec9`, `4142a28`, `71e1781`

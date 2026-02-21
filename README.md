@@ -1,111 +1,62 @@
 # visor
 
-![visor logo](docs/assets/visor-logo.png)
+visor is a host-native go runtime for a personal ai agent.
 
-visor is a go-based execution board for a telegram-first ai agent with memory, voice, scheduling, level-ups, and self-evolution hooks.
+it handles the *runtime body*: telegram webhook, agent routing, memory, voice, scheduler, skills, and optional docker sidecars (“level-ups”).
 
-it is built to stay simple in runtime shape:
-- one webhook server
-- one active owner chat
-- optional sidecar level-ups (email, obsidian, cloudflared)
+the model backend is swappable (`pi`, `claude`, `gemini`, `echo`).
 
-## current status
+## project status
 
-active roadmap and milestone tracking live in:
-- `visor.forge.md`
+core runtime is implemented.
 
-active execution tracking + handoff rules:
-- `COORDINATION.md`
+done: `M0, M0b, M1, M2, M4, M5, M6, M7, M8, M8a, M10, M11, M12`  
+in progress/open: `M3` (remote memory sync), `M9` (multi-subagent orchestration)
 
-note:
-- backlog.md layer was removed to keep execution lean
+source of truth: `visor.forge.md`
 
-### Current: M12 — Iteration 3: personality + finish ✅
-
-#### Tasks
-- [x] 1. Added setup action fields for personality/test/summary/cleanup — `internal/setup/actions.go`
-- [x] 2. Added personality override + setup cleanup + summary writers — `internal/setup/finalize.go`
-- [x] 3. Added setup execute hooks for Telegram test message + summary output + CLAUDE cleanup — `internal/server/server.go`
-- [x] 4. Expanded first-run setup guidance context to include finish flow — `internal/setup/detect.go`
-- [x] 5. Added tests for personality override + setup summary write — `internal/setup/finalize_test.go`
-- [x] 6. Research hardening: added setup `validate_openai` action and `recommended` level-up preset support — `internal/setup/actions.go`, `internal/server/server.go`
-
-#### Status
-- M1–M8a: done
-- M10 Iteration 1: done
-- M10 Iteration 2: done
-- M10 Iteration 3: done
-- M12 Iteration 1: done
-- M12 Iteration 2: done
-- M12 Iteration 3: done
-
-note (2026-02-21): post-research hardening from M12 it3 is now explicitly tracked in docs (`validate_openai` setup action + `recommended` level-up preset).
-
-## first 10 minutes
+## quickstart (local smoke test)
 
 ```bash
-# 1) clone + enter
 git clone <your-repo-url> visor
 cd visor
 
-# 2) set minimum env (required)
+go build -o bin/visor .
+
 export TELEGRAM_BOT_TOKEN="<bot-token>"
 export USER_PHONE_NUMBER="<telegram-chat-id>"
-
-# 3) choose agent backend (quick smoke test)
 export AGENT_BACKEND="echo"
 
-# 4) build + run
-mkdir -p bin
-go build -o bin/visor .
 ./bin/visor
-
-# 5) verify server
 curl -s http://localhost:8080/health
 ```
 
-if you want full ubuntu walkthroughs:
+## first-time guided setup
+
+want full guided onboarding on ubuntu 24?
+
 - english: `docs/ubuntu-24-noob-install.md`
 - deutsch: `docs/ubuntu-24-noob-install.de.md`
 
-## runtime notes (current defaults)
-
-- telegram webhook target is `https://<your-domain>/webhook` (not root `/`)
-- `pi` backend runs in rpc tools mode (tool-first behavior)
-- level-up proxy binds localhost only (`127.0.0.1:${PROXY_HTTP_PORT}`, `127.0.0.1:${PROXY_HTTPS_PORT}`), so public ingress should stay at host caddy/nginx
-
 ## architecture (short)
 
-- `main.go`: startup wiring (config, observability, agent backend selection)
-- `internal/server`: telegram webhook handling + action execution (skills/scheduler/levelup/email)
-- `internal/agent`: backend adapters (`echo`, `pi`, `claude`, `gemini`) + queueing + failover registry
-- `internal/memory`: local memory store/search
-- `internal/voice`: stt + tts wiring
-- `internal/scheduler`: scheduled task persistence and dispatch
-- `skills/`: runtime skill scripts/manifests
-- `levelups/`: optional extensions with manifest + compose overlays
+- `main.go` startup wiring
+- `internal/server` webhook + action execution
+- `internal/agent` adapters + queue + failover
+- `internal/memory` parquet memory + semantic lookup
+- `internal/voice` whisper + elevenlabs
+- `internal/scheduler` reminders/recurrence
+- `skills/` runtime skills
+- `levelups/` sidecar manifests
 
-## config reference
+## config and ops
 
-full variable reference (required vs optional):
-- `docs/config-reference.md`
+- config reference: `docs/config-reference.md`
+- env templates: `.env.example`, `.levelup.env.example`
+- operations runbook: `docs/operations.md`
+- observability troubleshooting: `docs/observability-troubleshooting.md`
 
-env templates:
-- `.env.example`
-- `.levelup.env.example`
+## contributing / license
 
-## operations
-
-runbook for local run, logs, troubleshooting, and update flow:
-- `docs/operations.md`
-
-observability-specific troubleshooting:
-- `docs/observability-troubleshooting.md`
-
-## contributing
-
-see `CONTRIBUTING.md`.
-
-## license
-
-MIT, see `LICENSE`.
+- contributing: `CONTRIBUTING.md`
+- license: `LICENSE`
