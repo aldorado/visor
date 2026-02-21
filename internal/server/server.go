@@ -486,10 +486,11 @@ func escapeTelegramCode(s string) string {
 
 // enrichWithSkills checks for auto-trigger matches and injects skill context.
 func (s *Server) enrichWithSkills(ctx context.Context, content, chatID, msgType string) string {
-	matched := s.skills.Match(content)
+	enabledLevelups := s.enabledLevelups(ctx)
+	matched := s.skills.MatchEnabled(content, enabledLevelups)
 	if len(matched) == 0 {
 		// no trigger matches, but still inject skill discovery
-		desc := s.skills.Describe()
+		desc := s.skills.DescribeEnabled(enabledLevelups)
 		if desc != "" {
 			return content + "\n\n[system context]\n" + desc
 		}
@@ -498,11 +499,6 @@ func (s *Server) enrichWithSkills(ctx context.Context, content, chatID, msgType 
 
 	var enrichments []string
 	for _, skill := range matched {
-		// dependency check: verify required level-ups
-		if len(skill.Manifest.LevelUps) > 0 {
-			s.log.Info(ctx, "skill requires level-ups", "skill", skill.Manifest.Name, "level_ups", skill.Manifest.LevelUps)
-		}
-
 		result, err := s.skills.Exec().Run(ctx, skill, skills.Context{
 			UserMessage: content,
 			ChatID:      chatID,
@@ -535,6 +531,23 @@ func (s *Server) enrichWithSkills(ctx context.Context, content, chatID, msgType 
 }
 
 // executeSkillActions processes create/edit/delete actions from agent response.
+func (s *Server) enabledLevelups(ctx context.Context) map[string]struct{} {
+	projectRoot := s.cfg.SelfEvolutionRepoDir
+	if strings.TrimSpace(projectRoot) == "" {
+		projectRoot = "."
+	}
+	state, err := levelup.LoadState(projectRoot)
+	if err != nil {
+		s.log.Warn(ctx, "load enabled levelups failed", "error", err.Error())
+		return map[string]struct{}{}
+	}
+	enabled := make(map[string]struct{}, len(state.Enabled))
+	for _, name := range state.Enabled {
+		enabled[name] = struct{}{}
+	}
+	return enabled
+}
+
 func (s *Server) executeSkillActions(ctx context.Context, chatID int64, actions *skills.ActionEnvelope) {
 	for _, a := range actions.Create {
 		if err := s.skills.Create(a); err != nil {
