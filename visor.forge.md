@@ -376,6 +376,11 @@ A fast, compiled agent runtime in Go that serves as the "body" for swappable AI 
 - Added `setup_actions.levelup_preset = "recommended"` shortcut to auto-select `enabled_by_default` level-ups.
 - Updated setup guidance text to include OpenAI validation + compact optional level-up chooser semantics.
 
+### 2026-02-21 — docs sync note
+- added a documentation sync marker so recent implementation changes are explicitly mirrored into roadmap-facing docs.
+- README now carries a short note that M12 iteration 3 also included post-research hardening (`validate_openai`, `levelup_preset = recommended`).
+- process reminder: implementation change -> forge log update + README status note + changelog entry when user-visible.
+
 ## Milestones
 
 ### M0: host-native runtime boundary + level-up foundation + native email baseline

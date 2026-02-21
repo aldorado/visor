@@ -39,6 +39,8 @@ note:
 - M12 Iteration 2: done
 - M12 Iteration 3: done
 
+note (2026-02-21): post-research hardening from M12 it3 is now explicitly tracked in docs (`validate_openai` setup action + `recommended` level-up preset).
+
 ## first 10 minutes
 
 ```bash
