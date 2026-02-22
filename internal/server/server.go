@@ -182,7 +182,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		s.log.Info(ctx, "webhook message processed", "chat_id", chatID, "backend", cfg.AgentBackend)
 		text, meta := parseResponse(response)
 		text = sanitizeUserReply(text)
-		text = strings.TrimSpace(text + "\n\n⏱ " + formatDuration(duration))
+		text = strings.TrimSpace(text + "\n\n⏱ " + formatDuration(duration) + " · " + s.agent.CurrentBackend())
 
 		if meta.SendVoice && s.voice != nil && s.voice.TTSEnabled() {
 			if err := s.voice.SynthesizeAndSend(chatID, text); err != nil {
@@ -415,6 +415,31 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			s.log.Info(r.Context(), "quick action handled", "chat_id", chatID, "reply", reply)
 			if sendErr := s.tg.SendMessage(msg.Chat.ID, reply); sendErr != nil {
 				s.log.Error(r.Context(), "quick action reply failed", "chat_id", chatID, "error", sendErr.Error())
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+
+	// agent switch command: /agent [name]
+	if msgType == "text" {
+		trimmed := strings.TrimSpace(content)
+		if trimmed == "/agent" || strings.HasPrefix(trimmed, "/agent ") {
+			parts := strings.Fields(trimmed)
+			var reply string
+			if len(parts) == 1 {
+				reply = fmt.Sprintf("current agent: *%s*", s.agent.CurrentBackend())
+			} else {
+				name := parts[1]
+				if err := s.agent.SwitchBackend(name); err != nil {
+					reply = fmt.Sprintf("❌ %v", err)
+				} else {
+					reply = fmt.Sprintf("✅ switched to *%s*", name)
+				}
+			}
+			s.log.Info(r.Context(), "agent switch command", "chat_id", chatID, "command", trimmed)
+			if sendErr := s.tg.SendMessage(msg.Chat.ID, reply); sendErr != nil {
+				s.log.Error(r.Context(), "agent switch reply failed", "chat_id", chatID, "error", sendErr.Error())
 			}
 			w.WriteHeader(http.StatusOK)
 			return

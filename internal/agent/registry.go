@@ -129,6 +129,25 @@ func (r *Registry) Active() string {
 	return r.active.Name
 }
 
+// SetActive explicitly pins the active backend to the named one.
+// Returns an error if the backend isn't registered.
+func (r *Registry) SetActive(name string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, b := range r.backends {
+		if b.Name == name {
+			r.active = b
+			r.log.Info(nil, "active backend pinned by user", "name", name)
+			return nil
+		}
+	}
+	var names []string
+	for _, b := range r.backends {
+		names = append(names, b.Name)
+	}
+	return fmt.Errorf("backend %q not registered (available: %s)", name, strings.Join(names, ", "))
+}
+
 // MarkUnhealthy marks a backend as unhealthy and triggers reselection.
 func (r *Registry) MarkUnhealthy(name, reason string) {
 	r.mu.Lock()

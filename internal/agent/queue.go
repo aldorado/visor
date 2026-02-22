@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -190,6 +191,25 @@ func (qa *QueuedAgent) QueueLen() int {
 	qa.mu.Lock()
 	defer qa.mu.Unlock()
 	return len(qa.queue)
+}
+
+// CurrentBackend returns the name of the currently active backend.
+// For a Registry, returns the live active backend; otherwise returns the fixed backend name.
+func (qa *QueuedAgent) CurrentBackend() string {
+	if reg, ok := qa.agent.(*Registry); ok {
+		return reg.Active()
+	}
+	return qa.backend
+}
+
+// SwitchBackend pins the active backend to the named one.
+// Only works if the underlying agent is a Registry.
+func (qa *QueuedAgent) SwitchBackend(name string) error {
+	reg, ok := qa.agent.(*Registry)
+	if !ok {
+		return fmt.Errorf("agent does not support backend switching")
+	}
+	return reg.SetActive(name)
 }
 
 func nowMillis() int64 {
