@@ -13,6 +13,28 @@ func TestParseGeminiStreamLine_Message(t *testing.T) {
 	}
 }
 
+func TestParseGeminiStreamLine_MessageTopLevelContent(t *testing.T) {
+	line := `{"type":"message","role":"assistant","content":"ok","delta":true}`
+	chunk, err := parseGeminiStreamLine(line)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if chunk != "ok" {
+		t.Fatalf("chunk = %q, want %q", chunk, "ok")
+	}
+}
+
+func TestParseGeminiStreamLine_MessageIgnoresUserTopLevelContent(t *testing.T) {
+	line := `{"type":"message","role":"user","content":"hello"}`
+	chunk, err := parseGeminiStreamLine(line)
+	if err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if chunk != "" {
+		t.Fatalf("chunk = %q, want empty", chunk)
+	}
+}
+
 func TestParseGeminiStreamLine_Error(t *testing.T) {
 	line := `{"type":"error","error":{"message":"rate limit hit"}}`
 	_, err := parseGeminiStreamLine(line)

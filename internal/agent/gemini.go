@@ -114,6 +114,8 @@ func resolveGeminiCommand() (binary string, prefixArgs []string, err error) {
 func parseGeminiStreamLine(line string) (string, error) {
 	var event struct {
 		Type    string          `json:"type"`
+		Role    string          `json:"role,omitempty"`
+		Content string          `json:"content,omitempty"`
 		Message json.RawMessage `json:"message,omitempty"`
 		Result  json.RawMessage `json:"result,omitempty"`
 		Error   json.RawMessage `json:"error,omitempty"`
@@ -136,6 +138,9 @@ func parseGeminiStreamLine(line string) (string, error) {
 		return "", fmt.Errorf("gemini: %s", msg)
 	case "message":
 		var out strings.Builder
+		if event.Role == "assistant" && event.Content != "" {
+			out.WriteString(event.Content)
+		}
 		if event.Text != "" {
 			out.WriteString(event.Text)
 		}
@@ -149,6 +154,9 @@ func parseGeminiStreamLine(line string) (string, error) {
 		out.WriteString(extractJSONText(event.Result))
 		return out.String(), nil
 	default:
+		if event.Role == "assistant" && event.Content != "" {
+			return event.Content, nil
+		}
 		if event.Text != "" {
 			return event.Text, nil
 		}
