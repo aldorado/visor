@@ -52,12 +52,21 @@ func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 	}
 
 	useResume := g.shouldResume()
+	yolo := geminiYoloEnabled()
+	allowedTools := geminiAllowedTools()
 	start := time.Now()
-	g.log.Info(ctx, "gemini request start", "model", model, "prompt_len", len(prompt), "resume_latest", useResume, "resume_window_min", int(g.resumeWindow/time.Minute))
+	g.log.Info(ctx, "gemini request start", "model", model, "prompt_len", len(prompt), "resume_latest", useResume, "resume_window_min", int(g.resumeWindow/time.Minute), "yolo", yolo, "allowed_tools_count", len(allowedTools))
 
 	args := append(prefix, "-m", model)
 	if useResume {
 		args = append(args, "--resume", "latest")
+	}
+	if yolo {
+		args = append(args, "--yolo")
+	}
+	if len(allowedTools) > 0 {
+		args = append(args, "--allowed-tools")
+		args = append(args, allowedTools...)
 	}
 	args = append(args, "-p", prompt, "--output-format", "stream-json")
 	cmd := exec.CommandContext(ctx, binary, args...)
@@ -165,6 +174,34 @@ func geminiResumeWindow() time.Duration {
 		return 20 * time.Minute
 	}
 	return time.Duration(v) * time.Minute
+}
+
+func geminiYoloEnabled() bool {
+	raw := strings.TrimSpace(strings.ToLower(os.Getenv("GEMINI_YOLO")))
+	if raw == "" {
+		return true
+	}
+	return raw == "1" || raw == "true" || raw == "yes" || raw == "on"
+}
+
+func geminiAllowedTools() []string {
+	raw := strings.TrimSpace(os.Getenv("GEMINI_ALLOWED_TOOLS"))
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		out = append(out, p)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func resolveGeminiCommand() (binary string, prefixArgs []string, err error) {
