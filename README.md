@@ -47,6 +47,7 @@ want full guided onboarding on ubuntu 24?
 - `internal/voice` whisper + elevenlabs
 - `internal/scheduler` reminders/recurrence
 - `skills/` runtime skills
+- `.pi/`, `.claude/`, `.gemini/`, `.agents/` synced agent metadata + skills
 - `levelups/` sidecar manifests
 
 ## config and ops

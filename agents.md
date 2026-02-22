@@ -29,3 +29,7 @@ append to `COORDINATION.md`:
 ## execution boundary
 - visor runs host-native only (never inside docker compose)
 - docker compose is sidecars/level-ups only
+
+## prompt/skill metadata sync
+- canonical source is `skills/` + `.pi/SYSTEM.md`
+- mirrors must stay in sync: `.claude/`, `.gemini/`, `.agents/`

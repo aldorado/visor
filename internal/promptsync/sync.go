@@ -33,6 +33,8 @@ func syncSystemFiles(repoRoot string) error {
 	targets := []string{
 		filepath.Join(repoRoot, ".claude", "CLAUDE.md"),
 		filepath.Join(repoRoot, ".claude", "SYSTEM.md"),
+		filepath.Join(repoRoot, ".gemini", "GEMINI.md"),
+		filepath.Join(repoRoot, ".agents", "GEMINI.md"),
 	}
 	for _, target := range targets {
 		if err := copyFile(source, target); err != nil {
@@ -54,6 +56,8 @@ func syncSkills(repoRoot string) error {
 	targetRoots := []string{
 		filepath.Join(repoRoot, ".pi", "skills"),
 		filepath.Join(repoRoot, ".claude", "skills"),
+		filepath.Join(repoRoot, ".gemini", "skills"),
+		filepath.Join(repoRoot, ".agents", "skills"),
 	}
 
 	sourceNames, err := listDirNames(sourceRoot)
