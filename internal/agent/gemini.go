@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -36,8 +37,16 @@ func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 		return "", err
 	}
 
-	args := append(prefix, "-p", prompt, "--output-format", "stream-json")
+	model := strings.TrimSpace(os.Getenv("GEMINI_MODEL"))
+	if model == "" {
+		model = "gemini-2.5-flash"
+	}
+
+	args := append(prefix, "-m", model, "-p", prompt, "--output-format", "stream-json")
 	cmd := exec.CommandContext(ctx, binary, args...)
+	// run outside repo root so gemini-cli doesn't auto-load project .gemini/*
+	// instructions/skills that cause extra tool loops and latency.
+	cmd.Dir = os.TempDir()
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
