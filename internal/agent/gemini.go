@@ -8,7 +8,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"visor/internal/observability"
@@ -17,15 +19,22 @@ import (
 // GeminiAgent implements Agent using Gemini CLI in headless stream-json mode.
 // It prefers a local `gemini` binary and falls back to `npx @google/gemini-cli`.
 type GeminiAgent struct {
-	timeout time.Duration
-	log     *observability.Logger
+	timeout      time.Duration
+	log          *observability.Logger
+	mu           sync.Mutex
+	lastSuccess  time.Time
+	resumeWindow time.Duration
 }
 
 func NewGeminiAgent(timeout time.Duration) *GeminiAgent {
 	if timeout == 0 {
 		timeout = 5 * time.Minute
 	}
-	return &GeminiAgent{timeout: timeout, log: observability.Component("agent.gemini")}
+	return &GeminiAgent{
+		timeout:      timeout,
+		log:          observability.Component("agent.gemini"),
+		resumeWindow: geminiResumeWindow(),
+	}
 }
 
 func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, error) {
@@ -42,10 +51,15 @@ func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 		model = "auto-gemini-3"
 	}
 
+	useResume := g.shouldResume()
 	start := time.Now()
-	g.log.Info(ctx, "gemini request start", "model", model, "prompt_len", len(prompt))
+	g.log.Info(ctx, "gemini request start", "model", model, "prompt_len", len(prompt), "resume_latest", useResume, "resume_window_min", int(g.resumeWindow/time.Minute))
 
-	args := append(prefix, "-m", model, "-p", prompt, "--output-format", "stream-json")
+	args := append(prefix, "-m", model)
+	if useResume {
+		args = append(args, "--resume", "latest")
+	}
+	args = append(args, "-p", prompt, "--output-format", "stream-json")
 	cmd := exec.CommandContext(ctx, binary, args...)
 
 	stdout, err := cmd.StdoutPipe()
@@ -116,11 +130,42 @@ func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 		}
 	}
 
+	g.markSuccess()
 	g.log.Info(ctx, "gemini request done", "model", model, "duration_ms", time.Since(start).Milliseconds(), "first_token_ms", firstTokenMs, "stdout_lines", stdoutLines, "response_len", response.Len())
 	return response.String(), nil
 }
 
 func (g *GeminiAgent) Close() error { return nil }
+
+func (g *GeminiAgent) shouldResume() bool {
+	if g.resumeWindow <= 0 {
+		return false
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.lastSuccess.IsZero() {
+		return false
+	}
+	return time.Since(g.lastSuccess) <= g.resumeWindow
+}
+
+func (g *GeminiAgent) markSuccess() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.lastSuccess = time.Now()
+}
+
+func geminiResumeWindow() time.Duration {
+	raw := strings.TrimSpace(os.Getenv("GEMINI_RESUME_WINDOW_MINUTES"))
+	if raw == "" {
+		return 20 * time.Minute
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v < 0 {
+		return 20 * time.Minute
+	}
+	return time.Duration(v) * time.Minute
+}
 
 func resolveGeminiCommand() (binary string, prefixArgs []string, err error) {
 	if _, lookErr := exec.LookPath("gemini"); lookErr == nil {
