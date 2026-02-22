@@ -39,14 +39,14 @@ func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 
 	model := strings.TrimSpace(os.Getenv("GEMINI_MODEL"))
 	if model == "" {
-		model = "gemini-2.5-flash"
+		model = "auto-gemini-3"
 	}
+
+	start := time.Now()
+	g.log.Info(ctx, "gemini request start", "model", model, "prompt_len", len(prompt))
 
 	args := append(prefix, "-m", model, "-p", prompt, "--output-format", "stream-json")
 	cmd := exec.CommandContext(ctx, binary, args...)
-	// run outside repo root so gemini-cli doesn't auto-load project .gemini/*
-	// instructions/skills that cause extra tool loops and latency.
-	cmd.Dir = os.TempDir()
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -66,17 +66,25 @@ func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 
+	firstTokenMs := int64(-1)
+	stdoutLines := 0
 	for scanner.Scan() {
 		line := scanner.Text()
 		if line == "" {
 			continue
 		}
+		stdoutLines++
 
 		chunk, lineErr := parseGeminiStreamLine(line)
 		if lineErr != nil {
+			g.log.Warn(ctx, "gemini stream parse error", "error", lineErr.Error())
 			return response.String(), lineErr
 		}
 		if chunk != "" {
+			if firstTokenMs < 0 {
+				firstTokenMs = time.Since(start).Milliseconds()
+				g.log.Info(ctx, "gemini first token", "model", model, "latency_ms", firstTokenMs)
+			}
 			response.WriteString(chunk)
 		}
 	}
@@ -89,10 +97,12 @@ func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 
 	if err := cmd.Wait(); err != nil {
 		if ctx.Err() != nil {
+			g.log.Warn(ctx, "gemini request timeout", "model", model, "duration_ms", time.Since(start).Milliseconds())
 			return response.String(), fmt.Errorf("gemini: timeout")
 		}
 		stderrMsg := strings.TrimSpace(string(stderrBytes))
 		if stderrMsg != "" {
+			g.log.Warn(ctx, "gemini request failed", "model", model, "duration_ms", time.Since(start).Milliseconds(), "stderr_len", len(stderrMsg))
 			return response.String(), fmt.Errorf("gemini: %s", stderrMsg)
 		}
 		return response.String(), fmt.Errorf("gemini: exit: %w", err)
@@ -101,10 +111,12 @@ func (g *GeminiAgent) SendPrompt(ctx context.Context, prompt string) (string, er
 	if response.Len() == 0 {
 		stderrMsg := strings.TrimSpace(string(stderrBytes))
 		if stderrMsg != "" {
+			g.log.Warn(ctx, "gemini empty response with stderr", "model", model, "duration_ms", time.Since(start).Milliseconds(), "stderr_len", len(stderrMsg))
 			return "", fmt.Errorf("gemini: %s", stderrMsg)
 		}
 	}
 
+	g.log.Info(ctx, "gemini request done", "model", model, "duration_ms", time.Since(start).Milliseconds(), "first_token_ms", firstTokenMs, "stdout_lines", stdoutLines, "response_len", response.Len())
 	return response.String(), nil
 }
 
