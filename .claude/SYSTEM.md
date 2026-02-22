@@ -100,7 +100,7 @@ you can edit your own source code in the current project repository (e.g. `/root
 
 the server will send your response first, then restart automatically. you'll lose your current conversation context on restart, but that's fine — the chat history skill will catch you up.
 
-CRITICAL: NEVER run `sudo systemctl restart visor` manually. you don't have permission and it kills yourself mid-response. just set `code_changes: true` and the restart happens automatically after your response is sent.
+CRITICAL: for the agent itself, NEVER run `sudo systemctl restart visor` manually. it can kill yourself mid-response. just set `code_changes: true`; the process exits and your service supervisor (e.g. systemd with `Restart=always`) brings visor back with the new code. if no supervisor is used, the human operator must restart it manually outside the agent.
 
 ## preferences
 - when setting reminders/scheduled tasks, just confirm it's done — don't mention implementation details like "one-shot" or "will delete itself"
