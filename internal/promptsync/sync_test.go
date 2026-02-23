@@ -6,46 +6,26 @@ import (
 	"testing"
 )
 
-func TestSyncCopiesSystemAndSkills(t *testing.T) {
+func TestSyncCopiesSkillsToPiOnly(t *testing.T) {
 	repo := t.TempDir()
 
 	mustWrite(t, filepath.Join(repo, ".pi", "SYSTEM.md"), "system")
 	mustWrite(t, filepath.Join(repo, "skills", "alpha", "SKILL.md"), "alpha")
 	mustWrite(t, filepath.Join(repo, "skills", "beta", "SKILL.md"), "beta")
-	mustWrite(t, filepath.Join(repo, ".claude", "skills", "old", "SKILL.md"), "old")
-	mustWrite(t, filepath.Join(repo, ".gemini", "skills", "old", "SKILL.md"), "old")
+	mustWrite(t, filepath.Join(repo, ".pi", "skills", "old", "SKILL.md"), "old")
 
 	if err := Sync(repo); err != nil {
 		t.Fatal(err)
 	}
 
-	claudeSystem := mustRead(t, filepath.Join(repo, ".claude", "CLAUDE.md"))
-	if claudeSystem != "system" {
-		t.Fatalf("claude system = %q", claudeSystem)
-	}
-	compatSystem := mustRead(t, filepath.Join(repo, ".claude", "SYSTEM.md"))
-	if compatSystem != "system" {
-		t.Fatalf("compat system = %q", compatSystem)
-	}
-	geminiSystem := mustRead(t, filepath.Join(repo, ".gemini", "GEMINI.md"))
-	if geminiSystem != "system" {
-		t.Fatalf("gemini system = %q", geminiSystem)
-	}
-
 	if mustRead(t, filepath.Join(repo, ".pi", "skills", "alpha", "SKILL.md")) != "alpha" {
 		t.Fatal("pi alpha not synced")
 	}
-	if mustRead(t, filepath.Join(repo, ".claude", "skills", "beta", "SKILL.md")) != "beta" {
-		t.Fatal("claude beta not synced")
+	if mustRead(t, filepath.Join(repo, ".pi", "skills", "beta", "SKILL.md")) != "beta" {
+		t.Fatal("pi beta not synced")
 	}
-	if mustRead(t, filepath.Join(repo, ".gemini", "skills", "alpha", "SKILL.md")) != "alpha" {
-		t.Fatal("gemini alpha not synced")
-	}
-	if _, err := os.Stat(filepath.Join(repo, ".claude", "skills", "old")); !os.IsNotExist(err) {
-		t.Fatal("stale claude skill should be removed")
-	}
-	if _, err := os.Stat(filepath.Join(repo, ".gemini", "skills", "old")); !os.IsNotExist(err) {
-		t.Fatal("stale gemini skill should be removed")
+	if _, err := os.Stat(filepath.Join(repo, ".pi", "skills", "old")); !os.IsNotExist(err) {
+		t.Fatal("stale pi skill should be removed")
 	}
 }
 

@@ -319,7 +319,7 @@ func TestWriteChangelog(t *testing.T) {
 	}
 
 	// second write should append
-	m.writeChangelog(Request{CommitMessage: "second", Backend: "claude"})
+	m.writeChangelog(Request{CommitMessage: "second", Backend: "pi"})
 	data, _ = os.ReadFile(logFile)
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 	if len(lines) != 2 {

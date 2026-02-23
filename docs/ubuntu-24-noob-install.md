@@ -126,7 +126,7 @@ EOF
 ```
 
 important:
-- start with `echo` backend first (no pi/claude dependency)
+- start with `echo` backend first (no external backend dependency)
 - `echo` is only a dummy smoke-test backend: it just replies with `echo: <your message>`
 - we switch to `pi` later after basic flow works
 
@@ -237,7 +237,7 @@ if that works: base setup is correct ✅
 
 m12 note (important):
 - with `AGENT_BACKEND=echo` there is *no* real guided setup assistant (echo is smoke-test only)
-- the interactive m12 setup flow needs a real backend (`pi` or `claude`)
+- the interactive m12 setup flow needs a real backend (`pi`)
 
 ---
 
@@ -263,7 +263,7 @@ AGENT_BACKENDS=pi,echo
 4) restart visor and test again.
 
 optional (use the m12 guided setup):
-- if you prefer conversational onboarding, start visor with a real backend (`pi`/`claude`) and follow setup prompts
+- if you prefer conversational onboarding, start visor with a real backend (`pi`) and follow setup prompts
 - m12 can now also:
   - validate OpenAI key (`validate_openai`)
   - send final test message + write setup summary

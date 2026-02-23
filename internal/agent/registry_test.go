@@ -183,7 +183,7 @@ func TestIsRetryableError(t *testing.T) {
 		{"connection refused", false},
 		{"timeout waiting for response", false},
 		{"pi: process closed stdout", false},
-		{"claude: exit: exit status 1", false},
+		{"pi: exit: exit status 1", false},
 	}
 	for _, tc := range tests {
 		got := IsRetryableError(fmt.Errorf("%s", tc.err))

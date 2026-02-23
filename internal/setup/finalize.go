@@ -32,7 +32,7 @@ func ApplyPersonalityOverride(projectRoot, file, choice, content string) error {
 		return fmt.Errorf("personality_content is required for custom choice")
 	}
 	if strings.TrimSpace(file) == "" {
-		file = filepath.Join(projectRoot, ".claude", "CLAUDE.md")
+		file = filepath.Join(projectRoot, ".pi", "SYSTEM.md")
 	}
 	bytes, err := os.ReadFile(file)
 	if err != nil {
@@ -47,7 +47,7 @@ func ApplyPersonalityOverride(projectRoot, file, choice, content string) error {
 
 func CleanupSetupInstructions(projectRoot, file string) error {
 	if strings.TrimSpace(file) == "" {
-		file = filepath.Join(projectRoot, ".claude", "CLAUDE.md")
+		file = filepath.Join(projectRoot, ".pi", "SYSTEM.md")
 	}
 	bytes, err := os.ReadFile(file)
 	if err != nil {

@@ -3,7 +3,7 @@
 ## vision
 visor is a host-native go runtime for chat agents.
 it handles the body: webhooks, memory, voice, scheduling, and skills.
-the brain is swappable (pi/claude/gemini via adapters).
+the brain is swappable (pi via adapter, echo fallback).
 
 goal: one stable runtime, many model backends, clean ops, minimal friction.
 
@@ -23,7 +23,7 @@ otel + signoz export is integrated and toggleable via env.
 telegram webhook handling, auth, dedupe, send path, and health route are running.
 
 #### m2 — agent process manager ✅
-unified agent interface, queueing, process supervision, pi + claude adapters implemented.
+unified agent interface, queueing, and process supervision with pi adapter implemented.
 
 #### m3 — memory system (partial) 🟡
 parquet-based storage, embeddings, and semantic lookup are done.

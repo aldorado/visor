@@ -32,4 +32,4 @@ append to `COORDINATION.md`:
 
 ## prompt/skill metadata sync
 - canonical source is `skills/` + `.pi/SYSTEM.md`
-- mirrors must stay in sync: `.claude/`, `.gemini/`
+- no mirror sync required outside `.pi/`

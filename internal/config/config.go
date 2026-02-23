@@ -13,7 +13,7 @@ type Config struct {
 	UserChatID            string
 	Port                  int
 	AgentBackend          string   // primary backend for backward compat (first in AgentBackends)
-	AgentBackends         []string // priority-ordered list: "pi,claude,echo" (default: [AgentBackend])
+	AgentBackends         []string // priority-ordered list: "pi,echo" (default: [AgentBackend])
 	OpenAIAPIKey          string
 	DataDir               string // base directory for runtime data (default: "data")
 	ElevenLabsAPIKey      string

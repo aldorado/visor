@@ -232,7 +232,7 @@ wenn ja: basis setup passt ✅
 
 m12-hinweis (wichtig):
 - mit `AGENT_BACKEND=echo` gibt es *keinen* echten setup-assistenten (echo ist nur smoke-test)
-- der interaktive m12 setup-flow braucht ein echtes backend (`pi` oder `claude`)
+- der interaktive m12 setup-flow braucht ein echtes backend (`pi`)
 
 ---
 
@@ -258,7 +258,7 @@ AGENT_BACKENDS=pi,echo
 4) visor neu starten und testen.
 
 optional (m12 guided setup nutzen):
-- wenn du setup lieber im chat führen willst, starte visor mit echtem backend (`pi`/`claude`) und folge den setup-fragen
+- wenn du setup lieber im chat führen willst, starte visor mit echtem backend (`pi`) und folge den setup-fragen
 - m12 kann jetzt zusätzlich:
   - openai key validieren (`validate_openai`)
   - am ende test-message + setup-summary schreiben

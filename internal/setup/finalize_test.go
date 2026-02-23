@@ -9,7 +9,7 @@ import (
 
 func TestApplyPersonalityOverride(t *testing.T) {
 	root := t.TempDir()
-	file := filepath.Join(root, ".claude", "CLAUDE.md")
+	file := filepath.Join(root, ".pi", "SYSTEM.md")
 	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 		t.Fatal(err)
 	}
