@@ -129,6 +129,34 @@ func (r *Registry) Active() string {
 	return r.active.Name
 }
 
+func (r *Registry) ActiveLabel() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.active == nil {
+		return ""
+	}
+	return backendLabel(r.active.Name, r.active.Agent)
+}
+
+func (r *Registry) ActiveModel() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.active == nil {
+		return ""
+	}
+	return currentModel(r.active.Agent)
+}
+
+func (r *Registry) SetModelOnActive(model string) error {
+	r.mu.RLock()
+	active := r.active
+	r.mu.RUnlock()
+	if active == nil {
+		return fmt.Errorf("no active backend")
+	}
+	return switchModel(active.Agent, model)
+}
+
 // SetActive explicitly pins the active backend to the named one.
 // Returns an error if the backend isn't registered.
 func (r *Registry) SetActive(name string) error {

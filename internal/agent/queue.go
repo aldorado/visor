@@ -193,13 +193,20 @@ func (qa *QueuedAgent) QueueLen() int {
 	return len(qa.queue)
 }
 
-// CurrentBackend returns the name of the currently active backend.
-// For a Registry, returns the live active backend; otherwise returns the fixed backend name.
+// CurrentBackend returns the current backend label.
+// For model-aware backends this can include the selected model (example: pi/codex).
 func (qa *QueuedAgent) CurrentBackend() string {
 	if reg, ok := qa.agent.(*Registry); ok {
-		return reg.Active()
+		return reg.ActiveLabel()
 	}
-	return qa.backend
+	return backendLabel(qa.backend, qa.agent)
+}
+
+func (qa *QueuedAgent) CurrentModel() string {
+	if reg, ok := qa.agent.(*Registry); ok {
+		return reg.ActiveModel()
+	}
+	return currentModel(qa.agent)
 }
 
 // SwitchBackend pins the active backend to the named one.
@@ -210,6 +217,13 @@ func (qa *QueuedAgent) SwitchBackend(name string) error {
 		return fmt.Errorf("agent does not support backend switching")
 	}
 	return reg.SetActive(name)
+}
+
+func (qa *QueuedAgent) SwitchModel(model string) error {
+	if reg, ok := qa.agent.(*Registry); ok {
+		return reg.SetModelOnActive(model)
+	}
+	return switchModel(qa.agent, model)
 }
 
 func nowMillis() int64 {

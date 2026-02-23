@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 
@@ -49,6 +50,7 @@ type PiAgent struct {
 	toolsCfg     ProcessConfig
 	toolsMu      sync.Mutex
 	toolsStarted bool
+	model        string
 	mu           sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
 	log          *observability.Logger
 }
@@ -56,10 +58,13 @@ type PiAgent struct {
 func NewPiAgent(cfg ProcessConfig) *PiAgent {
 	toolsCfg := cfg
 	toolsCfg.Command = "pi"
-	toolsCfg.Args = []string{"--mode", "rpc", "--no-session"}
+
+	model := strings.TrimSpace(os.Getenv("PI_MODEL"))
+	toolsCfg.Args = piRPCArgs(model)
 
 	return &PiAgent{
 		toolsCfg: toolsCfg,
+		model:    model,
 		log:      observability.Component("agent.pi"),
 	}
 }
@@ -67,6 +72,39 @@ func NewPiAgent(cfg ProcessConfig) *PiAgent {
 func (p *PiAgent) Start() error {
 	_, err := p.ensureToolsProcess()
 	return err
+}
+
+func (p *PiAgent) SetModel(model string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	model = strings.TrimSpace(model)
+	p.toolsMu.Lock()
+	defer p.toolsMu.Unlock()
+
+	p.model = model
+	p.toolsCfg.Args = piRPCArgs(model)
+
+	if p.toolsPM != nil {
+		_ = p.toolsPM.Stop()
+		p.toolsPM = nil
+		p.toolsStarted = false
+	}
+	return nil
+}
+
+func (p *PiAgent) Model() string {
+	p.toolsMu.Lock()
+	defer p.toolsMu.Unlock()
+	return p.model
+}
+
+func (p *PiAgent) BackendLabel() string {
+	model := p.Model()
+	if model == "" {
+		return "pi"
+	}
+	return "pi/" + model
 }
 
 func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error) {
@@ -225,6 +263,14 @@ func (p *PiAgent) Close() error {
 		}
 	}
 	return nil
+}
+
+func piRPCArgs(model string) []string {
+	args := []string{"--mode", "rpc", "--no-session"}
+	if model != "" {
+		args = append(args, "--model", model)
+	}
+	return args
 }
 
 func withExecutionGuardrail(prompt string) string {

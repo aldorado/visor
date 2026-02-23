@@ -142,3 +142,34 @@ func TestEchoAgent(t *testing.T) {
 		t.Errorf("resp = %q, want %q", resp, "echo: test")
 	}
 }
+
+type modelAgent struct {
+	model string
+}
+
+func (m *modelAgent) SendPrompt(_ context.Context, _ string) (string, error) { return "ok", nil }
+func (m *modelAgent) Close() error                                           { return nil }
+func (m *modelAgent) SetModel(model string) error {
+	m.model = model
+	return nil
+}
+func (m *modelAgent) Model() string        { return m.model }
+func (m *modelAgent) BackendLabel() string { return "pi/" + m.model }
+
+func TestQueuedAgent_CurrentBackendUsesLabeler(t *testing.T) {
+	qa := NewQueuedAgent(&modelAgent{model: "codex"}, "pi", func(context.Context, int64, string, error, time.Duration) {})
+	if got := qa.CurrentBackend(); got != "pi/codex" {
+		t.Fatalf("CurrentBackend=%q want %q", got, "pi/codex")
+	}
+}
+
+func TestQueuedAgent_SwitchModel(t *testing.T) {
+	a := &modelAgent{model: "codex"}
+	qa := NewQueuedAgent(a, "pi", func(context.Context, int64, string, error, time.Duration) {})
+	if err := qa.SwitchModel("gpt-5"); err != nil {
+		t.Fatalf("SwitchModel err=%v", err)
+	}
+	if got := qa.CurrentBackend(); got != "pi/gpt-5" {
+		t.Fatalf("CurrentBackend=%q want %q", got, "pi/gpt-5")
+	}
+}

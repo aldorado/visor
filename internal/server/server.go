@@ -363,6 +363,31 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// model switch command: /model [name]
+	if msgType == "text" {
+		trimmed := strings.TrimSpace(content)
+		if trimmed == "/model" || strings.HasPrefix(trimmed, "/model ") {
+			parts := strings.Fields(trimmed)
+			var reply string
+			if len(parts) == 1 {
+				reply = fmt.Sprintf("current model: *%s*", s.agent.CurrentBackend())
+			} else {
+				model := strings.TrimSpace(strings.Join(parts[1:], " "))
+				if err := s.agent.SwitchModel(model); err != nil {
+					reply = fmt.Sprintf("❌ %v", err)
+				} else {
+					reply = fmt.Sprintf("✅ model switched: *%s*", s.agent.CurrentBackend())
+				}
+			}
+			s.log.Info(r.Context(), "model switch command", "chat_id", chatID, "command", trimmed)
+			if sendErr := s.tg.SendMessage(msg.Chat.ID, reply); sendErr != nil {
+				s.log.Error(r.Context(), "model switch reply failed", "chat_id", chatID, "error", sendErr.Error())
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+
 	// agent switch command: /agent [name]
 	if msgType == "text" {
 		trimmed := strings.TrimSpace(content)
@@ -376,7 +401,7 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 				if err := s.agent.SwitchBackend(name); err != nil {
 					reply = fmt.Sprintf("❌ %v", err)
 				} else {
-					reply = fmt.Sprintf("✅ switched to *%s*", name)
+					reply = fmt.Sprintf("✅ switched to *%s*", s.agent.CurrentBackend())
 				}
 			}
 			s.log.Info(r.Context(), "agent switch command", "chat_id", chatID, "command", trimmed)
