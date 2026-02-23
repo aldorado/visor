@@ -14,7 +14,7 @@ all notable project changes are documented here.
 
 ### changed
 - repository presentation moved from execution-board style to public project README style.
-- `README.md` now explicitly notes M12 iteration 3 post-research hardening (`validate_openai`, `levelup_preset = "recommended"`).
+- `README.md` now explicitly notes M12 iteration 3 post-research hardening (`validate_openai`, recommended setup preset).
 - `visor.forge.md` now includes a 2026-02-21 sync note connecting setup hardening changes to timeline updates.
 
 ### fixed

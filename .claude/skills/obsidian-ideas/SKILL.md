@@ -6,12 +6,12 @@ user-invocable: false
 
 # Obsidian Ideas
 
-Save user ideas into the Obsidian vault used by the Obsidian level-up.
+Save user ideas into the Obsidian vault.
 
 ## Preconditions
 
-1. Read `OBSIDIAN_VAULT_PATH` from `.levelup.env`.
-2. If missing or path does not exist, stop and tell the user Obsidian level-up is not configured/enabled.
+1. Read `OBSIDIAN_VAULT_PATH` from environment.
+2. If missing or path does not exist, stop and tell the user Obsidian is not configured.
 
 ## Location
 

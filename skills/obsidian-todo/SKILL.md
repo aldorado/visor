@@ -10,8 +10,8 @@ When a message starts with todo/to do/to-do, strip that prefix and append a clea
 
 ## Preconditions
 
-1. Read `OBSIDIAN_VAULT_PATH` from `.levelup.env`.
-2. If missing or path does not exist, stop and tell the user Obsidian level-up is not configured/enabled.
+1. Read `OBSIDIAN_VAULT_PATH` from environment.
+2. If missing or path does not exist, stop and tell the user Obsidian is not configured.
 
 ## Location
 

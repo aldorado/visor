@@ -36,8 +36,8 @@ When user says blueprint is done, run this flow.
 
 ## Obsidian source path
 
-Read `OBSIDIAN_VAULT_PATH` from `.levelup.env`.
-If missing or path does not exist, stop and tell the user Obsidian level-up is not configured/enabled.
+Read `OBSIDIAN_VAULT_PATH` from environment.
+If missing or path does not exist, stop and tell the user Obsidian is not configured.
 
 ## Notes
 

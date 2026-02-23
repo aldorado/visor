@@ -43,8 +43,8 @@ Always check:
 1. `data/proactive-log.md`
 2. recent sessions in `data/sessions/`
 3. semantic memory lookup (memory-lookup skill)
-4. Obsidian ideas/forge only if Obsidian level-up is configured:
-   - read `OBSIDIAN_VAULT_PATH` from `.levelup.env`
+4. Obsidian ideas/forge only if Obsidian is configured:
+   - read `OBSIDIAN_VAULT_PATH` from environment
    - use `$OBSIDIAN_VAULT_PATH/ideas/` and `$OBSIDIAN_VAULT_PATH/forge/`
    - if missing, skip Obsidian source cleanly
 
