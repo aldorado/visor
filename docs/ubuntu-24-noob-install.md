@@ -5,10 +5,10 @@ copy/paste one block at a time.
 
 if something fails, stop there and fix that step first.
 
-m12 update:
-- visor now has an interactive first-run setup mode
-- it activates when bootstrap is missing (for example no `.env` + missing base envs)
-- this guide is still the manual, stable fallback path
+setup update:
+- use the interactive setup wizard script to create/update `.env`
+- the wizard updates keys safely (no blind overwrite)
+- this guide shows the full end-to-end flow around it
 
 ---
 
@@ -99,36 +99,25 @@ that numeric value is your `USER_PHONE_NUMBER` env value (name is legacy, value 
 
 ---
 
-## 5) create `.env`
+## 5) run setup wizard (`.env`)
 
-in `/root/code/visor`, create this file:
+in `/root/code/visor`, run:
 
 ```bash
-cat > .env <<'EOF'
-TELEGRAM_BOT_TOKEN=PASTE_BOT_TOKEN_HERE
-USER_PHONE_NUMBER=PASTE_CHAT_ID_HERE
-PORT=8080
-
-# start simple first
-AGENT_BACKEND=echo
-AGENT_BACKENDS=echo
-
-# optional but recommended
-TELEGRAM_WEBHOOK_SECRET=change-me-to-a-random-string
-
-# logging
-LOG_LEVEL=info
-LOG_VERBOSE=false
-
-# where runtime data is stored
-DATA_DIR=data
-EOF
+./scripts/setup-wizard.sh
 ```
 
+the wizard asks you for:
+- `TELEGRAM_BOT_TOKEN`
+- `USER_PHONE_NUMBER`
+- `AGENT_BACKEND` (`pi` or `echo`)
+- `OPENAI_API_KEY` (optional)
+- `TZ` (default `Europe/Vienna`)
+
 important:
-- start with `echo` backend first (no external backend dependency)
-- `echo` is only a dummy smoke-test backend: it just replies with `echo: <your message>`
-- we switch to `pi` later after basic flow works
+- the wizard updates keys safely in `.env` (no blind overwrite)
+- start with `echo` backend first for smoke test
+- switch to `pi` after basic flow works
 
 ---
 
@@ -235,9 +224,6 @@ with `AGENT_BACKEND=echo`, visor should reply immediately with an `echo: ...` me
 
 if that works: base setup is correct ✅
 
-m12 note (important):
-- with `AGENT_BACKEND=echo` there is *no* real guided setup assistant (echo is smoke-test only)
-- the interactive m12 setup flow needs a real backend (`pi`)
 
 ---
 
@@ -262,11 +248,6 @@ AGENT_BACKENDS=pi,echo
 
 4) restart visor and test again.
 
-optional (use the m12 guided setup):
-- if you prefer conversational onboarding, start visor with a real backend (`pi`) and follow setup prompts
-- m12 can now also:
-  - validate OpenAI key (`validate_openai`)
-  - send final test message + write setup summary
 
 fallback behavior:
 - if pi fails and registry is enabled, visor can fall back to `echo`.

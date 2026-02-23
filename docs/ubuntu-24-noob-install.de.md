@@ -5,10 +5,10 @@ einfach 1:1 block für block copy/pasten.
 
 wenn ein step fehlschlägt: *nicht weitermachen*, erst den fehler lösen.
 
-m12 update:
-- visor hat jetzt einen interaktiven setup-flow (first-run mode)
-- der wird aktiv, wenn bootstrap noch fehlt (z.b. keine `.env` + keine basis-envs)
-- diese anleitung bleibt der manuelle, stabile fallback
+setup update:
+- nutze das interaktive setup-wizard script für `.env`
+- der wizard updated keys sicher (kein blindes überschreiben)
+- diese anleitung zeigt den kompletten flow rundherum
 
 ---
 
@@ -98,36 +98,25 @@ diese nummer kommt später in `USER_PHONE_NUMBER`.
 
 ---
 
-## 5) `.env` anlegen
+## 5) setup wizard für `.env` ausführen
 
 im ordner `/root/code/visor`:
 
 ```bash
-cat > .env <<'EOF'
-TELEGRAM_BOT_TOKEN=PASTE_BOT_TOKEN_HERE
-USER_PHONE_NUMBER=PASTE_CHAT_ID_HERE
-PORT=8080
-
-# fürs erste super einfach starten
-AGENT_BACKEND=echo
-AGENT_BACKENDS=echo
-
-# empfohlen
-TELEGRAM_WEBHOOK_SECRET=change-me-random-secret
-
-# logs
-LOG_LEVEL=info
-LOG_VERBOSE=false
-
-# runtime daten
-DATA_DIR=data
-EOF
+./scripts/setup-wizard.sh
 ```
 
+der wizard fragt:
+- `TELEGRAM_BOT_TOKEN`
+- `USER_PHONE_NUMBER`
+- `AGENT_BACKEND` (`pi` oder `echo`)
+- `OPENAI_API_KEY` (optional)
+- `TZ` (default `Europe/Vienna`)
+
 wichtig:
+- der wizard updated keys in `.env` sicher (kein blindes überschreiben)
 - zuerst mit `echo` testen
-- `echo` ist nur ein dummy-smoke-test backend und antwortet mit `echo: <deine nachricht>`
-- `pi` erst danach
+- danach auf `pi` wechseln
 
 ---
 
@@ -230,9 +219,6 @@ mit `AGENT_BACKEND=echo` muss direkt eine `echo: ...` antwort kommen.
 
 wenn ja: basis setup passt ✅
 
-m12-hinweis (wichtig):
-- mit `AGENT_BACKEND=echo` gibt es *keinen* echten setup-assistenten (echo ist nur smoke-test)
-- der interaktive m12 setup-flow braucht ein echtes backend (`pi`)
 
 ---
 
@@ -257,11 +243,6 @@ AGENT_BACKENDS=pi,echo
 
 4) visor neu starten und testen.
 
-optional (m12 guided setup nutzen):
-- wenn du setup lieber im chat führen willst, starte visor mit echtem backend (`pi`) und folge den setup-fragen
-- m12 kann jetzt zusätzlich:
-  - openai key validieren (`validate_openai`)
-  - am ende test-message + setup-summary schreiben
 
 ---
 
