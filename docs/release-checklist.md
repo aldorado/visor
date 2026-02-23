@@ -12,7 +12,7 @@ run through this before tagging any release.
 ## security
 
 - [ ] no secrets in tracked files (`grep -r 'PRIVATE\|SECRET\|PASSWORD\|TOKEN' --include='*.go' --include='*.toml' --include='*.yml'` — only references, no values)
-- [ ] `.env` and `.levelup.env` are in `.gitignore`
+- [ ] `.env` is in `.gitignore`
 - [ ] `data/` directory is in `.gitignore`
 - [ ] no hardcoded API keys or tokens in source
 

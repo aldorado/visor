@@ -18,7 +18,7 @@ func TestReadToken_missing(t *testing.T) {
 
 func TestReadToken_present(t *testing.T) {
 	dir := t.TempDir()
-	tokenDir := filepath.Join(dir, "levelups", "forgejo")
+	tokenDir := filepath.Join(dir, "forgejo")
 	if err := os.MkdirAll(tokenDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

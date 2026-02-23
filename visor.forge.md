@@ -2,7 +2,7 @@
 
 ## vision
 visor is a host-native go runtime for chat agents.
-it handles the body: webhooks, memory, voice, scheduling, skills, and level-up sidecars.
+it handles the body: webhooks, memory, voice, scheduling, and skills.
 the brain is swappable (pi/claude/gemini via adapters).
 
 goal: one stable runtime, many model backends, clean ops, minimal friction.
@@ -11,14 +11,12 @@ goal: one stable runtime, many model backends, clean ops, minimal friction.
 
 ### completed milestones (recap)
 
-#### m0 — host-native boundary + level-up foundation + email baseline ✅
-visor stays outside docker. compose is for sidecars only.
-level-up system is live (`levelup.toml`, `.levelup.env`, validation, enable/disable, compose assembly).
-reference level-ups shipped: himalaya email + obsidian + cloudflared baseline.
+#### m0 — host-native boundary + baseline ✅
+visor stays outside docker.
 
 #### m0b — observability baseline ✅
 structured logging is rolled out across runtime paths.
-request/agent/level-up lifecycle logs are in place.
+request/agent lifecycle logs are in place.
 otel + signoz export is integrated and toggleable via env.
 
 #### m1 — webhook + echo skeleton ✅
@@ -53,14 +51,14 @@ repo hygiene, docs polish, release checklist, and local quality gates are in pla
 #### m9 — multi-subagent orchestration ⏳
 planned but not implemented yet (manual fan-out first, automation later).
 
-#### m10 — reverse proxy level-up ✅
-proxy level-up and dynamic subdomain routing for sidecars are implemented.
+#### m10 — reverse proxy ✅
+proxy and dynamic subdomain routing are implemented.
 
-#### m11 — forgejo level-up ✅
+#### m11 — forgejo git ✅
 forgejo sidecar + bootstrap + git remote/push workflow are implemented.
 
 #### m12 — interactive first-run setup ✅
-guided setup flow (env collection, validation, optional level-ups, finish summary) is implemented.
+guided setup flow (env collection, validation, finish summary) is implemented.
 
 ## open milestones
 

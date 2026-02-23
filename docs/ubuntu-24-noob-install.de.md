@@ -261,8 +261,6 @@ optional (m12 guided setup nutzen):
 - wenn du setup lieber im chat führen willst, starte visor mit echtem backend (`pi`/`claude`) und folge den setup-fragen
 - m12 kann jetzt zusätzlich:
   - openai key validieren (`validate_openai`)
-  - levelups gesammelt auswählen (`none` | `recommended` | explizite liste)
-  - levelups in reihenfolge anwenden (env -> enable -> validate -> start -> health)
   - am ende test-message + setup-summary schreiben
 
 ---
@@ -340,8 +338,6 @@ journalctl -u visor -n 200 --no-pager
 
 ## 13) danach (optional)
 
-- `.levelup.env` aus `.levelup.env.example` bauen
-- levelups aktivieren/validieren
 - openai + elevenlabs keys für voice setzen
 - otel/sigNoz: `docs/signoz-setup.md`
 

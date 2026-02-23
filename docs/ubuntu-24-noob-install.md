@@ -266,8 +266,6 @@ optional (use the m12 guided setup):
 - if you prefer conversational onboarding, start visor with a real backend (`pi`/`claude`) and follow setup prompts
 - m12 can now also:
   - validate OpenAI key (`validate_openai`)
-  - choose level-ups in one step (`none` | `recommended` | explicit list)
-  - apply level-ups in sequence (env -> enable -> validate -> start -> health)
   - send final test message + write setup summary
 
 fallback behavior:
@@ -349,8 +347,6 @@ journalctl -u visor -n 200 --no-pager
 
 ## 13) optional next steps
 
-- configure `.levelup.env` from `.levelup.env.example`
-- enable/validate level-ups (himalaya, obsidian, cloudflared)
 - add OpenAI + ElevenLabs keys for voice features
 - configure OTEL/SigNoz from `docs/signoz-setup.md`
 

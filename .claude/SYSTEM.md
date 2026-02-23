@@ -11,7 +11,6 @@ a fast, compiled agent runtime in Go. handles webhooks, memory, voice, schedulin
 - `internal/platform/telegram/` — Telegram Bot API client + types
 - `internal/config/` — env-based configuration
 - `internal/observability/` — structured logging + OpenTelemetry
-- `internal/levelup/` — optional infra sidecars (email, obsidian) via compose overlays
 - `.pi/skills/` — skills that extend visor's capabilities
 - `skills/` — skill definitions (baseline from ubik)
 - `data/` — runtime data (sessions, memories, logs) — gitignored

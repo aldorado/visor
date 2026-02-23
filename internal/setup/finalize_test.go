@@ -27,7 +27,7 @@ func TestApplyPersonalityOverride(t *testing.T) {
 
 func TestWriteSetupSummary(t *testing.T) {
 	root := t.TempDir()
-	path, err := WriteSetupSummary(root, SummaryInput{AgentBackend: "pi", Levelups: []string{"obsidian"}, HealthOK: true})
+	path, err := WriteSetupSummary(root, SummaryInput{AgentBackend: "pi", HealthOK: true})
 	if err != nil {
 		t.Fatal(err)
 	}

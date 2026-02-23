@@ -15,7 +15,6 @@ type CreateAction struct {
 	Run          string   `json:"run"`
 	Script       string   `json:"script"`
 	Dependencies []string `json:"dependencies"`
-	LevelUps     []string `json:"level_ups"`
 	Timeout      int      `json:"timeout"`
 }
 

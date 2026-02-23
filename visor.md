@@ -36,37 +36,6 @@ Rewrite ubik from scratch in a compiled language (Rust or Go) for a faster, lean
 - Level-up infra alongside visor via Docker Compose extensions
 - Self-edit: the agent edits source, triggers rebuild + restart
 
-## Level-ups (extensible infra packs)
-Visor itself runs *on host* (not in Docker), so it keeps full server access for self-edit + rebuild + restart.
-
-Docker Compose is only for optional sidecar infrastructure level-ups next to visor:
-- base infra file: `docker-compose.yml` (sidecars only, no visor service)
-- level-up overlays: `docker-compose.levelup.<name>.yml`
-- level-up env: `.levelup.env` (separate from base `.env`)
-
-Activation concept:
-- visor reads enabled level-ups from config
-- compose merge order is deterministic: base first, then overlays in declared order
-- variables are injected from `.levelup.env` (plus process env overrides)
-- merged config is validated via `docker compose config` before apply
-- visor stays a host process managed by systemd/supervisor, independent of compose
-
-### Standard level-ups: Cloudflared + Himalaya + Obsidian
-Cloudflared is the base connectivity level-up for first startup:
-- token/env-based tunnel bootstrap via `docker-compose.levelup.cloudflared.yml`
-- enables connection setup immediately at first startup without manual tunnel commands
-
-Himalaya stays the canonical example for generic level-ups and the first one shipped in visor:
-- adds email send/receive capability
-- demonstrates extra container/service wiring + env injection
-- acts as template for future level-ups
-- integration mode v1: cli wrapping (short-lived commands + polling), not daemon/idle dependency
-
-Obsidian is added as a default/standard level-up alongside Himalaya:
-- provides an always-available personal knowledge base workspace
-- runs as an optional sidecar web app via `docker-compose.levelup.obsidian.yml`
-- uses dedicated env keys in `.levelup.env` for auth, paths, ports, and timezone
-- vault/config are bind-mounted to host filesystem paths so visor can read/write files directly
 
 ## Storage direction (research update)
 - For Go implementation, prefer `parquet-go/parquet-go` for core read/write path.
@@ -113,9 +82,8 @@ Visor should support coordinated multi-agent thinking with pi subagents.
 ## Skill parity bootstrap
 Visor should start with the same skill surface as ubik.
 - copied baseline skill pack from `ubik/.pi/skills` into `visor/skills/`
-- includes all currently available skills (chat-history, memory-lookup, scheduling, email, obsidian, forge flows, minecraft, etc.)
+- includes all currently available skills (chat-history, memory-lookup, scheduling, obsidian, forge flows, minecraft, etc.)
 - this is a bootstrap snapshot; visor can later evolve manifests/runtime details while preserving behavior parity
-- added visor-native `levelup-creator` skill so visor can author *and operate* level-ups end-to-end (create manifests/compose + manage `.levelup.env` + enable/disable + validate) using the M0 playbooks (`levelup-authoring` + failure-mode guardrails)
 
 ## Open questions
 - How to handle the skill system in a compiled language? (scripts? WASM plugins? just let the agent write code?)

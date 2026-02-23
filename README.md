@@ -2,7 +2,7 @@
 
 visor is a host-native go runtime for a personal ai agent.
 
-it handles the *runtime body*: telegram webhook, agent routing, memory, voice, scheduler, skills, and optional docker sidecars (“level-ups”).
+it handles the *runtime body*: telegram webhook, agent routing, memory, voice, scheduler, and skills.
 
 the model backend is swappable (`pi`, `claude`, `gemini`, `echo`).
 
@@ -48,12 +48,11 @@ want full guided onboarding on ubuntu 24?
 - `internal/scheduler` reminders/recurrence
 - `skills/` runtime skills
 - `.pi/`, `.claude/`, `.gemini/` synced agent metadata + skills
-- `levelups/` sidecar manifests
 
 ## config and ops
 
 - config reference: `docs/config-reference.md`
-- env templates: `.env.example`, `.levelup.env.example`
+- env templates: `.env.example`
 - operations runbook: `docs/operations.md`
 - observability troubleshooting: `docs/observability-troubleshooting.md`
 

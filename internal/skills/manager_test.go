@@ -78,34 +78,6 @@ triggers = ["^note\\b"]
 	}
 }
 
-func TestManagerMatchEnabled(t *testing.T) {
-	base := t.TempDir()
-	writeFile(t, filepath.Join(base, "always", "skill.toml"), `
-name = "always"
-run = "echo ok"
-triggers = ["^mail\\b"]
-`)
-	writeFile(t, filepath.Join(base, "mail", "skill.toml"), `
-name = "mail"
-run = "echo ok"
-triggers = ["^mail\\b"]
-level_ups = ["email-himalaya"]
-`)
-
-	m := NewManager(base)
-	m.Reload()
-
-	withoutLevelup := m.MatchEnabled("mail inbox", map[string]struct{}{})
-	if len(withoutLevelup) != 1 || withoutLevelup[0].Manifest.Name != "always" {
-		t.Fatalf("expected only ungated skill, got %d", len(withoutLevelup))
-	}
-
-	withLevelup := m.MatchEnabled("mail inbox", map[string]struct{}{"email-himalaya": {}})
-	if len(withLevelup) != 2 {
-		t.Fatalf("expected both skills when level-up enabled, got %d", len(withLevelup))
-	}
-}
-
 func TestManagerDescribe(t *testing.T) {
 	base := t.TempDir()
 	writeFile(t, filepath.Join(base, "greet", "skill.toml"), `
@@ -113,7 +85,6 @@ name = "greet"
 description = "greets the user"
 run = "echo hi"
 triggers = ["^hi$"]
-level_ups = ["email-himalaya"]
 `)
 
 	m := NewManager(base)
@@ -123,39 +94,8 @@ level_ups = ["email-himalaya"]
 	if desc == "" {
 		t.Fatal("expected non-empty description")
 	}
-	if !containsAll(desc, "greet", "greets the user", "^hi$", "email-himalaya") {
+	if !containsAll(desc, "greet", "greets the user", "^hi$") {
 		t.Errorf("description missing expected content: %s", desc)
-	}
-}
-
-func TestManagerDescribeEnabled(t *testing.T) {
-	base := t.TempDir()
-	writeFile(t, filepath.Join(base, "core", "skill.toml"), `
-name = "core"
-description = "always available"
-run = "echo hi"
-`)
-	writeFile(t, filepath.Join(base, "mail", "skill.toml"), `
-name = "mail"
-description = "mail tools"
-run = "echo hi"
-level_ups = ["email-himalaya"]
-`)
-
-	m := NewManager(base)
-	m.Reload()
-
-	desc := m.DescribeEnabled(map[string]struct{}{})
-	if containsAll(desc, "mail") {
-		t.Fatalf("expected gated skill to be hidden without level-up: %s", desc)
-	}
-	if !containsAll(desc, "core") {
-		t.Fatalf("expected core skill to stay visible: %s", desc)
-	}
-
-	desc = m.DescribeEnabled(map[string]struct{}{"email-himalaya": {}})
-	if !containsAll(desc, "mail") {
-		t.Fatalf("expected gated skill visible when level-up is enabled: %s", desc)
 	}
 }
 

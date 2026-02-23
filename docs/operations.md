@@ -39,13 +39,8 @@ recommended for production:
 3. voice not working
    - missing `OPENAI_API_KEY` (stt)
    - missing `ELEVENLABS_API_KEY` or `ELEVENLABS_VOICE_ID` (tts)
-4. email not working
-   - `HIMALAYA_ENABLED` not true
-   - himalaya account/credentials not valid
-
 detailed docs:
 - `docs/observability-troubleshooting.md`
-- `docs/levelup-failure-modes.md`
 
 ## update flow
 

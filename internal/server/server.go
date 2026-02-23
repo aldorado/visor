@@ -8,8 +8,6 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
-	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -17,8 +15,6 @@ import (
 	"visor/internal/agent"
 	"visor/internal/config"
 	"visor/internal/forgejo"
-	"visor/internal/levelup"
-	emaillevelup "visor/internal/levelup/email"
 	"visor/internal/memory"
 	"visor/internal/observability"
 	"visor/internal/platform/telegram"
@@ -36,8 +32,6 @@ type Server struct {
 	dedup        *telegram.Dedup
 	agent        *agent.QueuedAgent
 	voice        *voice.Handler
-	emailSender  emaillevelup.Sender
-	emailPoller  *emaillevelup.Poller
 	scheduler    *scheduler.Scheduler
 	quickActions *scheduler.QuickActionHandler
 	skills       *skills.Manager
@@ -62,20 +56,6 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		if cfg.ElevenLabsAPIKey != "" && cfg.ElevenLabsVoiceID != "" {
 			s.voice.SetTTS(cfg.ElevenLabsAPIKey, cfg.ElevenLabsVoiceID)
 		}
-	}
-
-	if cfg.HimalayaEnabled {
-		himalaya := emaillevelup.NewHimalayaClient(cfg.HimalayaAccount)
-		s.emailSender = himalaya
-		poller := emaillevelup.NewPoller(himalaya, time.Duration(cfg.HimalayaPollInterval)*time.Second, func(msg emaillevelup.IncomingMessage) {
-			s.agent.Enqueue(context.Background(), agent.Message{
-				ChatID:  mustParseChatID(cfg.UserChatID),
-				Content: emaillevelup.FormatInboundForAgent(msg),
-				Type:    "email",
-			})
-		})
-		poller.SetAllowedSenders(cfg.HimalayaAllowedSenders)
-		s.emailPoller = poller
 	}
 
 	// skill manager
@@ -108,25 +88,6 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 			response = fmt.Sprintf("error: %v", err)
 		}
 
-		if s.emailSender != nil {
-			clean, actions, parseErr := emaillevelup.ExtractActions(response)
-			if parseErr != nil {
-				s.log.Error(ctx, "email action parse failed", "chat_id", chatID, "error", parseErr.Error())
-				response = response + "\n\n(email action parse failed)"
-			} else {
-				response = clean
-				if len(actions) > 0 {
-					if sendErr := emaillevelup.ExecuteActions(ctx, s.emailSender, actions); sendErr != nil {
-						s.log.Error(ctx, "email action execution failed", "chat_id", chatID, "error", sendErr.Error())
-						response = strings.TrimSpace(response + "\n\nemail send failed: " + sendErr.Error())
-					} else {
-						s.log.Info(ctx, "email action executed", "chat_id", chatID, "actions", len(actions))
-						response = strings.TrimSpace(response + "\n\nemail action executed ✅")
-					}
-				}
-			}
-		}
-
 		// skill actions from agent response
 		if s.skills != nil {
 			clean, skillActions, parseErr := skills.ExtractActions(response)
@@ -149,18 +110,6 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 				if note != "" {
 					response = strings.TrimSpace(response + "\n\n" + note)
 				}
-			}
-		}
-
-		// level-up actions from agent response (.levelup.env updates, enable/disable)
-		clean, levelupActions, parseErr := levelup.ExtractActions(response)
-		if parseErr != nil {
-			s.log.Error(ctx, "levelup action parse failed", "chat_id", chatID, "error", parseErr.Error())
-		} else if levelupActions != nil {
-			response = clean
-			note := s.executeLevelupActions(ctx, levelupActions)
-			if note != "" {
-				response = strings.TrimSpace(response + "\n\n" + note)
 			}
 		}
 
@@ -273,10 +222,6 @@ func (s *Server) ListenAndServe() error {
 	addr := fmt.Sprintf(":%d", s.cfg.Port)
 	s.log.Info(context.Background(), "server starting", "addr", addr, "log_level", s.cfg.LogLevel, "log_verbose", s.cfg.LogVerbose)
 
-	if s.emailPoller != nil {
-		go s.emailPoller.Start(context.Background())
-		s.log.Info(context.Background(), "email poller started", "interval_seconds", s.cfg.HimalayaPollInterval)
-	}
 	if s.scheduler != nil {
 		go s.scheduler.Start(context.Background())
 		s.log.Info(context.Background(), "scheduler started")
@@ -289,9 +234,6 @@ func (s *Server) ListenAndServe() error {
 }
 
 func (s *Server) notifyStartup(ctx context.Context) {
-	if strings.TrimSpace(s.cfg.UserChatID) == "" || strings.TrimSpace(s.cfg.TelegramBotToken) == "" {
-		return
-	}
 	chatID := mustParseChatID(s.cfg.UserChatID)
 	rev := currentShortRevision(s.cfg.SelfEvolutionRepoDir)
 	msg := fmt.Sprintf("🎺 visor restarted — rev `%s`", rev)
@@ -511,11 +453,10 @@ func escapeTelegramCode(s string) string {
 
 // enrichWithSkills checks for auto-trigger matches and injects skill context.
 func (s *Server) enrichWithSkills(ctx context.Context, content, chatID, msgType string) string {
-	enabledLevelups := s.enabledLevelups(ctx)
-	matched := s.skills.MatchEnabled(content, enabledLevelups)
+	matched := s.skills.Match(content)
 	if len(matched) == 0 {
 		// no trigger matches, but still inject skill discovery
-		desc := s.skills.DescribeEnabled(enabledLevelups)
+		desc := s.skills.Describe()
 		if desc != "" {
 			return content + "\n\n[system context]\n" + desc
 		}
@@ -556,23 +497,6 @@ func (s *Server) enrichWithSkills(ctx context.Context, content, chatID, msgType 
 }
 
 // executeSkillActions processes create/edit/delete actions from agent response.
-func (s *Server) enabledLevelups(ctx context.Context) map[string]struct{} {
-	projectRoot := s.cfg.SelfEvolutionRepoDir
-	if strings.TrimSpace(projectRoot) == "" {
-		projectRoot = "."
-	}
-	state, err := levelup.LoadState(projectRoot)
-	if err != nil {
-		s.log.Warn(ctx, "load enabled levelups failed", "error", err.Error())
-		return map[string]struct{}{}
-	}
-	enabled := make(map[string]struct{}, len(state.Enabled))
-	for _, name := range state.Enabled {
-		enabled[name] = struct{}{}
-	}
-	return enabled
-}
-
 func (s *Server) executeSkillActions(ctx context.Context, chatID int64, actions *skills.ActionEnvelope) {
 	for _, a := range actions.Create {
 		if err := s.skills.Create(a); err != nil {
@@ -694,53 +618,6 @@ func (s *Server) executeScheduleActions(ctx context.Context, actions *scheduler.
 	return strings.TrimSpace(strings.Join(messages, "\n"))
 }
 
-func (s *Server) executeLevelupActions(ctx context.Context, actions *levelup.ActionEnvelope) string {
-	messages := make([]string, 0)
-	projectRoot := s.cfg.SelfEvolutionRepoDir
-	if strings.TrimSpace(projectRoot) == "" {
-		projectRoot = "."
-	}
-
-	if len(actions.EnvSet) > 0 || len(actions.EnvUnset) > 0 {
-		if err := levelup.UpdateLevelupEnv(projectRoot, actions.EnvSet, actions.EnvUnset); err != nil {
-			s.log.Error(ctx, "levelup env update failed", "error", err.Error())
-			messages = append(messages, "levelup env update failed: "+err.Error())
-		} else {
-			messages = append(messages, ".levelup.env updated ✅")
-			s.log.Info(ctx, "levelup env updated", "set_count", len(actions.EnvSet), "unset_count", len(actions.EnvUnset))
-		}
-	}
-
-	if len(actions.Enable) > 0 {
-		if err := levelup.Enable(projectRoot, actions.Enable); err != nil {
-			s.log.Error(ctx, "levelup enable failed", "error", err.Error(), "names", actions.Enable)
-			messages = append(messages, "levelup enable failed: "+err.Error())
-		} else {
-			messages = append(messages, "levelups enabled ✅")
-		}
-	}
-
-	if len(actions.Disable) > 0 {
-		if err := levelup.Disable(projectRoot, actions.Disable); err != nil {
-			s.log.Error(ctx, "levelup disable failed", "error", err.Error(), "names", actions.Disable)
-			messages = append(messages, "levelup disable failed: "+err.Error())
-		} else {
-			messages = append(messages, "levelups disabled ✅")
-		}
-	}
-
-	if actions.Validate {
-		if err := levelup.ValidateEnabled(ctx, projectRoot, "docker-compose.yml"); err != nil {
-			s.log.Error(ctx, "levelup validate failed", "error", err.Error())
-			messages = append(messages, "levelup validate failed: "+err.Error())
-		} else {
-			messages = append(messages, "levelups validated ✅")
-		}
-	}
-
-	return strings.TrimSpace(strings.Join(messages, "\n"))
-}
-
 func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionEnvelope) string {
 	messages := make([]string, 0)
 	projectRoot := s.cfg.SelfEvolutionRepoDir
@@ -818,81 +695,6 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 		}
 	}
 
-	if len(actions.LevelupEnvSet) > 0 || len(actions.LevelupEnvUnset) > 0 {
-		if err := levelup.UpdateLevelupEnv(projectRoot, actions.LevelupEnvSet, actions.LevelupEnvUnset); err != nil {
-			messages = append(messages, "setup .levelup.env update failed: "+err.Error())
-		} else {
-			messages = append(messages, ".levelup.env updated ✅")
-		}
-	}
-
-	enableLevelups := append([]string{}, actions.EnableLevelups...)
-	if strings.EqualFold(strings.TrimSpace(actions.LevelupPreset), "recommended") {
-		names, err := recommendedLevelupNames(projectRoot)
-		if err != nil {
-			messages = append(messages, "recommended levelups failed: "+err.Error())
-		} else {
-			enableLevelups = appendUnique(enableLevelups, names...)
-			messages = append(messages, "recommended levelups selected ✅")
-		}
-	}
-
-	if len(enableLevelups) > 0 {
-		if err := levelup.Enable(projectRoot, enableLevelups); err != nil {
-			messages = append(messages, "enable levelups failed: "+err.Error())
-		} else {
-			messages = append(messages, "levelups enabled ✅")
-		}
-	}
-	if len(actions.DisableLevelups) > 0 {
-		if err := levelup.Disable(projectRoot, actions.DisableLevelups); err != nil {
-			messages = append(messages, "disable levelups failed: "+err.Error())
-		} else {
-			messages = append(messages, "levelups disabled ✅")
-		}
-	}
-	if actions.ValidateLevelups {
-		if err := levelup.ValidateEnabled(ctx, projectRoot, "docker-compose.yml"); err != nil {
-			messages = append(messages, "levelups validate failed: "+err.Error())
-		} else {
-			messages = append(messages, "levelups validated ✅")
-		}
-	}
-	if actions.StartLevelups {
-		if err := levelup.UpEnabled(ctx, projectRoot, "docker-compose.yml"); err != nil {
-			messages = append(messages, "levelups start failed: "+err.Error())
-		} else {
-			messages = append(messages, "levelups started ✅")
-		}
-	}
-	if actions.CheckLevelups {
-		failed, err := levelup.CheckEnabledHTTPHealth(ctx, projectRoot)
-		if err != nil {
-			messages = append(messages, "levelups healthcheck failed: "+err.Error())
-		} else if len(failed) > 0 {
-			messages = append(messages, "levelups healthcheck issues: "+strings.Join(failed, "; "))
-		} else {
-			messages = append(messages, "levelups healthchecks ok ✅")
-		}
-	}
-	if actions.SyncForgejoRemote {
-		env, _ := levelup.LoadLayeredEnv(projectRoot)
-		adminUser := env["FORGEJO_ADMIN_USER"]
-		if adminUser == "" {
-			adminUser = "visor"
-		}
-		hostPort := env["FORGEJO_HOST_PORT"]
-		if hostPort == "" {
-			hostPort = "3002"
-		}
-		dataDir := filepath.Join(projectRoot, "data")
-		if err := forgejo.SyncRemote(ctx, projectRoot, dataDir, adminUser, hostPort, true); err != nil {
-			messages = append(messages, "forgejo remote sync failed: "+err.Error())
-		} else {
-			messages = append(messages, "forgejo remote synced ✅")
-		}
-	}
-
 	if strings.TrimSpace(actions.PersonalityChoice) != "" {
 		if err := setup.ApplyPersonalityOverride(projectRoot, actions.PersonalityFile, actions.PersonalityChoice, actions.PersonalityText); err != nil {
 			messages = append(messages, "personality update failed: "+err.Error())
@@ -911,10 +713,8 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 	}
 
 	if actions.WriteSummary {
-		state, _ := levelup.LoadState(projectRoot)
 		summaryPath, err := setup.WriteSetupSummary(projectRoot, setup.SummaryInput{
 			AgentBackend: s.cfg.AgentBackend,
-			Levelups:     state.Enabled,
 			WebhookURL:   strings.TrimSpace(actions.WebhookURL),
 			HealthOK:     actions.CheckHealth,
 		})
@@ -939,36 +739,6 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 	}
 
 	return strings.TrimSpace(strings.Join(messages, "\n"))
-}
-
-func recommendedLevelupNames(projectRoot string) ([]string, error) {
-	manifests, err := levelup.DiscoverManifests(projectRoot)
-	if err != nil {
-		return nil, err
-	}
-	names := make([]string, 0)
-	for name, m := range manifests {
-		if m.EnabledByDefault {
-			names = append(names, name)
-		}
-	}
-	sort.Strings(names)
-	return names, nil
-}
-
-func appendUnique(base []string, items ...string) []string {
-	seen := make(map[string]struct{}, len(base))
-	for _, b := range base {
-		seen[b] = struct{}{}
-	}
-	for _, item := range items {
-		if _, ok := seen[item]; ok {
-			continue
-		}
-		seen[item] = struct{}{}
-		base = append(base, item)
-	}
-	return base
 }
 
 type responseMeta struct {

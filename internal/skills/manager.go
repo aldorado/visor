@@ -69,13 +69,6 @@ func (m *Manager) Match(text string) []*Skill {
 	return MatchAll(m.skills, text)
 }
 
-// MatchEnabled returns trigger-matched skills whose required level-ups are enabled.
-func (m *Manager) MatchEnabled(text string, enabledLevelups map[string]struct{}) []*Skill {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return filterByLevelups(MatchAll(m.skills, text), enabledLevelups)
-}
-
 // Executor returns the skill executor.
 func (m *Manager) Exec() *Executor {
 	return m.executor
@@ -86,14 +79,6 @@ func (m *Manager) Describe() string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return describeSkills(m.skills)
-}
-
-// DescribeEnabled returns a summary of only those skills that are currently usable
-// with the enabled level-up set.
-func (m *Manager) DescribeEnabled(enabledLevelups map[string]struct{}) string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	return describeSkills(filterByLevelups(m.skills, enabledLevelups))
 }
 
 func describeSkills(skills []*Skill) string {
@@ -108,37 +93,9 @@ func describeSkills(skills []*Skill) string {
 		if len(s.Manifest.Triggers) > 0 {
 			b.WriteString(fmt.Sprintf(" [triggers: %s]", strings.Join(s.Manifest.Triggers, ", ")))
 		}
-		if len(s.Manifest.LevelUps) > 0 {
-			b.WriteString(fmt.Sprintf(" [requires: %s]", strings.Join(s.Manifest.LevelUps, ", ")))
-		}
 		b.WriteString("\n")
 	}
 	return b.String()
-}
-
-func filterByLevelups(skills []*Skill, enabledLevelups map[string]struct{}) []*Skill {
-	if len(skills) == 0 {
-		return nil
-	}
-	out := make([]*Skill, 0, len(skills))
-	for _, skill := range skills {
-		if requiredLevelupsEnabled(skill.Manifest.LevelUps, enabledLevelups) {
-			out = append(out, skill)
-		}
-	}
-	return out
-}
-
-func requiredLevelupsEnabled(required []string, enabledLevelups map[string]struct{}) bool {
-	if len(required) == 0 {
-		return true
-	}
-	for _, name := range required {
-		if _, ok := enabledLevelups[name]; !ok {
-			return false
-		}
-	}
-	return true
 }
 
 // Create writes a new skill directory with skill.toml and optional script file.
@@ -158,7 +115,6 @@ func (m *Manager) Create(action CreateAction) error {
 		Triggers:     action.Triggers,
 		Run:          action.Run,
 		Dependencies: action.Dependencies,
-		LevelUps:     action.LevelUps,
 		Timeout:      action.Timeout,
 	}
 	if manifest.Timeout == 0 {

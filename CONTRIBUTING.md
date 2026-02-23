@@ -6,8 +6,7 @@ thanks for contributing.
 
 1. install go 1.22+
 2. clone the repo
-3. copy `.levelup.env.example` to `.levelup.env` and fill required values
-4. run tests:
+3. run tests:
 
 ```bash
 go test ./...

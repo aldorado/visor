@@ -16,7 +16,7 @@ const remoteName = "forgejo"
 
 // TokenPath returns the expected path of the auto-generated push token file.
 func TokenPath(dataDir string) string {
-	return filepath.Join(dataDir, "levelups", "forgejo", "visor-push.token")
+	return filepath.Join(dataDir, "forgejo", "visor-push.token")
 }
 
 // ReadToken reads the Forgejo push token from the token file.

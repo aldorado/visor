@@ -8,31 +8,27 @@ import (
 )
 
 type Config struct {
-	TelegramBotToken       string
-	TelegramWebhookSecret  string
-	UserChatID             string
-	Port                   int
-	AgentBackend           string   // primary backend for backward compat (first in AgentBackends)
-	AgentBackends          []string // priority-ordered list: "pi,claude,echo" (default: [AgentBackend])
-	OpenAIAPIKey           string
-	DataDir                string // base directory for runtime data (default: "data")
-	ElevenLabsAPIKey       string
-	ElevenLabsVoiceID      string
-	HimalayaEnabled        bool
-	HimalayaAccount        string
-	HimalayaPollInterval   int // seconds
-	HimalayaAllowedSenders []string
-	LogLevel               string
-	LogVerbose             bool
-	OTELEnabled            bool
-	OTELEndpoint           string
-	OTELServiceName        string
-	OTELEnvironment        string
-	OTELInsecure           bool
-	SelfEvolutionEnabled   bool
-	SelfEvolutionRepoDir   string
-	SelfEvolutionPush      bool
-	Timezone               string
+	TelegramBotToken      string
+	TelegramWebhookSecret string
+	UserChatID            string
+	Port                  int
+	AgentBackend          string   // primary backend for backward compat (first in AgentBackends)
+	AgentBackends         []string // priority-ordered list: "pi,claude,echo" (default: [AgentBackend])
+	OpenAIAPIKey          string
+	DataDir               string // base directory for runtime data (default: "data")
+	ElevenLabsAPIKey      string
+	ElevenLabsVoiceID     string
+	LogLevel              string
+	LogVerbose            bool
+	OTELEnabled           bool
+	OTELEndpoint          string
+	OTELServiceName       string
+	OTELEnvironment       string
+	OTELInsecure          bool
+	SelfEvolutionEnabled  bool
+	SelfEvolutionRepoDir  string
+	SelfEvolutionPush     bool
+	Timezone              string
 }
 
 func Load() (*Config, error) {
@@ -75,26 +71,6 @@ func Load() (*Config, error) {
 		backend = backends[0]
 	}
 
-	himalayaEnabled := os.Getenv("HIMALAYA_ENABLED") == "1" || os.Getenv("HIMALAYA_ENABLED") == "true"
-	himalayaPollInterval := 60
-	if s := os.Getenv("HIMALAYA_POLL_INTERVAL_SECONDS"); s != "" {
-		v, err := strconv.Atoi(s)
-		if err != nil {
-			return nil, fmt.Errorf("HIMALAYA_POLL_INTERVAL_SECONDS must be a number: %w", err)
-		}
-		himalayaPollInterval = v
-	}
-
-	var himalayaAllowedSenders []string
-	if s := os.Getenv("EMAIL_ALLOWED_SENDERS"); s != "" {
-		for _, addr := range strings.Split(s, ",") {
-			addr = strings.TrimSpace(addr)
-			if addr != "" {
-				himalayaAllowedSenders = append(himalayaAllowedSenders, addr)
-			}
-		}
-	}
-
 	dataDir := os.Getenv("DATA_DIR")
 	if dataDir == "" {
 		dataDir = "data"
@@ -130,30 +106,26 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		TelegramBotToken:       token,
-		TelegramWebhookSecret:  os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
-		UserChatID:             userChatID,
-		Port:                   port,
-		AgentBackend:           backend,
-		AgentBackends:          backends,
-		OpenAIAPIKey:           os.Getenv("OPENAI_API_KEY"),
-		ElevenLabsAPIKey:       os.Getenv("ELEVENLABS_API_KEY"),
-		ElevenLabsVoiceID:      os.Getenv("ELEVENLABS_VOICE_ID"),
-		DataDir:                dataDir,
-		HimalayaEnabled:        himalayaEnabled,
-		HimalayaAccount:        os.Getenv("HIMALAYA_ACCOUNT"),
-		HimalayaPollInterval:   himalayaPollInterval,
-		HimalayaAllowedSenders: himalayaAllowedSenders,
-		LogLevel:               logLevel,
-		LogVerbose:             logVerbose,
-		OTELEnabled:            otelEnabled,
-		OTELEndpoint:           os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
-		OTELServiceName:        otelServiceName,
-		OTELEnvironment:        otelEnvironment,
-		OTELInsecure:           otelInsecure,
-		SelfEvolutionEnabled:   selfEvolutionEnabled,
-		SelfEvolutionRepoDir:   selfEvolutionRepoDir,
-		SelfEvolutionPush:      selfEvolutionPush,
-		Timezone:               tz,
+		TelegramBotToken:      token,
+		TelegramWebhookSecret: os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
+		UserChatID:            userChatID,
+		Port:                  port,
+		AgentBackend:          backend,
+		AgentBackends:         backends,
+		OpenAIAPIKey:          os.Getenv("OPENAI_API_KEY"),
+		ElevenLabsAPIKey:      os.Getenv("ELEVENLABS_API_KEY"),
+		ElevenLabsVoiceID:     os.Getenv("ELEVENLABS_VOICE_ID"),
+		DataDir:               dataDir,
+		LogLevel:              logLevel,
+		LogVerbose:            logVerbose,
+		OTELEnabled:           otelEnabled,
+		OTELEndpoint:          os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		OTELServiceName:       otelServiceName,
+		OTELEnvironment:       otelEnvironment,
+		OTELInsecure:          otelInsecure,
+		SelfEvolutionEnabled:  selfEvolutionEnabled,
+		SelfEvolutionRepoDir:  selfEvolutionRepoDir,
+		SelfEvolutionPush:     selfEvolutionPush,
+		Timezone:              tz,
 	}, nil
 }

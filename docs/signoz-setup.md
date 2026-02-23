@@ -32,10 +32,6 @@ in signoz, filter by:
 expected span names:
 - `webhook.handle`
 - `agent.process`
-- `levelup.list`
-- `levelup.enable`
-- `levelup.disable`
-- `levelup.validate_enabled`
 
 ## 4) quick sanity checks
 

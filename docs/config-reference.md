@@ -28,15 +28,6 @@ this file documents runtime environment variables for visor.
 | `ELEVENLABS_API_KEY` | no | empty | enables tts |
 | `ELEVENLABS_VOICE_ID` | no | empty | voice id for elevenlabs tts |
 
-## email level-up (himalaya)
-
-| variable | required | default | purpose |
-|---|---|---|---|
-| `HIMALAYA_ENABLED` | no | `false` | enables inbound/outbound email integration |
-| `HIMALAYA_ACCOUNT` | no | `default` | himalaya account profile name |
-| `HIMALAYA_POLL_INTERVAL_SECONDS` | no | `60` | inbox polling interval |
-| `EMAIL_ALLOWED_SENDERS` | no | empty | comma-separated allowlist for inbound forwarding |
-
 ## logging + observability
 
 | variable | required | default | purpose |
@@ -59,10 +50,4 @@ this file documents runtime environment variables for visor.
 
 ## env templates
 
-core runtime template:
 - `.env.example`
-
-level-up template:
-- `.levelup.env.example`
-
-`levelups` usually rely on `.levelup.env` values for sidecar-specific settings like imap/smtp credentials, cloudflared token, and obsidian container paths.

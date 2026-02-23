@@ -16,7 +16,6 @@ const (
 
 type SummaryInput struct {
 	AgentBackend string
-	Levelups     []string
 	WebhookURL   string
 	HealthOK     bool
 }
@@ -75,9 +74,6 @@ func WriteSetupSummary(projectRoot string, in SummaryInput) (string, error) {
 	content += fmt.Sprintf("agent backend: `%s`\n", in.AgentBackend)
 	if strings.TrimSpace(in.WebhookURL) != "" {
 		content += fmt.Sprintf("webhook: `%s`\n", in.WebhookURL)
-	}
-	if len(in.Levelups) > 0 {
-		content += fmt.Sprintf("levelups: `%s`\n", strings.Join(in.Levelups, ", "))
 	}
 	if in.HealthOK {
 		content += "health: `ok`\n"
