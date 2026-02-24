@@ -103,6 +103,7 @@ current_chat="$(get_value "$TARGET_ENV" "USER_PHONE_NUMBER")"
 current_backend="$(get_value "$TARGET_ENV" "AGENT_BACKEND")"
 current_tz="$(get_value "$TARGET_ENV" "TZ")"
 current_openai="$(get_value "$TARGET_ENV" "OPENAI_API_KEY")"
+current_obsidian_vault_path="$(get_value "$TARGET_ENV" "OBSIDIAN_VAULT_PATH")"
 
 telegram_bot_token="$(prompt "TELEGRAM_BOT_TOKEN" "TELEGRAM_BOT_TOKEN" "${current_token:-$example_token}" true)"
 user_phone_number="$(prompt "USER_PHONE_NUMBER" "USER_PHONE_NUMBER (telegram chat id)" "${current_chat:-$example_chat}")"
@@ -147,11 +148,15 @@ if [[ -z "$tz_default" ]]; then
 fi
 tz_value="$(prompt "TZ" "TZ" "$tz_default")"
 
+obsidian_vault_default="${current_obsidian_vault_path:-/root/obsidian/Sibwax}"
+obsidian_vault_path="$(prompt "OBSIDIAN_VAULT_PATH" "OBSIDIAN_VAULT_PATH (for obsidian skills)" "$obsidian_vault_default")"
+
 upsert_value "$WORK_ENV" "TELEGRAM_BOT_TOKEN" "$telegram_bot_token"
 upsert_value "$WORK_ENV" "USER_PHONE_NUMBER" "$user_phone_number"
 upsert_value "$WORK_ENV" "AGENT_BACKEND" "$agent_backend"
 upsert_value "$WORK_ENV" "OPENAI_API_KEY" "$openai_api_key"
 upsert_value "$WORK_ENV" "TZ" "$tz_value"
+upsert_value "$WORK_ENV" "OBSIDIAN_VAULT_PATH" "$obsidian_vault_path"
 
 echo ""
 echo "summary (masked):"
@@ -160,6 +165,7 @@ echo "- USER_PHONE_NUMBER: $user_phone_number"
 echo "- AGENT_BACKEND: $agent_backend"
 echo "- OPENAI_API_KEY: $(mask "$openai_api_key")"
 echo "- TZ: $tz_value"
+echo "- OBSIDIAN_VAULT_PATH: $obsidian_vault_path"
 echo ""
 
 read -r -p "write these values to .env? [y/N]: " confirm
@@ -171,3 +177,8 @@ fi
 
 mv "$WORK_ENV" "$TARGET_ENV"
 echo "done. updated $TARGET_ENV"
+
+if [[ -n "$obsidian_vault_path" ]]; then
+  mkdir -p "$obsidian_vault_path"/{ideas,logs,forge}
+  echo "initialized obsidian folders in $obsidian_vault_path/{ideas,logs,forge}"
+fi
