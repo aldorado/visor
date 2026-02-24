@@ -32,6 +32,7 @@ type Server struct {
 	dedup        *telegram.Dedup
 	agent        *agent.QueuedAgent
 	voice        *voice.Handler
+	memory       *memory.Manager
 	scheduler    *scheduler.Scheduler
 	quickActions *scheduler.QuickActionHandler
 	skills       *skills.Manager
@@ -55,6 +56,13 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		s.voice = voice.NewHandler(tg, cfg.OpenAIAPIKey)
 		if cfg.ElevenLabsAPIKey != "" && cfg.ElevenLabsVoiceID != "" {
 			s.voice.SetTTS(cfg.ElevenLabsAPIKey, cfg.ElevenLabsVoiceID)
+		}
+
+		memoryManager, memErr := memory.NewManager(cfg.DataDir, cfg.OpenAIAPIKey)
+		if memErr != nil {
+			s.log.Warn(context.Background(), "memory manager init failed", "error", memErr.Error())
+		} else {
+			s.memory = memoryManager
 		}
 	}
 
@@ -131,6 +139,19 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		s.log.Info(ctx, "webhook message processed", "chat_id", chatID, "backend", cfg.AgentBackend)
 		text, meta := parseResponse(response)
 		text = sanitizeUserReply(text)
+
+		if s.memory != nil {
+			toSave := append([]string{}, meta.MemoriesToSave...)
+			if shouldPersistMemory(text) {
+				toSave = append(toSave, "assistant: "+text)
+			}
+			if len(toSave) > 0 {
+				if saveErr := s.memory.Save(toSave); saveErr != nil {
+					s.log.Warn(ctx, "memory save failed", "count", len(toSave), "error", saveErr.Error())
+				}
+			}
+		}
+
 		text = strings.TrimSpace(text + "\n\n⏱ " + formatDuration(duration) + " · " + s.agent.CurrentBackend())
 
 		if meta.SendVoice && s.voice != nil && s.voice.TTSEnabled() {
@@ -413,6 +434,23 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	originalContent := content
+
+	if s.memory != nil && shouldPersistMemory(originalContent) {
+		if err := s.memory.Save([]string{"user: " + originalContent}); err != nil {
+			s.log.Warn(r.Context(), "memory save failed", "source", "user", "error", err.Error())
+		}
+	}
+
+	if s.memory != nil && strings.TrimSpace(originalContent) != "" {
+		memoryCtx, lookupErr := s.memory.Lookup(originalContent, 5)
+		if lookupErr != nil {
+			s.log.Warn(r.Context(), "memory lookup failed", "error", lookupErr.Error())
+		} else if strings.TrimSpace(memoryCtx) != "" {
+			content = content + "\n\n[memory context]\n" + memoryCtx
+		}
+	}
+
 	// auto-trigger: run matching skills and prepend output to agent context
 	if s.skills != nil {
 		content = s.enrichWithSkills(r.Context(), content, chatID, msgType)
@@ -452,6 +490,20 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+func shouldPersistMemory(s string) bool {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return false
+	}
+	if strings.HasPrefix(s, "[") {
+		return false
+	}
+	if len([]rune(s)) < 12 {
+		return false
+	}
+	return true
 }
 
 func formatDuration(d time.Duration) string {
@@ -767,11 +819,12 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 }
 
 type responseMeta struct {
-	SendVoice     bool
-	CodeChanges   bool
-	CommitMessage string
-	GitPush       bool
-	GitPushDir    string // repo dir to push; defaults to SelfEvolutionRepoDir
+	SendVoice      bool
+	CodeChanges    bool
+	CommitMessage  string
+	GitPush        bool
+	GitPushDir     string // repo dir to push; defaults to SelfEvolutionRepoDir
+	MemoriesToSave []string
 }
 
 // parseResponse extracts metadata from agent response.
@@ -786,23 +839,54 @@ type responseMeta struct {
 func parseResponse(raw string) (text string, meta responseMeta) {
 	parts := strings.SplitN(raw, "\n---\n", 2)
 	text = parts[0]
-	if len(parts) == 2 {
-		for _, line := range strings.Split(parts[1], "\n") {
-			line = strings.TrimSpace(line)
-			switch {
-			case line == "send_voice: true" || line == "send_voice:true":
-				meta.SendVoice = true
-			case line == "code_changes: true" || line == "code_changes:true":
-				meta.CodeChanges = true
-			case strings.HasPrefix(line, "commit_message:"):
-				meta.CommitMessage = strings.TrimSpace(strings.TrimPrefix(line, "commit_message:"))
-			case line == "git_push: true" || line == "git_push:true":
-				meta.GitPush = true
-			case strings.HasPrefix(line, "git_push_dir:"):
-				meta.GitPushDir = strings.TrimSpace(strings.TrimPrefix(line, "git_push_dir:"))
+	if len(parts) != 2 {
+		return
+	}
+
+	lines := strings.Split(parts[1], "\n")
+	for i := 0; i < len(lines); i++ {
+		line := strings.TrimSpace(lines[i])
+		switch {
+		case line == "send_voice: true" || line == "send_voice:true":
+			meta.SendVoice = true
+		case line == "code_changes: true" || line == "code_changes:true":
+			meta.CodeChanges = true
+		case strings.HasPrefix(line, "commit_message:"):
+			meta.CommitMessage = strings.TrimSpace(strings.TrimPrefix(line, "commit_message:"))
+		case line == "git_push: true" || line == "git_push:true":
+			meta.GitPush = true
+		case strings.HasPrefix(line, "git_push_dir:"):
+			meta.GitPushDir = strings.TrimSpace(strings.TrimPrefix(line, "git_push_dir:"))
+		case strings.HasPrefix(line, "memories_to_save:"):
+			rest := strings.TrimSpace(strings.TrimPrefix(line, "memories_to_save:"))
+			if rest != "" {
+				if strings.HasPrefix(rest, "[") {
+					var inline []string
+					if err := json.Unmarshal([]byte(rest), &inline); err == nil {
+						meta.MemoriesToSave = append(meta.MemoriesToSave, inline...)
+						continue
+					}
+				}
+				meta.MemoriesToSave = append(meta.MemoriesToSave, rest)
+				continue
+			}
+
+			for i+1 < len(lines) {
+				next := strings.TrimSpace(lines[i+1])
+				if next == "" {
+					i++
+					continue
+				}
+				if strings.HasPrefix(next, "- ") {
+					meta.MemoriesToSave = append(meta.MemoriesToSave, strings.TrimSpace(strings.TrimPrefix(next, "- ")))
+					i++
+					continue
+				}
+				break
 			}
 		}
 	}
+
 	return
 }
 
