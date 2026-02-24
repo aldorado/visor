@@ -287,6 +287,24 @@ func TestParseResponse_CodeChangesAndCommitMessage(t *testing.T) {
 	}
 }
 
+func TestShouldSendVoice_ExplicitMetadata(t *testing.T) {
+	if !shouldSendVoice(responseMeta{SendVoice: true}, "hello") {
+		t.Fatal("shouldSendVoice = false, want true")
+	}
+}
+
+func TestShouldSendVoice_VoiceTags(t *testing.T) {
+	if !shouldSendVoice(responseMeta{}, "[thoughtful] hi there") {
+		t.Fatal("shouldSendVoice = false, want true")
+	}
+}
+
+func TestShouldSendVoice_NoMetadataNoTags(t *testing.T) {
+	if shouldSendVoice(responseMeta{}, "normal text") {
+		t.Fatal("shouldSendVoice = true, want false")
+	}
+}
+
 func TestWebhook_E2E_TelegramDelivery(t *testing.T) {
 	t.Setenv("TELEGRAM_BOT_TOKEN", "test-token")
 	t.Setenv("USER_PHONE_NUMBER", "12345")

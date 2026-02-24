@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,8 @@ type Server struct {
 	setupState   setup.State
 	log          *observability.Logger
 }
+
+var voiceTagPattern = regexp.MustCompile(`\[(excited|curious|thoughtful|laughs|sighs|whispers)\]`)
 
 func New(cfg *config.Config, a agent.Agent) *Server {
 	tg := telegram.NewClient(cfg.TelegramBotToken)
@@ -154,7 +157,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 
 		text = strings.TrimSpace(text + "\n\n⏱ " + formatDuration(duration) + " · " + s.agent.CurrentBackend())
 
-		if meta.SendVoice && s.voice != nil && s.voice.TTSEnabled() {
+		if shouldSendVoice(meta, text) && s.voice != nil && s.voice.TTSEnabled() {
 			if err := s.voice.SynthesizeAndSend(chatID, text); err != nil {
 				s.log.Error(ctx, "voice synth failed, fallback to text", "chat_id", chatID, "error", err.Error())
 				if sendErr := s.tg.SendMessage(chatID, text); sendErr != nil {
@@ -836,6 +839,13 @@ type responseMeta struct {
 //	commit_message: your message
 //	git_push: true
 //	git_push_dir: /path/to/repo
+func shouldSendVoice(meta responseMeta, text string) bool {
+	if meta.SendVoice {
+		return true
+	}
+	return voiceTagPattern.MatchString(text)
+}
+
 func parseResponse(raw string) (text string, meta responseMeta) {
 	parts := strings.SplitN(raw, "\n---\n", 2)
 	text = parts[0]
