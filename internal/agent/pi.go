@@ -369,7 +369,10 @@ func handoffThresholdFromEnv() float64 {
 }
 
 func piRPCArgs(model string) []string {
-	args := []string{"--mode", "rpc", "--no-session"}
+	args := []string{"--mode", "rpc"}
+	if os.Getenv("PI_NO_SESSION") == "1" || strings.EqualFold(os.Getenv("PI_NO_SESSION"), "true") {
+		args = append(args, "--no-session")
+	}
 	if model != "" {
 		args = append(args, "--model", model)
 	}

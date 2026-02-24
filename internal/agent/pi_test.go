@@ -100,11 +100,21 @@ func TestWithExecutionGuardrail(t *testing.T) {
 	}
 }
 
-func TestNewPiAgent_UsesNoSession(t *testing.T) {
+func TestNewPiAgent_UsesSessionByDefault(t *testing.T) {
+	t.Setenv("PI_NO_SESSION", "")
+	a := NewPiAgent(ProcessConfig{})
+	joined := strings.Join(a.toolsCfg.Args, " ")
+	if strings.Contains(joined, "--no-session") {
+		t.Fatalf("expected session mode by default, got: %v", a.toolsCfg.Args)
+	}
+}
+
+func TestNewPiAgent_RespectsNoSessionEnv(t *testing.T) {
+	t.Setenv("PI_NO_SESSION", "true")
 	a := NewPiAgent(ProcessConfig{})
 	joined := strings.Join(a.toolsCfg.Args, " ")
 	if !strings.Contains(joined, "--no-session") {
-		t.Fatalf("expected --no-session in args, got: %v", a.toolsCfg.Args)
+		t.Fatalf("expected --no-session when PI_NO_SESSION=true, got: %v", a.toolsCfg.Args)
 	}
 }
 
