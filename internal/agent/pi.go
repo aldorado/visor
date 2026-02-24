@@ -63,6 +63,7 @@ type PiAgent struct {
 	contextWindowTokens int
 	handoffThreshold    float64
 	handoffContext      string
+	lastInputTokens     int
 	mu                  sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
 	log                 *observability.Logger
 }
@@ -97,6 +98,7 @@ func (p *PiAgent) SetModel(model string) error {
 	defer p.toolsMu.Unlock()
 
 	p.model = model
+	p.lastInputTokens = 0
 	p.toolsCfg.Args = piRPCArgs(model)
 
 	if p.toolsPM != nil {
@@ -114,11 +116,21 @@ func (p *PiAgent) Model() string {
 }
 
 func (p *PiAgent) BackendLabel() string {
-	model := p.Model()
-	if model == "" {
-		return "pi"
+	p.toolsMu.Lock()
+	model := p.model
+	inputTokens := p.lastInputTokens
+	ctxWindow := p.contextWindowTokens
+	p.toolsMu.Unlock()
+
+	label := "pi"
+	if model != "" {
+		label = "pi/" + model
 	}
-	return "pi/" + model
+	if inputTokens > 0 && ctxWindow > 0 {
+		usagePct := 100 * float64(inputTokens) / float64(ctxWindow)
+		label += fmt.Sprintf(" · ctx %.1f%%", usagePct)
+	}
+	return label
 }
 
 func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error) {
@@ -294,17 +306,23 @@ func (p *PiAgent) Close() error {
 }
 
 func (p *PiAgent) maybeHandoff(ctx context.Context, pm *ProcessManager, inputTokens int) {
-	if inputTokens <= 0 || p.contextWindowTokens <= 0 {
+	p.toolsMu.Lock()
+	p.lastInputTokens = inputTokens
+	ctxWindow := p.contextWindowTokens
+	threshold := p.handoffThreshold
+	p.toolsMu.Unlock()
+
+	if inputTokens <= 0 || ctxWindow <= 0 {
 		return
 	}
 
-	usageRatio := float64(inputTokens) / float64(p.contextWindowTokens)
-	p.log.Info(ctx, "pi context usage", "input_tokens", inputTokens, "context_window_tokens", p.contextWindowTokens, "usage_pct", fmt.Sprintf("%.1f", usageRatio*100))
-	if usageRatio < p.handoffThreshold {
+	usageRatio := float64(inputTokens) / float64(ctxWindow)
+	p.log.Info(ctx, "pi context usage", "input_tokens", inputTokens, "context_window_tokens", ctxWindow, "usage_pct", fmt.Sprintf("%.1f", usageRatio*100))
+	if usageRatio < threshold {
 		return
 	}
 
-	p.log.Warn(ctx, "pi context above threshold, running handoff + restart", "threshold_pct", fmt.Sprintf("%.1f", p.handoffThreshold*100))
+	p.log.Warn(ctx, "pi context above threshold, running handoff + restart", "threshold_pct", fmt.Sprintf("%.1f", threshold*100))
 	handoffPrompt := "create a compact handoff summary for a fresh rpc session. include: user intent, active tasks, constraints, important decisions, and immediate next steps. keep it under 2200 characters and use plain text."
 	handoffCtx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
