@@ -344,11 +344,11 @@ func (p *PiAgent) maybeHandoff(ctx context.Context, pm *ProcessManager, inputTok
 func contextWindowTokensFromEnv() int {
 	raw := strings.TrimSpace(os.Getenv("PI_CONTEXT_WINDOW_TOKENS"))
 	if raw == "" {
-		return 200000
+		return 64000
 	}
 	v, err := strconv.Atoi(raw)
 	if err != nil || v <= 0 {
-		return 200000
+		return 64000
 	}
 	return v
 }
@@ -356,14 +356,14 @@ func contextWindowTokensFromEnv() int {
 func handoffThresholdFromEnv() float64 {
 	raw := strings.TrimSpace(os.Getenv("PI_HANDOFF_THRESHOLD"))
 	if raw == "" {
-		return 0.80
+		return 0.60
 	}
 	v, err := strconv.ParseFloat(raw, 64)
 	if err != nil {
-		return 0.80
+		return 0.60
 	}
 	if v <= 0 || v >= 1 {
-		return 0.80
+		return 0.60
 	}
 	return v
 }

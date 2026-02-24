@@ -132,14 +132,14 @@ func TestLooksLikeDeferral(t *testing.T) {
 
 func TestContextWindowTokensFromEnv_Default(t *testing.T) {
 	t.Setenv("PI_CONTEXT_WINDOW_TOKENS", "")
-	if got := contextWindowTokensFromEnv(); got != 200000 {
-		t.Fatalf("got %d want 200000", got)
+	if got := contextWindowTokensFromEnv(); got != 64000 {
+		t.Fatalf("got %d want 64000", got)
 	}
 }
 
 func TestHandoffThresholdFromEnv_Default(t *testing.T) {
 	t.Setenv("PI_HANDOFF_THRESHOLD", "")
-	if got := handoffThresholdFromEnv(); got != 0.80 {
-		t.Fatalf("got %.2f want 0.80", got)
+	if got := handoffThresholdFromEnv(); got != 0.60 {
+		t.Fatalf("got %.2f want 0.60", got)
 	}
 }
