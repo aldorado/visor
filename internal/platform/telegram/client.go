@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 const defaultAPIBase = "https://api.telegram.org/bot"
@@ -37,11 +38,21 @@ func NewClientWithOptions(token, apiBase string, httpClient *http.Client) *Clien
 }
 
 func (c *Client) SendMessage(chatID int64, text string) error {
-	return c.sendJSON("sendMessage", map[string]any{
+	payload := map[string]any{
 		"chat_id":    chatID,
 		"text":       text,
 		"parse_mode": "Markdown",
-	})
+	}
+	if err := c.sendJSON("sendMessage", payload); err != nil {
+		if strings.Contains(err.Error(), "can't parse entities") {
+			return c.sendJSON("sendMessage", map[string]any{
+				"chat_id": chatID,
+				"text":    text,
+			})
+		}
+		return err
+	}
+	return nil
 }
 
 func (c *Client) SendVoice(chatID int64, audio io.Reader, filename string) error {
