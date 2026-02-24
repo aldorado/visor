@@ -93,7 +93,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		}
 	}
 
-	s.agent = agent.NewQueuedAgent(a, cfg.AgentBackend, func(ctx context.Context, chatID int64, response string, err error, _ time.Duration) {
+	s.agent = agent.NewQueuedAgent(a, cfg.AgentBackend, func(ctx context.Context, chatID int64, response string, err error, duration time.Duration) {
 		if err != nil {
 			s.log.Error(ctx, "agent processing failed", "chat_id", chatID, "backend", cfg.AgentBackend, "error", err.Error())
 			response = fmt.Sprintf("error: %v", err)
@@ -159,12 +159,13 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		if plainText == "" {
 			plainText = "ok"
 		}
+		textWithMetrics := strings.TrimSpace(plainText + "\n\n⏱ " + formatDuration(duration) + " · " + s.agent.CurrentBackend())
 
 		sendAsVoice := shouldSendVoice(meta, text) && s.voice != nil && s.voice.TTSEnabled()
 		if sendAsVoice {
 			if err := s.voice.SynthesizeAndSend(chatID, plainText); err != nil {
 				s.log.Error(ctx, "voice synth failed, fallback to text", "chat_id", chatID, "error", err.Error())
-				if sendErr := s.tg.SendMessage(chatID, plainText); sendErr != nil {
+				if sendErr := s.tg.SendMessage(chatID, textWithMetrics); sendErr != nil {
 					s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
 				} else {
 					s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "text-fallback")
@@ -173,7 +174,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 				s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "voice")
 			}
 		} else {
-			if sendErr := s.tg.SendMessage(chatID, plainText); sendErr != nil {
+			if sendErr := s.tg.SendMessage(chatID, textWithMetrics); sendErr != nil {
 				s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
 			} else {
 				s.log.Info(ctx, "webhook reply sent", "chat_id", chatID, "mode", "text")
