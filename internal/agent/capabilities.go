@@ -14,6 +14,20 @@ type ModelSwitcher interface {
 	Model() string
 }
 
+type ModelStatus struct {
+	Backend        string
+	Model          string
+	Provider       string
+	Source         string
+	StateModel     string
+	StateProvider  string
+	StateUpdatedAt string
+}
+
+type ModelStatusProvider interface {
+	ModelStatus() ModelStatus
+}
+
 func switchModel(a Agent, model string) error {
 	ms, ok := a.(ModelSwitcher)
 	if !ok {
@@ -40,4 +54,16 @@ func backendLabel(defaultName string, a Agent) string {
 		return defaultName
 	}
 	return label
+}
+
+func modelStatus(defaultBackend string, a Agent) ModelStatus {
+	msp, ok := a.(ModelStatusProvider)
+	if ok {
+		ms := msp.ModelStatus()
+		if ms.Backend == "" {
+			ms.Backend = defaultBackend
+		}
+		return ms
+	}
+	return ModelStatus{Backend: defaultBackend, Model: currentModel(a), Source: "runtime"}
 }

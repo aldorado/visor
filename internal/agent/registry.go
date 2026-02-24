@@ -147,6 +147,15 @@ func (r *Registry) ActiveModel() string {
 	return currentModel(r.active.Agent)
 }
 
+func (r *Registry) ActiveModelStatus() ModelStatus {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.active == nil {
+		return ModelStatus{}
+	}
+	return modelStatus(r.active.Name, r.active.Agent)
+}
+
 func (r *Registry) SetModelOnActive(model string) error {
 	r.mu.RLock()
 	active := r.active

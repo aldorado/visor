@@ -209,6 +209,13 @@ func (qa *QueuedAgent) CurrentModel() string {
 	return currentModel(qa.agent)
 }
 
+func (qa *QueuedAgent) ModelStatus() ModelStatus {
+	if reg, ok := qa.agent.(*Registry); ok {
+		return reg.ActiveModelStatus()
+	}
+	return modelStatus(qa.backend, qa.agent)
+}
+
 // SwitchBackend pins the active backend to the named one.
 // Only works if the underlying agent is a Registry.
 func (qa *QueuedAgent) SwitchBackend(name string) error {

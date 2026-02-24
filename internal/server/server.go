@@ -391,13 +391,13 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			parts := strings.Fields(trimmed)
 			var reply string
 			if len(parts) == 1 {
-				reply = fmt.Sprintf("current model: *%s*", s.agent.CurrentBackend())
+				reply = formatModelStatus(s.agent.ModelStatus(), s.agent.CurrentBackend())
 			} else {
 				model := strings.TrimSpace(strings.Join(parts[1:], " "))
 				if err := s.agent.SwitchModel(model); err != nil {
 					reply = fmt.Sprintf("❌ %v", err)
 				} else {
-					reply = fmt.Sprintf("✅ model switched: *%s*", s.agent.CurrentBackend())
+					reply = "✅ " + formatModelStatus(s.agent.ModelStatus(), s.agent.CurrentBackend())
 				}
 			}
 			s.log.Info(r.Context(), "model switch command", "chat_id", chatID, "command", trimmed)
@@ -888,6 +888,40 @@ func parseResponse(raw string) (text string, meta responseMeta) {
 	}
 
 	return
+}
+
+func formatModelStatus(ms agent.ModelStatus, backendLabel string) string {
+	backend := strings.TrimSpace(ms.Backend)
+	if backend == "" {
+		backend = backendLabel
+	}
+	model := strings.TrimSpace(ms.Model)
+	if model == "" {
+		model = "(unknown)"
+	}
+	provider := strings.TrimSpace(ms.Provider)
+	if provider == "" {
+		provider = "(unknown)"
+	}
+	source := strings.TrimSpace(ms.Source)
+	if source == "" {
+		source = "runtime"
+	}
+
+	reply := fmt.Sprintf("current model\n- backend: *%s*\n- runtime: *%s* (_provider: %s, source: %s_)", backend, model, provider, source)
+
+	stateModel := strings.TrimSpace(ms.StateModel)
+	if stateModel != "" {
+		stateProvider := strings.TrimSpace(ms.StateProvider)
+		if stateProvider == "" {
+			stateProvider = "(unknown)"
+		}
+		reply += fmt.Sprintf("\n- state file: *%s* (_provider: %s_)", stateModel, stateProvider)
+		if ts := strings.TrimSpace(ms.StateUpdatedAt); ts != "" {
+			reply += fmt.Sprintf("\n- state updated: `%s`", ts)
+		}
+	}
+	return reply
 }
 
 func sanitizeUserReply(s string) string {

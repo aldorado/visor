@@ -64,6 +64,7 @@ type PiAgent struct {
 	toolsStarted        bool
 	model               string
 	modelProvider       string
+	modelSource         string
 	modelStatePath      string
 	contextWindowTokens int
 	handoffThreshold    float64
@@ -88,10 +89,16 @@ func NewPiAgentWithModelState(cfg ProcessConfig, modelStatePath string) *PiAgent
 	}
 	toolsCfg.Args = piRPCArgs(model)
 
+	source := "runtime"
+	if model != "" {
+		source = "state-file"
+	}
+
 	return &PiAgent{
 		toolsCfg:            toolsCfg,
 		model:               model,
 		modelProvider:       provider,
+		modelSource:         source,
 		modelStatePath:      modelStatePath,
 		contextWindowTokens: contextWindowTokensFromEnv(),
 		handoffThreshold:    handoffThresholdFromEnv(),
@@ -114,6 +121,7 @@ func (p *PiAgent) SetModel(model string) error {
 
 	p.model = model
 	p.modelProvider = ""
+	p.modelSource = "runtime"
 	p.lastInputTokens = 0
 	p.sessionInputTokens = 0
 	p.toolsCfg.Args = piRPCArgs(model)
@@ -134,6 +142,26 @@ func (p *PiAgent) Model() string {
 	p.toolsMu.Lock()
 	defer p.toolsMu.Unlock()
 	return p.model
+}
+
+func (p *PiAgent) ModelStatus() ModelStatus {
+	p.toolsMu.Lock()
+	status := ModelStatus{
+		Backend:  "pi",
+		Model:    p.model,
+		Provider: p.modelProvider,
+		Source:   p.modelSource,
+	}
+	statePath := p.modelStatePath
+	p.toolsMu.Unlock()
+
+	stateModel, stateProvider, stateUpdatedAt, err := readCurrentModelState(statePath)
+	if err == nil {
+		status.StateModel = stateModel
+		status.StateProvider = stateProvider
+		status.StateUpdatedAt = stateUpdatedAt
+	}
+	return status
 }
 
 func (p *PiAgent) BackendLabel() string {
@@ -397,6 +425,7 @@ func (p *PiAgent) updateModelFromMessage(ctx context.Context, msg *piMessage) {
 	if changed {
 		p.model = model
 		p.modelProvider = provider
+		p.modelSource = "runtime"
 		p.toolsCfg.Args = piRPCArgs(model)
 	}
 	p.toolsMu.Unlock()
@@ -424,22 +453,27 @@ type currentModelState struct {
 }
 
 func loadCurrentModel(path string) (model string, provider string, err error) {
+	model, provider, _, err = readCurrentModelState(path)
+	return model, provider, err
+}
+
+func readCurrentModelState(path string) (model string, provider string, updatedAt string, err error) {
 	path = strings.TrimSpace(path)
 	if path == "" {
-		return "", "", nil
+		return "", "", "", nil
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", "", nil
+			return "", "", "", nil
 		}
-		return "", "", fmt.Errorf("read model state: %w", err)
+		return "", "", "", fmt.Errorf("read model state: %w", err)
 	}
 	var s currentModelState
 	if err := json.Unmarshal(data, &s); err != nil {
-		return "", "", fmt.Errorf("parse model state: %w", err)
+		return "", "", "", fmt.Errorf("parse model state: %w", err)
 	}
-	return strings.TrimSpace(s.Model), strings.TrimSpace(s.Provider), nil
+	return strings.TrimSpace(s.Model), strings.TrimSpace(s.Provider), strings.TrimSpace(s.UpdatedAt), nil
 }
 
 func saveCurrentModel(path, model, provider string) error {
