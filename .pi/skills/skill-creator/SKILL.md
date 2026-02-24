@@ -106,8 +106,8 @@ This executes before the skill loads and inserts the output.
 
 - Ubik uses TypeScript, so code examples in skills should use `npx tsx -e "..."` instead of `uv run python -c "..."`
 - Pi has 4 built-in tools: read, write, edit, bash
-- The main config file is `.pi/SYSTEM.md` (not CLAUDE.md)
-- Skills directory is `.pi/skills/` (not .claude/skills/)
+- The main config file is `.pi/SYSTEM.md`
+- Skills directory is `.pi/skills/`
 
 ## Reference
 
