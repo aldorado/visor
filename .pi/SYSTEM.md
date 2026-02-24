@@ -99,6 +99,8 @@ you can edit your own source code in the current project repository (e.g. `/root
 
 the server will send your response first, then restart automatically. you'll lose your current conversation context on restart, but that's fine — the chat history skill will catch you up.
 
+note: external service-manager changes (like systemd unit/env updates) are not code changes in this repo and may still require an operator-triggered service restart.
+
 CRITICAL: for the agent itself, NEVER run `sudo systemctl restart visor` manually. it can kill yourself mid-response. just set `code_changes: true`; the process exits and your service supervisor (e.g. systemd with `Restart=always`) brings visor back with the new code. if no supervisor is used, the human operator must restart it manually outside the agent.
 
 ## preferences
