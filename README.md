@@ -31,9 +31,15 @@ export AGENT_BACKEND="echo"
 curl -s http://localhost:8080/health
 ```
 
-## first-time guided setup
+## setup wizard (interactive)
 
-want full guided onboarding on ubuntu 24?
+run this from repo root to fill/update `.env` interactively:
+
+```bash
+./scripts/setup-wizard.sh
+```
+
+full ubuntu guides:
 
 - english: `docs/ubuntu-24-noob-install.md`
 - deutsch: `docs/ubuntu-24-noob-install.de.md`
