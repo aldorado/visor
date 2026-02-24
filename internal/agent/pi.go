@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"visor/internal/observability"
 )
@@ -37,6 +39,13 @@ type piAssistantEvent struct {
 type piMessage struct {
 	Role    string           `json:"role"`
 	Content []piMessageBlock `json:"content,omitempty"`
+	Usage   *piUsage         `json:"usage,omitempty"`
+}
+
+type piUsage struct {
+	Input       int `json:"input"`
+	Output      int `json:"output"`
+	TotalTokens int `json:"totalTokens"`
 }
 
 type piMessageBlock struct {
@@ -46,13 +55,16 @@ type piMessageBlock struct {
 
 // PiAgent implements Agent using `pi --mode rpc`.
 type PiAgent struct {
-	toolsPM      *ProcessManager
-	toolsCfg     ProcessConfig
-	toolsMu      sync.Mutex
-	toolsStarted bool
-	model        string
-	mu           sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
-	log          *observability.Logger
+	toolsPM             *ProcessManager
+	toolsCfg            ProcessConfig
+	toolsMu             sync.Mutex
+	toolsStarted        bool
+	model               string
+	contextWindowTokens int
+	handoffThreshold    float64
+	handoffContext      string
+	mu                  sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
+	log                 *observability.Logger
 }
 
 func NewPiAgent(cfg ProcessConfig) *PiAgent {
@@ -63,9 +75,11 @@ func NewPiAgent(cfg ProcessConfig) *PiAgent {
 	toolsCfg.Args = piRPCArgs(model)
 
 	return &PiAgent{
-		toolsCfg: toolsCfg,
-		model:    model,
-		log:      observability.Component("agent.pi"),
+		toolsCfg:            toolsCfg,
+		model:               model,
+		contextWindowTokens: contextWindowTokensFromEnv(),
+		handoffThreshold:    handoffThresholdFromEnv(),
+		log:                 observability.Component("agent.pi"),
 	}
 }
 
@@ -111,29 +125,38 @@ func (p *PiAgent) SendPrompt(ctx context.Context, prompt string) (string, error)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	pm, err := p.freshToolsProcess()
+	pm, err := p.ensureToolsProcess()
 	if err != nil {
 		return "", err
 	}
-	p.log.Debug(ctx, "pi mode selected", "mode", "tools", "session", "fresh")
+	p.log.Debug(ctx, "pi mode selected", "mode", "tools", "session", "persistent")
 
 	guarded := withExecutionGuardrail(prompt)
-	response, err := p.sendPromptOnce(ctx, pm, guarded)
+	if strings.TrimSpace(p.handoffContext) != "" {
+		guarded = p.handoffContext + "\n\n" + guarded
+		p.handoffContext = ""
+	}
+
+	response, inputTokens, err := p.sendPromptOnce(ctx, pm, guarded)
 	if err != nil {
 		return response, err
 	}
-	if !looksLikeDeferral(response) {
-		return response, nil
+	if looksLikeDeferral(response) {
+		p.log.Warn(ctx, "pi returned deferral-style response, retrying with hard guardrail")
+		hard := guarded + "\n[critical enforcement]\n" +
+			"your previous answer violated policy. do not ask the user to run commands. " +
+			"run the required checks yourself now and return concrete results only."
+		response, inputTokens, err = p.sendPromptOnce(ctx, pm, hard)
+		if err != nil {
+			return response, err
+		}
 	}
 
-	p.log.Warn(ctx, "pi returned deferral-style response, retrying with hard guardrail")
-	hard := guarded + "\n[critical enforcement]\n" +
-		"your previous answer violated policy. do not ask the user to run commands. " +
-		"run the required checks yourself now and return concrete results only."
-	return p.sendPromptOnce(ctx, pm, hard)
+	p.maybeHandoff(ctx, pm, inputTokens)
+	return response, nil
 }
 
-func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt string) (string, error) {
+func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt string) (string, int, error) {
 	timeout := pm.cfg.PromptTimeout
 	if timeout > 0 {
 		var cancel context.CancelFunc
@@ -144,35 +167,37 @@ func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt
 	cmd := piCommand{Type: "prompt", Message: prompt}
 	data, err := json.Marshal(cmd)
 	if err != nil {
-		return "", fmt.Errorf("pi: marshal command: %w", err)
+		return "", 0, fmt.Errorf("pi: marshal command: %w", err)
 	}
 
 	stdin := pm.Stdin()
 	if stdin == nil {
-		return "", fmt.Errorf("pi: process not running")
+		return "", 0, fmt.Errorf("pi: process not running")
 	}
 	if _, err := fmt.Fprintf(stdin, "%s\n", data); err != nil {
-		return "", fmt.Errorf("pi: write stdin: %w", err)
+		return "", 0, fmt.Errorf("pi: write stdin: %w", err)
 	}
 
 	var response strings.Builder
+	inputTokens := 0
+
 	scanner := pm.Scanner()
 	if scanner == nil {
-		return "", fmt.Errorf("pi: scanner not available")
+		return "", 0, fmt.Errorf("pi: scanner not available")
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
-			return response.String(), fmt.Errorf("pi: timeout waiting for response")
+			return response.String(), inputTokens, fmt.Errorf("pi: timeout waiting for response")
 		default:
 		}
 
 		if !scanner.Scan() {
 			if err := scanner.Err(); err != nil {
-				return response.String(), fmt.Errorf("pi: read stdout: %w", err)
+				return response.String(), inputTokens, fmt.Errorf("pi: read stdout: %w", err)
 			}
-			return response.String(), fmt.Errorf("pi: process closed stdout")
+			return response.String(), inputTokens, fmt.Errorf("pi: process closed stdout")
 		}
 
 		line := scanner.Text()
@@ -189,7 +214,7 @@ func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt
 		switch event.Type {
 		case "response":
 			if event.Success != nil && !*event.Success {
-				return "", fmt.Errorf("pi: command rejected: %s", event.Error)
+				return "", inputTokens, fmt.Errorf("pi: command rejected: %s", event.Error)
 			}
 		case "message_update":
 			if event.AssistantMessageEvent != nil {
@@ -205,6 +230,9 @@ func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt
 				}
 			}
 		case "message_end", "turn_end":
+			if event.Message != nil && event.Message.Usage != nil && event.Message.Usage.Input > 0 {
+				inputTokens = event.Message.Usage.Input
+			}
 			if response.Len() == 0 && event.Message != nil && event.Message.Role == "assistant" {
 				for _, block := range event.Message.Content {
 					if block.Type == "text" && block.Text != "" {
@@ -216,7 +244,7 @@ func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt
 				}
 			}
 		case "agent_end":
-			return response.String(), nil
+			return response.String(), inputTokens, nil
 		}
 	}
 }
@@ -263,6 +291,63 @@ func (p *PiAgent) Close() error {
 		}
 	}
 	return nil
+}
+
+func (p *PiAgent) maybeHandoff(ctx context.Context, pm *ProcessManager, inputTokens int) {
+	if inputTokens <= 0 || p.contextWindowTokens <= 0 {
+		return
+	}
+
+	usageRatio := float64(inputTokens) / float64(p.contextWindowTokens)
+	p.log.Info(ctx, "pi context usage", "input_tokens", inputTokens, "context_window_tokens", p.contextWindowTokens, "usage_pct", fmt.Sprintf("%.1f", usageRatio*100))
+	if usageRatio < p.handoffThreshold {
+		return
+	}
+
+	p.log.Warn(ctx, "pi context above threshold, running handoff + restart", "threshold_pct", fmt.Sprintf("%.1f", p.handoffThreshold*100))
+	handoffPrompt := "create a compact handoff summary for a fresh rpc session. include: user intent, active tasks, constraints, important decisions, and immediate next steps. keep it under 2200 characters and use plain text."
+	handoffCtx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+
+	summary, _, err := p.sendPromptOnce(handoffCtx, pm, handoffPrompt)
+	if err != nil {
+		p.log.Warn(ctx, "pi handoff summary failed", "error", err.Error())
+	} else if strings.TrimSpace(summary) != "" {
+		p.handoffContext = "[handoff context from previous rpc session]\n" + strings.TrimSpace(summary)
+	}
+
+	if err := pm.Restart(); err != nil {
+		p.log.Error(ctx, "pi restart after handoff failed", "error", err.Error())
+		return
+	}
+	p.log.Info(ctx, "pi restarted after handoff")
+}
+
+func contextWindowTokensFromEnv() int {
+	raw := strings.TrimSpace(os.Getenv("PI_CONTEXT_WINDOW_TOKENS"))
+	if raw == "" {
+		return 200000
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v <= 0 {
+		return 200000
+	}
+	return v
+}
+
+func handoffThresholdFromEnv() float64 {
+	raw := strings.TrimSpace(os.Getenv("PI_HANDOFF_THRESHOLD"))
+	if raw == "" {
+		return 0.80
+	}
+	v, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return 0.80
+	}
+	if v <= 0 || v >= 1 {
+		return 0.80
+	}
+	return v
 }
 
 func piRPCArgs(model string) []string {

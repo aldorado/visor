@@ -119,3 +119,17 @@ func TestLooksLikeDeferral(t *testing.T) {
 		t.Fatal("status result must not be flagged as deferral")
 	}
 }
+
+func TestContextWindowTokensFromEnv_Default(t *testing.T) {
+	t.Setenv("PI_CONTEXT_WINDOW_TOKENS", "")
+	if got := contextWindowTokensFromEnv(); got != 200000 {
+		t.Fatalf("got %d want 200000", got)
+	}
+}
+
+func TestHandoffThresholdFromEnv_Default(t *testing.T) {
+	t.Setenv("PI_HANDOFF_THRESHOLD", "")
+	if got := handoffThresholdFromEnv(); got != 0.80 {
+		t.Fatalf("got %.2f want 0.80", got)
+	}
+}
