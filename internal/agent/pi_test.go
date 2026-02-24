@@ -1,9 +1,12 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"visor/internal/observability"
 )
 
 func TestPiEvent_TextDelta(t *testing.T) {
@@ -141,5 +144,41 @@ func TestHandoffThresholdFromEnv_Default(t *testing.T) {
 	t.Setenv("PI_HANDOFF_THRESHOLD", "")
 	if got := handoffThresholdFromEnv(); got != 0.60 {
 		t.Fatalf("got %.2f want 0.60", got)
+	}
+}
+
+func TestBackendLabel_UsesSessionInputTokens(t *testing.T) {
+	p := &PiAgent{model: "codex", contextWindowTokens: 1000, sessionInputTokens: 250}
+	got := p.BackendLabel()
+	if !strings.Contains(got, "ctx 25.0%") {
+		t.Fatalf("label=%q want ctx 25.0%%", got)
+	}
+}
+
+func TestMaybeHandoff_AccumulatesSessionTokens(t *testing.T) {
+	p := &PiAgent{
+		contextWindowTokens: 1000,
+		handoffThreshold:    0.95,
+		log:                 observability.Component("agent.pi.test"),
+	}
+
+	p.maybeHandoff(context.Background(), nil, 100)
+	p.maybeHandoff(context.Background(), nil, 150)
+
+	if p.lastInputTokens != 150 {
+		t.Fatalf("lastInputTokens=%d want 150", p.lastInputTokens)
+	}
+	if p.sessionInputTokens != 250 {
+		t.Fatalf("sessionInputTokens=%d want 250", p.sessionInputTokens)
+	}
+}
+
+func TestSetModel_ResetsTokenCounters(t *testing.T) {
+	p := &PiAgent{lastInputTokens: 12, sessionInputTokens: 99}
+	if err := p.SetModel("codex"); err != nil {
+		t.Fatalf("SetModel error: %v", err)
+	}
+	if p.lastInputTokens != 0 || p.sessionInputTokens != 0 {
+		t.Fatalf("counters not reset: last=%d session=%d", p.lastInputTokens, p.sessionInputTokens)
 	}
 }

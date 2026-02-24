@@ -64,6 +64,7 @@ type PiAgent struct {
 	handoffThreshold    float64
 	handoffContext      string
 	lastInputTokens     int
+	sessionInputTokens  int
 	mu                  sync.Mutex // serialize prompts (one at a time over shared stdin/stdout)
 	log                 *observability.Logger
 }
@@ -99,6 +100,7 @@ func (p *PiAgent) SetModel(model string) error {
 
 	p.model = model
 	p.lastInputTokens = 0
+	p.sessionInputTokens = 0
 	p.toolsCfg.Args = piRPCArgs(model)
 
 	if p.toolsPM != nil {
@@ -118,7 +120,7 @@ func (p *PiAgent) Model() string {
 func (p *PiAgent) BackendLabel() string {
 	p.toolsMu.Lock()
 	model := p.model
-	inputTokens := p.lastInputTokens
+	inputTokens := p.sessionInputTokens
 	ctxWindow := p.contextWindowTokens
 	p.toolsMu.Unlock()
 
@@ -273,6 +275,8 @@ func (p *PiAgent) ensureToolsProcess() (*ProcessManager, error) {
 			return nil, fmt.Errorf("pi tools start: %w", err)
 		}
 		p.toolsStarted = true
+		p.lastInputTokens = 0
+		p.sessionInputTokens = 0
 	}
 	return p.toolsPM, nil
 }
@@ -293,6 +297,8 @@ func (p *PiAgent) freshToolsProcess() (*ProcessManager, error) {
 	}
 	p.toolsPM = pm
 	p.toolsStarted = true
+	p.lastInputTokens = 0
+	p.sessionInputTokens = 0
 	return pm, nil
 }
 
@@ -308,16 +314,25 @@ func (p *PiAgent) Close() error {
 func (p *PiAgent) maybeHandoff(ctx context.Context, pm *ProcessManager, inputTokens int) {
 	p.toolsMu.Lock()
 	p.lastInputTokens = inputTokens
+	if inputTokens > 0 {
+		p.sessionInputTokens += inputTokens
+	}
+	sessionTokens := p.sessionInputTokens
 	ctxWindow := p.contextWindowTokens
 	threshold := p.handoffThreshold
 	p.toolsMu.Unlock()
 
-	if inputTokens <= 0 || ctxWindow <= 0 {
+	if sessionTokens <= 0 || ctxWindow <= 0 {
 		return
 	}
 
-	usageRatio := float64(inputTokens) / float64(ctxWindow)
-	p.log.Info(ctx, "pi context usage", "input_tokens", inputTokens, "context_window_tokens", ctxWindow, "usage_pct", fmt.Sprintf("%.1f", usageRatio*100))
+	usageRatio := float64(sessionTokens) / float64(ctxWindow)
+	p.log.Info(ctx, "pi context usage",
+		"turn_input_tokens", inputTokens,
+		"session_input_tokens", sessionTokens,
+		"context_window_tokens", ctxWindow,
+		"usage_pct", fmt.Sprintf("%.1f", usageRatio*100),
+	)
 	if usageRatio < threshold {
 		return
 	}
@@ -338,6 +353,10 @@ func (p *PiAgent) maybeHandoff(ctx context.Context, pm *ProcessManager, inputTok
 		p.log.Error(ctx, "pi restart after handoff failed", "error", err.Error())
 		return
 	}
+	p.toolsMu.Lock()
+	p.lastInputTokens = 0
+	p.sessionInputTokens = 0
+	p.toolsMu.Unlock()
 	p.log.Info(ctx, "pi restarted after handoff")
 }
 
