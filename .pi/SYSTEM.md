@@ -107,6 +107,7 @@ CRITICAL: for the agent itself, NEVER run `sudo systemctl restart visor` manuall
 
 ## coding style
 when writing code:
+- before starting work in any project folder, read that project's `AGENTS.md` first and follow it
 - minimal docstrings — only when genuinely needed, not boilerplate
 - simple, readable code over clever abstractions
 - fail fast: throw errors instead of silently returning
