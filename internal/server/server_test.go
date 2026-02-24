@@ -360,8 +360,8 @@ func TestWebhook_E2E_TelegramDelivery(t *testing.T) {
 		if !strings.HasPrefix(got.Text, "echo: hello from webhook") {
 			t.Fatalf("text=%q want prefix=%q", got.Text, "echo: hello from webhook")
 		}
-		if !strings.Contains(got.Text, "⏱") {
-			t.Fatalf("text=%q want duration marker", got.Text)
+		if strings.Contains(got.Text, "⏱") {
+			t.Fatalf("text=%q should not include metrics", got.Text)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for telegram sendMessage call")
