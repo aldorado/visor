@@ -10,12 +10,12 @@ When a voice message starts with log entry/logentry, strip the prefix and append
 
 ## Preconditions
 
-1. Use `/root/obsidian/Sibwax` as the vault root.
-2. If path does not exist, stop and tell the user Obsidian is not configured.
+1. Read `OBSIDIAN_VAULT_PATH` from environment.
+2. If missing or path does not exist, stop and tell the user Obsidian is not configured.
 
 ## Location
 
-`/root/obsidian/Sibwax/logs/YYYY-MM-DD.md`
+`$OBSIDIAN_VAULT_PATH/logs/YYYY-MM-DD.md`
 
 ## Format
 

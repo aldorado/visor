@@ -10,13 +10,13 @@ Promote mature ideas from `ideas/` to `forge/` inside the Obsidian vault.
 
 ## Preconditions
 
-1. Use `/root/obsidian/Sibwax` as the vault root.
-2. If path does not exist, stop and tell the user Obsidian is not configured.
+1. Read `OBSIDIAN_VAULT_PATH` from environment.
+2. If missing or path does not exist, stop and tell the user Obsidian is not configured.
 
 ## Locations
 
-- ideas: `/root/obsidian/Sibwax/ideas/`
-- forge: `/root/obsidian/Sibwax/forge/`
+- ideas: `$OBSIDIAN_VAULT_PATH/ideas/`
+- forge: `$OBSIDIAN_VAULT_PATH/forge/`
 
 ## Promotion rules
 
