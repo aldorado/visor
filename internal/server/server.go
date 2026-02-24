@@ -155,12 +155,15 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 			}
 		}
 
-		voiceText := text
-		textWithMetrics := strings.TrimSpace(text + "\n\n⏱ " + formatDuration(duration) + " · " + s.agent.CurrentBackend())
+		plainText := stripVoiceTags(text)
+		if plainText == "" {
+			plainText = "ok"
+		}
+		textWithMetrics := strings.TrimSpace(plainText + "\n\n⏱ " + formatDuration(duration) + " · " + s.agent.CurrentBackend())
 
-		sendAsVoice := shouldSendVoice(meta, voiceText) && s.voice != nil && s.voice.TTSEnabled()
+		sendAsVoice := shouldSendVoice(meta, text) && s.voice != nil && s.voice.TTSEnabled()
 		if sendAsVoice {
-			if err := s.voice.SynthesizeAndSend(chatID, voiceText); err != nil {
+			if err := s.voice.SynthesizeAndSend(chatID, plainText); err != nil {
 				s.log.Error(ctx, "voice synth failed, fallback to text", "chat_id", chatID, "error", err.Error())
 				if sendErr := s.tg.SendMessage(chatID, textWithMetrics); sendErr != nil {
 					s.log.Error(ctx, "send reply failed", "chat_id", chatID, "error", sendErr.Error())
@@ -846,6 +849,14 @@ func shouldSendVoice(meta responseMeta, text string) bool {
 		return true
 	}
 	return voiceTagPattern.MatchString(text)
+}
+
+func stripVoiceTags(text string) string {
+	clean := voiceTagPattern.ReplaceAllString(text, "")
+	for strings.Contains(clean, "  ") {
+		clean = strings.ReplaceAll(clean, "  ", " ")
+	}
+	return strings.TrimSpace(clean)
 }
 
 func parseResponse(raw string) (text string, meta responseMeta) {

@@ -305,6 +305,20 @@ func TestShouldSendVoice_NoMetadataNoTags(t *testing.T) {
 	}
 }
 
+func TestStripVoiceTags(t *testing.T) {
+	got := stripVoiceTags("[excited] hallo [thoughtful] welt")
+	if got != "hallo welt" {
+		t.Fatalf("stripVoiceTags=%q want=%q", got, "hallo welt")
+	}
+}
+
+func TestStripVoiceTags_OnlyTags(t *testing.T) {
+	got := stripVoiceTags("[excited] [thoughtful]")
+	if got != "" {
+		t.Fatalf("stripVoiceTags=%q want empty", got)
+	}
+}
+
 func TestWebhook_E2E_TelegramDelivery(t *testing.T) {
 	t.Setenv("TELEGRAM_BOT_TOKEN", "test-token")
 	t.Setenv("USER_PHONE_NUMBER", "12345")
