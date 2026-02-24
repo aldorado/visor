@@ -3,6 +3,8 @@ package agent
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -174,11 +176,55 @@ func TestMaybeHandoff_AccumulatesSessionTokens(t *testing.T) {
 }
 
 func TestSetModel_ResetsTokenCounters(t *testing.T) {
-	p := &PiAgent{lastInputTokens: 12, sessionInputTokens: 99}
+	statePath := filepath.Join(t.TempDir(), "current-model.json")
+	p := &PiAgent{lastInputTokens: 12, sessionInputTokens: 99, modelStatePath: statePath}
 	if err := p.SetModel("codex"); err != nil {
 		t.Fatalf("SetModel error: %v", err)
 	}
 	if p.lastInputTokens != 0 || p.sessionInputTokens != 0 {
 		t.Fatalf("counters not reset: last=%d session=%d", p.lastInputTokens, p.sessionInputTokens)
+	}
+	data, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read state file: %v", err)
+	}
+	if !strings.Contains(string(data), "\"model\": \"codex\"") {
+		t.Fatalf("state file missing model: %s", data)
+	}
+}
+
+func TestLoadAndSaveCurrentModel(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "current-model.json")
+	if err := saveCurrentModel(statePath, "gpt-5.3-codex", "openai-codex"); err != nil {
+		t.Fatalf("saveCurrentModel: %v", err)
+	}
+	model, provider, err := loadCurrentModel(statePath)
+	if err != nil {
+		t.Fatalf("loadCurrentModel: %v", err)
+	}
+	if model != "gpt-5.3-codex" || provider != "openai-codex" {
+		t.Fatalf("got model=%q provider=%q", model, provider)
+	}
+}
+
+func TestUpdateModelFromMessage_PersistsAndUpdatesArgs(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "current-model.json")
+	p := &PiAgent{modelStatePath: statePath, toolsCfg: ProcessConfig{}, log: observability.Component("agent.pi.test")}
+
+	p.updateModelFromMessage(context.Background(), &piMessage{Model: "gpt-5.3-codex", Provider: "openai-codex"})
+
+	if p.model != "gpt-5.3-codex" {
+		t.Fatalf("model=%q", p.model)
+	}
+	joined := strings.Join(p.toolsCfg.Args, " ")
+	if !strings.Contains(joined, "--model gpt-5.3-codex") {
+		t.Fatalf("args=%q", joined)
+	}
+	data, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatalf("read state file: %v", err)
+	}
+	if !strings.Contains(string(data), "\"provider\": \"openai-codex\"") {
+		t.Fatalf("state file missing provider: %s", data)
 	}
 }

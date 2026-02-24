@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,9 +38,11 @@ type piAssistantEvent struct {
 }
 
 type piMessage struct {
-	Role    string           `json:"role"`
-	Content []piMessageBlock `json:"content,omitempty"`
-	Usage   *piUsage         `json:"usage,omitempty"`
+	Role     string           `json:"role"`
+	Content  []piMessageBlock `json:"content,omitempty"`
+	Usage    *piUsage         `json:"usage,omitempty"`
+	Provider string           `json:"provider,omitempty"`
+	Model    string           `json:"model,omitempty"`
 }
 
 type piUsage struct {
@@ -60,6 +63,8 @@ type PiAgent struct {
 	toolsMu             sync.Mutex
 	toolsStarted        bool
 	model               string
+	modelProvider       string
+	modelStatePath      string
 	contextWindowTokens int
 	handoffThreshold    float64
 	handoffContext      string
@@ -70,15 +75,24 @@ type PiAgent struct {
 }
 
 func NewPiAgent(cfg ProcessConfig) *PiAgent {
+	return NewPiAgentWithModelState(cfg, filepath.Join(dataDirFromEnv(), "current-model.json"))
+}
+
+func NewPiAgentWithModelState(cfg ProcessConfig, modelStatePath string) *PiAgent {
 	toolsCfg := cfg
 	toolsCfg.Command = "pi"
 
-	model := strings.TrimSpace(os.Getenv("PI_MODEL"))
+	model, provider, err := loadCurrentModel(modelStatePath)
+	if err != nil {
+		observability.Component("agent.pi").Warn(nil, "load current model failed", "path", modelStatePath, "error", err.Error())
+	}
 	toolsCfg.Args = piRPCArgs(model)
 
 	return &PiAgent{
 		toolsCfg:            toolsCfg,
 		model:               model,
+		modelProvider:       provider,
+		modelStatePath:      modelStatePath,
 		contextWindowTokens: contextWindowTokensFromEnv(),
 		handoffThreshold:    handoffThresholdFromEnv(),
 		log:                 observability.Component("agent.pi"),
@@ -99,9 +113,14 @@ func (p *PiAgent) SetModel(model string) error {
 	defer p.toolsMu.Unlock()
 
 	p.model = model
+	p.modelProvider = ""
 	p.lastInputTokens = 0
 	p.sessionInputTokens = 0
 	p.toolsCfg.Args = piRPCArgs(model)
+
+	if err := saveCurrentModel(p.modelStatePath, model, ""); err != nil {
+		return err
+	}
 
 	if p.toolsPM != nil {
 		_ = p.toolsPM.Stop()
@@ -244,6 +263,9 @@ func (p *PiAgent) sendPromptOnce(ctx context.Context, pm *ProcessManager, prompt
 				}
 			}
 		case "message_end", "turn_end":
+			if event.Message != nil {
+				p.updateModelFromMessage(ctx, event.Message)
+			}
 			if event.Message != nil && event.Message.Usage != nil && event.Message.Usage.Input > 0 {
 				inputTokens = event.Message.Usage.Input
 			}
@@ -358,6 +380,89 @@ func (p *PiAgent) maybeHandoff(ctx context.Context, pm *ProcessManager, inputTok
 	p.sessionInputTokens = 0
 	p.toolsMu.Unlock()
 	p.log.Info(ctx, "pi restarted after handoff")
+}
+
+func (p *PiAgent) updateModelFromMessage(ctx context.Context, msg *piMessage) {
+	if msg == nil {
+		return
+	}
+	model := strings.TrimSpace(msg.Model)
+	if model == "" {
+		return
+	}
+	provider := strings.TrimSpace(msg.Provider)
+
+	p.toolsMu.Lock()
+	changed := model != p.model || provider != p.modelProvider
+	if changed {
+		p.model = model
+		p.modelProvider = provider
+		p.toolsCfg.Args = piRPCArgs(model)
+	}
+	p.toolsMu.Unlock()
+
+	if !changed {
+		return
+	}
+	if err := saveCurrentModel(p.modelStatePath, model, provider); err != nil {
+		p.log.Warn(ctx, "save current model failed", "path", p.modelStatePath, "error", err.Error())
+	}
+}
+
+func dataDirFromEnv() string {
+	dataDir := strings.TrimSpace(os.Getenv("DATA_DIR"))
+	if dataDir == "" {
+		return "data"
+	}
+	return dataDir
+}
+
+type currentModelState struct {
+	Model     string `json:"model"`
+	Provider  string `json:"provider,omitempty"`
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
+func loadCurrentModel(path string) (model string, provider string, err error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "", "", nil
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", "", nil
+		}
+		return "", "", fmt.Errorf("read model state: %w", err)
+	}
+	var s currentModelState
+	if err := json.Unmarshal(data, &s); err != nil {
+		return "", "", fmt.Errorf("parse model state: %w", err)
+	}
+	return strings.TrimSpace(s.Model), strings.TrimSpace(s.Provider), nil
+}
+
+func saveCurrentModel(path, model, provider string) error {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("mkdir model state dir: %w", err)
+	}
+	payload := currentModelState{
+		Model:     strings.TrimSpace(model),
+		Provider:  strings.TrimSpace(provider),
+		UpdatedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+	data, err := json.MarshalIndent(payload, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshal model state: %w", err)
+	}
+	if err := os.WriteFile(path, append(data, '\n'), 0o644); err != nil {
+		return fmt.Errorf("write model state: %w", err)
+	}
+	return nil
 }
 
 func contextWindowTokensFromEnv() int {
