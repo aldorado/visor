@@ -87,7 +87,7 @@ func NewPiAgentWithModelState(cfg ProcessConfig, modelStatePath string) *PiAgent
 	if err != nil {
 		observability.Component("agent.pi").Warn(nil, "load current model failed", "path", modelStatePath, "error", err.Error())
 	}
-	toolsCfg.Args = piRPCArgs(model)
+	toolsCfg.Args = piRPCArgs(model, provider)
 
 	source := "runtime"
 	if model != "" {
@@ -124,7 +124,7 @@ func (p *PiAgent) SetModel(model string) error {
 	p.modelSource = "runtime"
 	p.lastInputTokens = 0
 	p.sessionInputTokens = 0
-	p.toolsCfg.Args = piRPCArgs(model)
+	p.toolsCfg.Args = piRPCArgs(model, "")
 
 	if err := saveCurrentModel(p.modelStatePath, model, ""); err != nil {
 		return err
@@ -426,7 +426,7 @@ func (p *PiAgent) updateModelFromMessage(ctx context.Context, msg *piMessage) {
 		p.model = model
 		p.modelProvider = provider
 		p.modelSource = "runtime"
-		p.toolsCfg.Args = piRPCArgs(model)
+		p.toolsCfg.Args = piRPCArgs(model, provider)
 	}
 	p.toolsMu.Unlock()
 
@@ -526,12 +526,15 @@ func handoffThresholdFromEnv() float64 {
 	return v
 }
 
-func piRPCArgs(model string) []string {
+func piRPCArgs(model, provider string) []string {
 	args := []string{"--mode", "rpc"}
 	if os.Getenv("PI_NO_SESSION") == "1" || strings.EqualFold(os.Getenv("PI_NO_SESSION"), "true") {
 		args = append(args, "--no-session")
 	}
-	if model != "" {
+	if provider = strings.TrimSpace(provider); provider != "" {
+		args = append(args, "--provider", provider)
+	}
+	if model = strings.TrimSpace(model); model != "" {
 		args = append(args, "--model", model)
 	}
 	return args
