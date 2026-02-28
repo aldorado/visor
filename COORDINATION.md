@@ -54,4 +54,4 @@ open milestones:
   - files changed: `.pi/SYSTEM.md`
   - tests run: n/a (prompt-only change)
   - risks/follow-up: runtime must honor structured `code_changes: true` for user-triggered restarts.
-  - commit: pending
+  - commit: `fa67fa1`
