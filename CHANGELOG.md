@@ -22,6 +22,7 @@ all notable project changes are documented here.
 - webhook skill trigger exposure now respects enabled levelups before surfacing tools/prompts.
 - self-restart docs now clarify agent code restarts vs external service manager (`systemd`) restarts.
 - auto-restart docs now use generic project paths instead of hardcoded local paths.
+- restart instruction now explicitly requires: send reply first, then trigger restart via `code_changes: true`.
 - setup skill synchronization restored across canonical `skills/` and runtime prompt directories.
 - Gemini agent now logs request start/first-token/done timing to expose real latency in production.
 - Gemini backend now reuses the latest session for a 20 minute window (configurable via `GEMINI_RESUME_WINDOW_MINUTES`).

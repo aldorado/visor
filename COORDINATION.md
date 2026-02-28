@@ -55,3 +55,8 @@ open milestones:
   - tests run: n/a (prompt-only change)
   - risks/follow-up: runtime must honor structured `code_changes: true` for user-triggered restarts.
   - commit: `fa67fa1`
+- `M8 / it-restart-trigger-noop` no-op repo change to allow immediate restart trigger after user confirmation.
+  - files changed: `CHANGELOG.md`
+  - tests run: n/a (docs-only)
+  - risks/follow-up: none.
+  - commit: pending
