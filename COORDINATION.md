@@ -28,7 +28,7 @@ open milestones:
 
 ## active claims
 
-- [claim] visor | M3 / memory-lookup-runtime hardening | main | 2026-02-27 19:24 CET
+- [claim] none
 
 ## handoff log
 
@@ -43,3 +43,10 @@ open milestones:
 - `M12 / it2` setup actions + forgejo remote sync hook — `0b31da0`
 - `M12 / it3` setup finish flow (personality/test/summary/cleanup) — `64d409a`
 - `M12 / research+hardening` setup strategy + validate_openai + recommended preset — `912a104`, `2d7a51b`, `38fcec9`, `4142a28`, `71e1781`
+
+### 2026-02-27
+- `M3 / it-memory-lookup-runtime` canonical Go lookup runner + runtime self-check + failure-streak logging.
+  - files changed: `cmd/memorylookup/main.go`, `cmd/memorylookup/main_test.go`, `internal/memory/runtime_check.go`, `internal/memory/runtime_check_test.go`, `internal/server/server.go`, `scripts/memory-lookup.sh`, `skills/memory-lookup/SKILL.md`, `.pi/skills/memory-lookup/SKILL.md`
+  - tests run: `go test ./internal/memory ./internal/server ./cmd/memorylookup`
+  - risks/follow-up: live lookup still depends on `OPENAI_API_KEY`; monitor `memory_lookup_failed` logs for repeated streaks.
+  - commit: `b82ccfe`
