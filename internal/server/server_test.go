@@ -62,6 +62,30 @@ func TestHealth(t *testing.T) {
 	}
 }
 
+func TestSchedulerHealth(t *testing.T) {
+	srv := New(testConfig(""), &agent.EchoAgent{})
+	req := httptest.NewRequest("GET", "/health/scheduler", nil)
+	w := httptest.NewRecorder()
+	srv.mux.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", w.Code)
+	}
+	var resp struct {
+		Status    string         `json:"status"`
+		Scheduler map[string]any `json:"scheduler"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode scheduler health: %v", err)
+	}
+	if resp.Status != "ok" {
+		t.Fatalf("status=%q want=ok", resp.Status)
+	}
+	if _, ok := resp.Scheduler["tasks_total"]; !ok {
+		t.Fatal("missing scheduler.tasks_total")
+	}
+}
+
 func TestWebhook_ValidTextMessage(t *testing.T) {
 	srv := New(testConfig(""), &agent.EchoAgent{})
 	update := makeUpdate(1, 12345, "hello")

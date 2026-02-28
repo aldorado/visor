@@ -158,3 +158,107 @@ func TestSchedulerUpdateUnknownTask(t *testing.T) {
 		t.Fatal("expected not found error")
 	}
 }
+
+func TestSchedulerStartupReconcileFastForwardsOldRecurring(t *testing.T) {
+	tmp := t.TempDir()
+	dir := filepath.Join(tmp, "scheduler")
+
+	s1, err := New(dir, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstRun := time.Now().UTC().Add(-2 * startupCatchUpWindow)
+	id, err := s1.AddRecurring("old", firstRun, 60*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	triggered := 0
+	s2, err := New(dir, func(ctx context.Context, task Task) {
+		triggered++
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s2.TriggerDue(context.Background(), time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	if triggered != 0 {
+		t.Fatalf("triggered=%d want=0", triggered)
+	}
+
+	list := s2.List()
+	if len(list) != 1 {
+		t.Fatalf("len=%d want=1", len(list))
+	}
+	if list[0].ID != id {
+		t.Fatalf("id=%s want=%s", list[0].ID, id)
+	}
+	if !list[0].NextRunAt.After(time.Now().UTC()) {
+		t.Fatalf("next_run_at=%s want > now", list[0].NextRunAt)
+	}
+
+	diag := s2.Diagnostics()
+	if diag.OverdueRecoveredTotal != 1 {
+		t.Fatalf("overdue_recovered_total=%d want=1", diag.OverdueRecoveredTotal)
+	}
+	if diag.OverdueMissedRunsTotal == 0 {
+		t.Fatal("expected missed runs > 0")
+	}
+}
+
+func TestSchedulerStartupReconcileKeepsRecentOverdueForCatchup(t *testing.T) {
+	tmp := t.TempDir()
+	dir := filepath.Join(tmp, "scheduler")
+
+	s1, err := New(dir, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstRun := time.Now().UTC().Add(-5 * time.Minute)
+	_, err = s1.AddRecurring("recent", firstRun, 10*time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	triggered := 0
+	s2, err := New(dir, func(ctx context.Context, task Task) {
+		triggered++
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := s2.TriggerDue(context.Background(), time.Now().UTC()); err != nil {
+		t.Fatal(err)
+	}
+	if triggered != 1 {
+		t.Fatalf("triggered=%d want=1", triggered)
+	}
+}
+
+func TestSchedulerDiagnosticsLoadedCounter(t *testing.T) {
+	tmp := t.TempDir()
+	dir := filepath.Join(tmp, "scheduler")
+
+	s1, err := New(dir, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s1.AddOneShot("persist", time.Now().UTC().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+
+	s2, err := New(dir, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	diag := s2.Diagnostics()
+	if diag.TasksLoadedTotal != 1 {
+		t.Fatalf("tasks_loaded_total=%d want=1", diag.TasksLoadedTotal)
+	}
+	if diag.TasksTotal != 1 {
+		t.Fatalf("tasks_total=%d want=1", diag.TasksTotal)
+	}
+}

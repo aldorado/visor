@@ -249,6 +249,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 	}
 
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /health/scheduler", s.handleSchedulerHealth)
 	s.mux.HandleFunc("POST /webhook", s.handleWebhook)
 	s.mux.HandleFunc("POST /forgejo/webhook", s.handleForgejoWebhook)
 	return s
@@ -299,6 +300,24 @@ func currentShortRevision(repoDir string) string {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+func (s *Server) handleSchedulerHealth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	if s.scheduler == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"status": "unavailable",
+			"reason": "scheduler_not_initialized",
+		})
+		return
+	}
+
+	diag := s.scheduler.Diagnostics()
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"status":    "ok",
+		"scheduler": diag,
+	})
 }
 
 func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -393,6 +412,20 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 			s.log.Info(r.Context(), "quick action handled", "chat_id", chatID, "reply", reply)
 			if sendErr := s.tg.SendMessage(msg.Chat.ID, reply); sendErr != nil {
 				s.log.Error(r.Context(), "quick action reply failed", "chat_id", chatID, "error", sendErr.Error())
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+
+	// scheduler diagnostic command: /schedule
+	if msgType == "text" && s.scheduler != nil {
+		trimmed := strings.TrimSpace(content)
+		if trimmed == "/schedule" {
+			reply := formatSchedulerStatus(s.scheduler.Diagnostics(), s.scheduler.List())
+			s.log.Info(r.Context(), "scheduler status command", "chat_id", chatID)
+			if sendErr := s.tg.SendMessage(msg.Chat.ID, reply); sendErr != nil {
+				s.log.Error(r.Context(), "scheduler status reply failed", "chat_id", chatID, "error", sendErr.Error())
 			}
 			w.WriteHeader(http.StatusOK)
 			return
@@ -929,6 +962,40 @@ func parseResponse(raw string) (text string, meta responseMeta) {
 	}
 
 	return
+}
+
+func formatSchedulerStatus(diag scheduler.Diagnostics, tasks []scheduler.Task) string {
+	lines := []string{
+		"scheduler status",
+		fmt.Sprintf("- tasks_total: *%d*", diag.TasksTotal),
+		fmt.Sprintf("- loaded_total: *%d*", diag.TasksLoadedTotal),
+		fmt.Sprintf("- triggered_total: *%d*", diag.TasksTriggeredTotal),
+		fmt.Sprintf("- trigger_errors_total: *%d*", diag.TriggerErrorsTotal),
+		fmt.Sprintf("- overdue_scanned_total: *%d*", diag.OverdueScannedTotal),
+		fmt.Sprintf("- overdue_recovered_total: *%d*", diag.OverdueRecoveredTotal),
+		fmt.Sprintf("- overdue_missed_runs_total: *%d*", diag.OverdueMissedRunsTotal),
+	}
+
+	if len(tasks) == 0 {
+		lines = append(lines, "- no tasks")
+		return strings.Join(lines, "\n")
+	}
+
+	lines = append(lines, "- upcoming:")
+	for i, task := range tasks {
+		if i >= 10 {
+			lines = append(lines, "  - ...truncated")
+			break
+		}
+		when := task.NextRunAt.UTC().Format(time.RFC3339)
+		if task.Recurring {
+			lines = append(lines, fmt.Sprintf("  - %s @ %s (every %ds) [%s]", task.Prompt, when, task.IntervalSeconds, task.ID))
+		} else {
+			lines = append(lines, fmt.Sprintf("  - %s @ %s [%s]", task.Prompt, when, task.ID))
+		}
+	}
+
+	return strings.Join(lines, "\n")
 }
 
 func formatModelStatus(ms agent.ModelStatus, backendLabel string) string {

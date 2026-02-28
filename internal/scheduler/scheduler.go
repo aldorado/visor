@@ -9,11 +9,14 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
 	"visor/internal/observability"
 )
+
+const startupCatchUpWindow = 15 * time.Minute
 
 type Task struct {
 	ID              string    `json:"id"`
@@ -24,12 +27,31 @@ type Task struct {
 	CreatedAt       time.Time `json:"created_at"`
 }
 
+type Diagnostics struct {
+	StorePath              string   `json:"store_path"`
+	TaskIDs                []string `json:"task_ids"`
+	TasksTotal             int      `json:"tasks_total"`
+	TasksLoadedTotal       int64    `json:"tasks_loaded_total"`
+	TasksTriggeredTotal    int64    `json:"tasks_triggered_total"`
+	TriggerErrorsTotal     int64    `json:"trigger_errors_total"`
+	OverdueScannedTotal    int64    `json:"overdue_scanned_total"`
+	OverdueRecoveredTotal  int64    `json:"overdue_recovered_total"`
+	OverdueMissedRunsTotal int64    `json:"overdue_missed_runs_total"`
+}
+
 type Scheduler struct {
 	mu        sync.Mutex
 	tasks     map[string]Task
 	storePath string
 	onTrigger func(context.Context, Task)
 	log       *observability.Logger
+
+	tasksLoadedTotal       atomic.Int64
+	tasksTriggeredTotal    atomic.Int64
+	triggerErrorsTotal     atomic.Int64
+	overdueScannedTotal    atomic.Int64
+	overdueRecoveredTotal  atomic.Int64
+	overdueMissedRunsTotal atomic.Int64
 }
 
 type UpdateTaskInput struct {
@@ -54,6 +76,9 @@ func New(dataDir string, onTrigger func(context.Context, Task)) (*Scheduler, err
 		log:       observability.Component("scheduler"),
 	}
 	if err := s.loadLocked(); err != nil {
+		return nil, err
+	}
+	if err := s.reconcileOverdueLocked(time.Now().UTC()); err != nil {
 		return nil, err
 	}
 	return s, nil
@@ -187,6 +212,29 @@ func (s *Scheduler) List() []Task {
 	return out
 }
 
+func (s *Scheduler) Diagnostics() Diagnostics {
+	s.mu.Lock()
+	ids := make([]string, 0, len(s.tasks))
+	for id := range s.tasks {
+		ids = append(ids, id)
+	}
+	tasksTotal := len(s.tasks)
+	s.mu.Unlock()
+
+	sort.Strings(ids)
+	return Diagnostics{
+		StorePath:              s.storePath,
+		TaskIDs:                ids,
+		TasksTotal:             tasksTotal,
+		TasksLoadedTotal:       s.tasksLoadedTotal.Load(),
+		TasksTriggeredTotal:    s.tasksTriggeredTotal.Load(),
+		TriggerErrorsTotal:     s.triggerErrorsTotal.Load(),
+		OverdueScannedTotal:    s.overdueScannedTotal.Load(),
+		OverdueRecoveredTotal:  s.overdueRecoveredTotal.Load(),
+		OverdueMissedRunsTotal: s.overdueMissedRunsTotal.Load(),
+	}
+}
+
 func (s *Scheduler) Start(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -220,8 +268,14 @@ func (s *Scheduler) TriggerDue(ctx context.Context, now time.Time) error {
 
 	for _, t := range due {
 		if t.Recurring {
-			next := t.NextRunAt
 			interval := time.Duration(t.IntervalSeconds) * time.Second
+			if interval <= 0 {
+				s.triggerErrorsTotal.Add(1)
+				s.mu.Unlock()
+				return fmt.Errorf("recurring task %s has invalid interval_seconds=%d", t.ID, t.IntervalSeconds)
+			}
+
+			next := t.NextRunAt
 			for !next.After(now) {
 				next = next.Add(interval)
 			}
@@ -233,12 +287,14 @@ func (s *Scheduler) TriggerDue(ctx context.Context, now time.Time) error {
 	}
 
 	if err := s.saveLocked(); err != nil {
+		s.triggerErrorsTotal.Add(1)
 		s.mu.Unlock()
 		return err
 	}
 	s.mu.Unlock()
 
 	for _, t := range due {
+		s.tasksTriggeredTotal.Add(1)
 		s.log.Info(ctx, "scheduler task triggered", "task_id", t.ID, "recurring", t.Recurring)
 		if s.onTrigger != nil {
 			s.onTrigger(ctx, t)
@@ -247,9 +303,68 @@ func (s *Scheduler) TriggerDue(ctx context.Context, now time.Time) error {
 	return nil
 }
 
+func (s *Scheduler) reconcileOverdueLocked(now time.Time) error {
+	overdueScanned := int64(0)
+	overdueRecovered := int64(0)
+	overdueMissedRuns := int64(0)
+	updated := false
+
+	for id, t := range s.tasks {
+		if !t.Recurring || t.NextRunAt.After(now) {
+			continue
+		}
+		overdueScanned++
+
+		interval := time.Duration(t.IntervalSeconds) * time.Second
+		if interval <= 0 {
+			return fmt.Errorf("recurring task %s has invalid interval_seconds=%d", t.ID, t.IntervalSeconds)
+		}
+
+		overdueBy := now.Sub(t.NextRunAt)
+		if overdueBy <= startupCatchUpWindow {
+			continue
+		}
+
+		next := t.NextRunAt
+		missedRuns := int64(0)
+		for !next.After(now) {
+			next = next.Add(interval)
+			missedRuns++
+		}
+		t.NextRunAt = next
+		s.tasks[id] = t
+		overdueRecovered++
+		overdueMissedRuns += missedRuns
+		updated = true
+	}
+
+	if overdueScanned > 0 {
+		s.overdueScannedTotal.Add(overdueScanned)
+	}
+	if overdueRecovered > 0 {
+		s.overdueRecoveredTotal.Add(overdueRecovered)
+	}
+	if overdueMissedRuns > 0 {
+		s.overdueMissedRunsTotal.Add(overdueMissedRuns)
+	}
+
+	if updated {
+		if err := s.saveLocked(); err != nil {
+			return err
+		}
+	}
+
+	if overdueScanned > 0 {
+		s.log.Info(context.Background(), "scheduler startup overdue scan", "scanned", overdueScanned, "recovered", overdueRecovered, "missed_runs", overdueMissedRuns, "catchup_window_seconds", int64(startupCatchUpWindow.Seconds()))
+	}
+
+	return nil
+}
+
 func (s *Scheduler) loadLocked() error {
 	if _, err := os.Stat(s.storePath); err != nil {
 		if os.IsNotExist(err) {
+			s.log.Info(context.Background(), "scheduler store not found", "store_path", s.storePath)
 			return nil
 		}
 		return fmt.Errorf("stat scheduler store: %w", err)
@@ -259,6 +374,7 @@ func (s *Scheduler) loadLocked() error {
 		return fmt.Errorf("read scheduler store: %w", err)
 	}
 	if len(bytes) == 0 {
+		s.log.Info(context.Background(), "scheduler store empty", "store_path", s.storePath)
 		return nil
 	}
 	var tasks []Task
@@ -268,7 +384,8 @@ func (s *Scheduler) loadLocked() error {
 	for _, t := range tasks {
 		s.tasks[t.ID] = t
 	}
-	s.log.Info(context.Background(), "scheduler tasks loaded", "count", len(tasks))
+	s.tasksLoadedTotal.Add(int64(len(tasks)))
+	s.log.Info(context.Background(), "scheduler tasks loaded", "count", len(tasks), "store_path", s.storePath, "task_ids", taskIDs(tasks))
 	return nil
 }
 
@@ -290,4 +407,13 @@ func (s *Scheduler) saveLocked() error {
 		return fmt.Errorf("write scheduler store: %w", err)
 	}
 	return nil
+}
+
+func taskIDs(tasks []Task) []string {
+	ids := make([]string, 0, len(tasks))
+	for _, t := range tasks {
+		ids = append(ids, t.ID)
+	}
+	sort.Strings(ids)
+	return ids
 }
