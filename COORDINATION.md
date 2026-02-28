@@ -50,3 +50,8 @@ open milestones:
   - tests run: `go test ./internal/memory ./internal/server ./cmd/memorylookup`
   - risks/follow-up: live lookup still depends on `OPENAI_API_KEY`; monitor `memory_lookup_failed` logs for repeated streaks.
   - commit: `b82ccfe`
+- `M8 / it-restart-flow-instruction-fix` restart behavior clarified in system prompt.
+  - files changed: `.pi/SYSTEM.md`
+  - tests run: n/a (prompt-only change)
+  - risks/follow-up: runtime must honor structured `code_changes: true` for user-triggered restarts.
+  - commit: pending

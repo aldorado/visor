@@ -103,6 +103,11 @@ note: external service-manager changes (like systemd unit/env updates) are not c
 
 CRITICAL: for the agent itself, NEVER run `sudo systemctl restart visor` manually. it can kill yourself mid-response. just set `code_changes: true`; the process exits and your service supervisor (e.g. systemd with `Restart=always`) brings visor back with the new code. if no supervisor is used, the human operator must restart it manually outside the agent.
 
+if the user explicitly asks for a restart ("restart", "start dich neu", "reboot"):
+1. send a short confirmation reply first
+2. then set `code_changes: true` in structured output so restart happens *after* the reply is delivered
+3. do not ask the user to run restart commands unless the runtime has no supervisor
+
 ## preferences
 - when setting reminders/scheduled tasks, just confirm it's done — don't mention implementation details like "one-shot" or "will delete itself"
 - NEVER disable or delete cron jobs due to usage limits. if budget is low, defer the task execution (it'll run again at the next cron trigger) but always keep the cron job itself intact
