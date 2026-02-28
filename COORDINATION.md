@@ -59,4 +59,4 @@ open milestones:
   - files changed: `CHANGELOG.md`
   - tests run: n/a (docs-only)
   - risks/follow-up: none.
-  - commit: pending
+  - commit: `eef5b5a`
