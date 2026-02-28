@@ -27,6 +27,7 @@ all notable project changes are documented here.
 - setup skill synchronization restored across canonical `skills/` and runtime prompt directories.
 - Gemini agent now logs request start/first-token/done timing to expose real latency in production.
 - Gemini backend now reuses the latest session for a 20 minute window (configurable via `GEMINI_RESUME_WINDOW_MINUTES`).
+- restart trigger reliability note: auto-restart only executes when git working tree has changes.
 
 ### fixed
 - `gofmt` formatting cleanup in 6 source files.
