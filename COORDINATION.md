@@ -60,3 +60,10 @@ open milestones:
   - tests run: n/a (docs-only)
   - risks/follow-up: none.
   - commit: `eef5b5a`
+
+### 2026-02-28
+- `M5 / it-scheduler-reliability-hardening` startup overdue reconciliation + scheduler diagnostics + manual `/schedule` command.
+  - files changed: `internal/scheduler/scheduler.go`, `internal/scheduler/scheduler_test.go`, `internal/server/server.go`, `internal/server/server_test.go`
+  - tests run: `go test ./internal/scheduler ./internal/server`
+  - risks/follow-up: current startup policy fast-forwards only overdue recurring tasks older than 15m window; monitor if catch-up window should be configurable.
+  - commit: `addbbd6`
