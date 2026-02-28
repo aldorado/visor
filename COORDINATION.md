@@ -28,7 +28,7 @@ open milestones:
 
 ## active claims
 
-- [claim] none
+- [claim] visor | M3 / memory-lookup-runtime hardening | main | 2026-02-27 19:24 CET
 
 ## handoff log
 

@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"visor/internal/agent"
@@ -27,19 +28,20 @@ import (
 )
 
 type Server struct {
-	cfg          *config.Config
-	mux          *http.ServeMux
-	tg           *telegram.Client
-	dedup        *telegram.Dedup
-	agent        *agent.QueuedAgent
-	voice        *voice.Handler
-	memory       *memory.Manager
-	scheduler    *scheduler.Scheduler
-	quickActions *scheduler.QuickActionHandler
-	skills       *skills.Manager
-	selfevolver  *selfevolve.Manager
-	setupState   setup.State
-	log          *observability.Logger
+	cfg                       *config.Config
+	mux                       *http.ServeMux
+	tg                        *telegram.Client
+	dedup                     *telegram.Dedup
+	agent                     *agent.QueuedAgent
+	voice                     *voice.Handler
+	memory                    *memory.Manager
+	scheduler                 *scheduler.Scheduler
+	quickActions              *scheduler.QuickActionHandler
+	skills                    *skills.Manager
+	selfevolver               *selfevolve.Manager
+	setupState                setup.State
+	log                       *observability.Logger
+	memoryLookupFailureStreak atomic.Int64
 }
 
 var voiceTagPattern = regexp.MustCompile(`\[(excited|curious|thoughtful|laughs|sighs|whispers)\]`)
@@ -66,6 +68,11 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 			s.log.Warn(context.Background(), "memory manager init failed", "error", memErr.Error())
 		} else {
 			s.memory = memoryManager
+			if checkErr := s.memory.RuntimeSelfCheck(); checkErr != nil {
+				s.log.Warn(context.Background(), "memory runtime self-check failed", "error", checkErr.Error(), "hint", "run `go run ./cmd/memorylookup -self-check`")
+			} else {
+				s.log.Info(context.Background(), "memory runtime self-check passed")
+			}
 		}
 	}
 
@@ -453,9 +460,20 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	if s.memory != nil && strings.TrimSpace(originalContent) != "" {
 		memoryCtx, lookupErr := s.memory.Lookup(originalContent, 5)
 		if lookupErr != nil {
-			s.log.Warn(r.Context(), "memory lookup failed", "error", lookupErr.Error())
-		} else if strings.TrimSpace(memoryCtx) != "" {
-			content = content + "\n\n[memory context]\n" + memoryCtx
+			streak := s.memoryLookupFailureStreak.Add(1)
+			s.log.Warn(r.Context(), "memory_lookup_failed", "error", lookupErr.Error(), "failure_streak", streak, "hint", "run `go run ./cmd/memorylookup -self-check` and verify OPENAI_API_KEY")
+			if streak >= 3 && streak%3 == 0 {
+				s.log.Warn(r.Context(), "memory_lookup_repeated_failures", "failure_streak", streak)
+			}
+		} else {
+			previousStreak := s.memoryLookupFailureStreak.Load()
+			if previousStreak > 0 {
+				s.log.Info(r.Context(), "memory_lookup_recovered", "previous_failure_streak", previousStreak)
+			}
+			s.memoryLookupFailureStreak.Store(0)
+			if strings.TrimSpace(memoryCtx) != "" {
+				content = content + "\n\n[memory context]\n" + memoryCtx
+			}
 		}
 	}
 

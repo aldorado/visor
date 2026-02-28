@@ -17,31 +17,38 @@ Use this proactively when:
 
 ## How to search
 
-Run a TypeScript snippet to search memories:
+Use the canonical runtime command:
 
 ```bash
-npx tsx -e "
-import { MemoryManager } from './src/memory.js';
-
-const m = new MemoryManager();
-const results = await m.search('YOUR_QUERY_HERE');
-for (const r of results) {
-  console.log(\`[\${r.similarity.toFixed(2)}] \${r.createdAt.slice(0, 10)}\`);
-  console.log(r.content);
-  console.log('---');
-}
-"
+go run ./cmd/memorylookup -query "YOUR_QUERY_HERE"
 ```
 
-Replace `YOUR_QUERY_HERE` with your search query. Be specific - the semantic search works better with detailed queries.
+or via script wrapper:
+
+```bash
+./scripts/memory-lookup.sh -query "YOUR_QUERY_HERE"
+```
+
+Replace `YOUR_QUERY_HERE` with your search query. Be specific - semantic lookup works better with concrete phrasing.
 
 ## Settings
 
-Default: threshold=0.3, always returns at least 3 results (top matches even if below threshold).
+Defaults: `-threshold 0.3`, `-max-results 5`, `-min-results 3`.
 
-```typescript
-const results = await m.search('query', { threshold: 0.4 });  // stricter matching
-const results = await m.search('query', { minResults: 5 });   // more fallback results
+Examples:
+
+```bash
+go run ./cmd/memorylookup -query "query" -threshold 0.4
+```
+
+```bash
+go run ./cmd/memorylookup -query "query" -min-results 5
+```
+
+Runtime verification (no network call):
+
+```bash
+go run ./cmd/memorylookup -self-check
 ```
 
 ## Output
