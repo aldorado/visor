@@ -219,7 +219,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		if s.quickActions != nil {
 			s.quickActions.RecordTrigger(task)
 		}
-		content := fmt.Sprintf("[scheduled task]\nid: %s\nrecurring: %t\nprompt: %s", task.ID, task.Recurring, task.Prompt)
+		content := buildScheduledTaskContent(task, s.cfg.Timezone, time.Now())
 		s.agent.Enqueue(ctx, agent.Message{
 			ChatID:  mustParseChatID(cfg.UserChatID),
 			Content: content,
@@ -987,6 +987,35 @@ func buildResponseRepairPrompt(raw string, validationErr error) string {
 		"- no extra commentary\n\n" +
 		"validation error:\n" + validationErr.Error() + "\n\n" +
 		"original response:\n" + raw)
+}
+
+func buildScheduledTaskContent(task scheduler.Task, timezone string, now time.Time) string {
+	effectivePrompt := task.Prompt
+	if shouldAddSelfImprovementDateGuard(task.Prompt) {
+		effectivePrompt = withSelfImprovementDateGuard(task.Prompt, timezone, now)
+	}
+	return fmt.Sprintf("[scheduled task]\nid: %s\nrecurring: %t\nprompt: %s", task.ID, task.Recurring, effectivePrompt)
+}
+
+func shouldAddSelfImprovementDateGuard(prompt string) bool {
+	p := strings.ToLower(prompt)
+	return strings.Contains(p, "self-improvement") || strings.Contains(p, "self improvement")
+}
+
+func withSelfImprovementDateGuard(prompt, timezone string, now time.Time) string {
+	loc := time.UTC
+	if strings.TrimSpace(timezone) != "" {
+		if parsed, err := time.LoadLocation(timezone); err == nil {
+			loc = parsed
+		}
+	}
+	localDate := now.In(loc).Format("2006-01-02")
+	guard := strings.TrimSpace("date guard (must follow exactly):\n" +
+		"- current local date: " + localDate + "\n" +
+		"- if you create a self-improvement markdown file, filename prefix must be exactly " + localDate + "\n" +
+		"- markdown field `_date_` must be exactly " + localDate + "\n" +
+		"- never reuse yesterday's date")
+	return strings.TrimSpace(prompt) + "\n\n" + guard
 }
 
 func formatSchedulerStatus(diag scheduler.Diagnostics, tasks []scheduler.Task) string {
