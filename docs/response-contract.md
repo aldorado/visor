@@ -34,3 +34,5 @@ visor enforces a structured response contract before sending any platform reply.
 the schema string is available via:
 
 - `internal/agent/contract.JSONSchema()`
+
+<!-- restart trigger touch: keep -->
