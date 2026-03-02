@@ -1114,6 +1114,9 @@ func (s *Server) runSelfEvolution(chatID int64, commitMessage string) {
 		return
 	}
 
-	s.log.Info(ctx, "self-evolution completed", "chat_id", chatID)
-	_ = s.tg.SendMessage(chatID, "self-evolution done ✅")
+	// explicit restart triggers can arrive without local git changes.
+	// in that case Apply returns no build artifact; still restart now.
+	s.log.Info(ctx, "self-evolution no-op commit path, restarting anyway", "chat_id", chatID)
+	_ = s.tg.SendMessage(chatID, "no code diff found — restarting now... 🔄")
+	s.selfevolver.Restart()
 }
