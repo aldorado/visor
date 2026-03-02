@@ -209,6 +209,12 @@ func (qa *QueuedAgent) CurrentModel() string {
 	return currentModel(qa.agent)
 }
 
+// SendPrompt forwards a prompt directly to the underlying agent.
+// Use this sparingly for one-shot repairs inside the active processing flow.
+func (qa *QueuedAgent) SendPrompt(ctx context.Context, prompt string) (string, error) {
+	return qa.agent.SendPrompt(ctx, prompt)
+}
+
 func (qa *QueuedAgent) ModelStatus() ModelStatus {
 	if reg, ok := qa.agent.(*Registry); ok {
 		return reg.ActiveModelStatus()

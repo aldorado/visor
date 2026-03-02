@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"visor/internal/agent"
+	"visor/internal/agent/contract"
 	"visor/internal/config"
 	"visor/internal/forgejo"
 	"visor/internal/memory"
@@ -42,6 +43,9 @@ type Server struct {
 	setupState                setup.State
 	log                       *observability.Logger
 	memoryLookupFailureStreak atomic.Int64
+	responseValidationPass    atomic.Int64
+	responseValidationFail    atomic.Int64
+	responseAutofixApplied    atomic.Int64
 }
 
 var voiceTagPattern = regexp.MustCompile(`\[(excited|curious|thoughtful|laughs|sighs|whispers)\]`)
@@ -147,7 +151,7 @@ func New(cfg *config.Config, a agent.Agent) *Server {
 		}
 
 		s.log.Info(ctx, "webhook message processed", "chat_id", chatID, "backend", cfg.AgentBackend)
-		text, meta := parseResponse(response)
+		text, meta := s.parseResponseWithContract(ctx, chatID, response)
 		text = sanitizeUserReply(text)
 
 		if s.memory != nil {
@@ -878,12 +882,13 @@ func (s *Server) executeSetupActions(ctx context.Context, actions *setup.ActionE
 }
 
 type responseMeta struct {
-	SendVoice      bool
-	CodeChanges    bool
-	CommitMessage  string
-	GitPush        bool
-	GitPushDir     string // repo dir to push; defaults to SelfEvolutionRepoDir
-	MemoriesToSave []string
+	SendVoice            bool
+	CodeChanges          bool
+	ConversationFinished bool
+	CommitMessage        string
+	GitPush              bool
+	GitPushDir           string // repo dir to push; defaults to SelfEvolutionRepoDir
+	MemoriesToSave       []string
 }
 
 // parseResponse extracts metadata from agent response.
@@ -911,57 +916,77 @@ func stripVoiceTags(text string) string {
 }
 
 func parseResponse(raw string) (text string, meta responseMeta) {
-	parts := strings.SplitN(raw, "\n---\n", 2)
-	text = parts[0]
-	if len(parts) != 2 {
-		return
+	resp := contract.ParseRaw(raw)
+	_ = contract.FixDefaults(&resp)
+	return resp.ResponseText, toResponseMeta(resp)
+}
+
+func toResponseMeta(resp contract.Response) responseMeta {
+	return responseMeta{
+		SendVoice:            resp.SendVoice,
+		CodeChanges:          resp.CodeChanges,
+		ConversationFinished: resp.ConversationFinished,
+		CommitMessage:        resp.CommitMessage,
+		GitPush:              resp.GitPush,
+		GitPushDir:           resp.GitPushDir,
+		MemoriesToSave:       append([]string{}, resp.MemoriesToSave...),
+	}
+}
+
+func (s *Server) parseResponseWithContract(ctx context.Context, chatID int64, raw string) (string, responseMeta) {
+	resp := contract.ParseRaw(raw)
+	autofixed := contract.FixDefaults(&resp)
+	if autofixed {
+		total := s.responseAutofixApplied.Add(1)
+		s.log.Info(ctx, "response contract autofix applied", "chat_id", chatID, "response_autofix_applied", total)
 	}
 
-	lines := strings.Split(parts[1], "\n")
-	for i := 0; i < len(lines); i++ {
-		line := strings.TrimSpace(lines[i])
-		switch {
-		case line == "send_voice: true" || line == "send_voice:true":
-			meta.SendVoice = true
-		case line == "code_changes: true" || line == "code_changes:true":
-			meta.CodeChanges = true
-		case strings.HasPrefix(line, "commit_message:"):
-			meta.CommitMessage = strings.TrimSpace(strings.TrimPrefix(line, "commit_message:"))
-		case line == "git_push: true" || line == "git_push:true":
-			meta.GitPush = true
-		case strings.HasPrefix(line, "git_push_dir:"):
-			meta.GitPushDir = strings.TrimSpace(strings.TrimPrefix(line, "git_push_dir:"))
-		case strings.HasPrefix(line, "memories_to_save:"):
-			rest := strings.TrimSpace(strings.TrimPrefix(line, "memories_to_save:"))
-			if rest != "" {
-				if strings.HasPrefix(rest, "[") {
-					var inline []string
-					if err := json.Unmarshal([]byte(rest), &inline); err == nil {
-						meta.MemoriesToSave = append(meta.MemoriesToSave, inline...)
-						continue
-					}
-				}
-				meta.MemoriesToSave = append(meta.MemoriesToSave, rest)
-				continue
-			}
+	if err := contract.Validate(resp); err != nil {
+		failTotal := s.responseValidationFail.Add(1)
+		s.log.Warn(ctx, "response contract validation failed", "chat_id", chatID, "response_validation_fail", failTotal, "error", err.Error())
 
-			for i+1 < len(lines) {
-				next := strings.TrimSpace(lines[i+1])
-				if next == "" {
-					i++
-					continue
-				}
-				if strings.HasPrefix(next, "- ") {
-					meta.MemoriesToSave = append(meta.MemoriesToSave, strings.TrimSpace(strings.TrimPrefix(next, "- ")))
-					i++
-					continue
-				}
-				break
+		repairPrompt := buildResponseRepairPrompt(raw, err)
+		repairedRaw, repairErr := s.agent.SendPrompt(ctx, repairPrompt)
+		if repairErr == nil {
+			repairedResp := contract.ParseRaw(repairedRaw)
+			if contract.FixDefaults(&repairedResp) {
+				total := s.responseAutofixApplied.Add(1)
+				s.log.Info(ctx, "response contract autofix applied after repair", "chat_id", chatID, "response_autofix_applied", total)
 			}
+			validateErr := contract.Validate(repairedResp)
+			if validateErr == nil {
+				passTotal := s.responseValidationPass.Add(1)
+				s.log.Info(ctx, "response contract repair succeeded", "chat_id", chatID, "response_validation_pass", passTotal)
+				return repairedResp.ResponseText, toResponseMeta(repairedResp)
+			}
+			s.log.Error(ctx, "response contract repair invalid", "chat_id", chatID, "error", validateErr.Error())
+		} else {
+			s.log.Error(ctx, "response contract repair failed", "chat_id", chatID, "error", repairErr.Error())
 		}
+
+		fallback := contract.Response{ResponseText: "ok"}
+		_ = contract.FixDefaults(&fallback)
+		passTotal := s.responseValidationPass.Add(1)
+		s.log.Info(ctx, "response contract fallback used", "chat_id", chatID, "response_validation_pass", passTotal)
+		return fallback.ResponseText, toResponseMeta(fallback)
 	}
 
-	return
+	passTotal := s.responseValidationPass.Add(1)
+	s.log.Info(ctx, "response contract validation passed", "chat_id", chatID, "response_validation_pass", passTotal)
+	return resp.ResponseText, toResponseMeta(resp)
+}
+
+func buildResponseRepairPrompt(raw string, validationErr error) string {
+	return strings.TrimSpace("rewrite the assistant response so it strictly matches the response contract. keep user-visible meaning, fix only structure issues.\n\n" +
+		"requirements:\n" +
+		"- output plain response text first\n" +
+		"- optional metadata block after a separator line exactly: ---\n" +
+		"- metadata keys allowed: send_voice, code_changes, conversation_finished, commit_message, git_push, git_push_dir, memories_to_save\n" +
+		"- if send_voice is false or omitted, response text must be non-empty\n" +
+		"- if code_changes is true, commit_message must be non-empty\n" +
+		"- no extra commentary\n\n" +
+		"validation error:\n" + validationErr.Error() + "\n\n" +
+		"original response:\n" + raw)
 }
 
 func formatSchedulerStatus(diag scheduler.Diagnostics, tasks []scheduler.Task) string {

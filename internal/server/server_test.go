@@ -311,6 +311,22 @@ func TestParseResponse_CodeChangesAndCommitMessage(t *testing.T) {
 	}
 }
 
+func TestParseResponse_ConversationFinishedKeptOnGoodbye(t *testing.T) {
+	raw := "ciao\n---\nconversation_finished: true"
+	_, meta := parseResponse(raw)
+	if !meta.ConversationFinished {
+		t.Fatal("expected conversation_finished true")
+	}
+}
+
+func TestParseResponse_ConversationFinishedResetWithoutGoodbye(t *testing.T) {
+	raw := "let's continue\n---\nconversation_finished: true"
+	_, meta := parseResponse(raw)
+	if meta.ConversationFinished {
+		t.Fatal("expected conversation_finished false")
+	}
+}
+
 func TestShouldSendVoice_ExplicitMetadata(t *testing.T) {
 	if !shouldSendVoice(responseMeta{SendVoice: true}, "hello") {
 		t.Fatal("shouldSendVoice = false, want true")
