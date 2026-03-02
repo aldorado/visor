@@ -45,6 +45,31 @@ func TestFixDefaults_KeepsConversationFinishedWithGoodbye(t *testing.T) {
 	}
 }
 
+func TestFixDefaults_AutoSetsCodeChangesForExplicitRestartIntent(t *testing.T) {
+	resp := Response{ResponseText: "perfekt 🎺\nich starte mich jetzt neu."}
+	changed := FixDefaults(&resp)
+	if !changed {
+		t.Fatal("expected change")
+	}
+	if !resp.CodeChanges {
+		t.Fatal("code_changes should be true")
+	}
+	if resp.CommitMessage == "" {
+		t.Fatal("commit_message should be set")
+	}
+}
+
+func TestFixDefaults_DoesNotSetCodeChangesForNegatedRestart(t *testing.T) {
+	resp := Response{ResponseText: "ich kann nicht neu starten, kein supervisor aktiv."}
+	changed := FixDefaults(&resp)
+	if changed {
+		t.Fatal("did not expect change")
+	}
+	if resp.CodeChanges {
+		t.Fatal("code_changes should stay false")
+	}
+}
+
 func TestParseRaw_Metadata(t *testing.T) {
 	raw := "hello\n---\nsend_voice: true\ncode_changes: true\ncommit_message: test\nconversation_finished: false"
 	resp := ParseRaw(raw)

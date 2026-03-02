@@ -60,6 +60,14 @@ func FixDefaults(resp *Response) bool {
 		changed = true
 	}
 
+	if !resp.CodeChanges && hasExplicitRestartIntent(resp.ResponseText) {
+		resp.CodeChanges = true
+		if strings.TrimSpace(resp.CommitMessage) == "" {
+			resp.CommitMessage = "chore: restart requested by assistant reply"
+		}
+		changed = true
+	}
+
 	// zero-value bool defaults for CodeChanges/ConversationFinished are intentional.
 	return changed
 }
@@ -70,6 +78,36 @@ func hasGoodbyeIntent(text string) bool {
 		return false
 	}
 	markers := []string{"bye", "goodbye", "ciao", "tschüss", "tschuess", "bis dann", "see you"}
+	for _, marker := range markers {
+		if strings.Contains(s, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasExplicitRestartIntent(text string) bool {
+	s := strings.ToLower(strings.TrimSpace(text))
+	if s == "" {
+		return false
+	}
+
+	negations := []string{"kann nicht", "can't", "cannot", "can not", "geht nicht", "nicht möglich"}
+	for _, marker := range negations {
+		if strings.Contains(s, marker) {
+			return false
+		}
+	}
+
+	markers := []string{
+		"ich starte mich jetzt neu",
+		"ich starte mich neu",
+		"starte mich jetzt neu",
+		"restarting now",
+		"i'm restarting now",
+		"i will restart now",
+		"i'll restart now",
+	}
 	for _, marker := range markers {
 		if strings.Contains(s, marker) {
 			return true
